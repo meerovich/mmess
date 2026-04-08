@@ -92,13 +92,47 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | Populated during roadmap creation |
+| INFRA-01 | Phase 1 | Pending |
+| INFRA-02 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Pending |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| AUTH-05 | Phase 2 | Pending |
+| INFRA-03 | Phase 2 | Pending |
+| MSG-01 | Phase 3 | Pending |
+| MSG-02 | Phase 3 | Pending |
+| MSG-03 | Phase 3 | Pending |
+| MSG-04 | Phase 3 | Pending |
+| MSG-05 | Phase 3 | Pending |
+| MSG-06 | Phase 3 | Pending |
+| MSG-07 | Phase 3 | Pending |
+| MSG-08 | Phase 3 | Pending |
+| MSG-09 | Phase 3 | Pending |
+| MSG-10 | Phase 3 | Pending |
+| CONV-01 | Phase 3 | Pending |
+| CONV-02 | Phase 3 | Pending |
+| CONV-03 | Phase 3 | Pending |
+| CONV-04 | Phase 4 | Pending |
+| CONV-05 | Phase 4 | Pending |
+| CONV-06 | Phase 4 | Pending |
+| PRES-01 | Phase 4 | Pending |
+| PRES-02 | Phase 4 | Pending |
+| PRES-03 | Phase 4 | Pending |
+| FILE-01 | Phase 5 | Pending |
+| FILE-02 | Phase 5 | Pending |
+| FILE-03 | Phase 5 | Pending |
+| FILE-04 | Phase 5 | Pending |
+| UI-01 | Phase 6 | Pending |
+| UI-02 | Phase 6 | Pending |
+| UI-03 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 31 total
-- Mapped to phases: 0
-- Unmapped: 31 (pending roadmap)
+- v1 requirements: 35 total
+- Mapped to phases: 35
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-08*
-*Last updated: 2026-04-08 after initial definition*
+*Last updated: 2026-04-08 after roadmap creation*
