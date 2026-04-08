@@ -1,6 +1,6 @@
 # Roadmap: mmess
 
-**Project:** mmess — self-hosted HTTPS messenger
+**Project:** mmess — self-hosted HTTPS WebSocket messenger
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
 **Milestone:** v1
 **Created:** 2026-04-08
@@ -30,7 +30,12 @@
   2. HTTPS is served via Caddy; HTTP requests redirect to HTTPS
   3. Database schema migrations run on startup and all tables exist
   4. Named Docker volume persists file storage data across container restarts
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Monorepo scaffold: root tooling, server workspace (Fastify+Drizzle+ws), client workspace (React+Vite)
+- [ ] 01-02-PLAN.md — Drizzle schema (all 7 tables), migration runner wired to Fastify startup
+- [ ] 01-03-PLAN.md — Docker Compose stack, Caddyfile with HTTPS+WebSocket proxy, verified end-to-end
 
 ### Phase 2: Authentication
 **Goal**: Users can securely create accounts, log in, maintain sessions across browser restarts, and control their active devices
@@ -103,7 +108,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/? | Not started | - |
+| 1. Foundation | 0/3 | Not started | - |
 | 2. Authentication | 0/? | Not started | - |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |
@@ -156,3 +161,4 @@
 
 ---
 *Roadmap created: 2026-04-08*
+*Updated: 2026-04-08 — Phase 1 plans defined (3 plans, 3 waves)*
