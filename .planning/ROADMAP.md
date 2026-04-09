@@ -11,7 +11,7 @@
 ## Phases
 
 - [x] **Phase 1: Foundation** - Project scaffold, database schema, Docker Compose skeleton, Caddy TLS wiring (completed 2026-04-09)
-- [ ] **Phase 2: Authentication** - User registration, login, JWT sessions, device session management, WebSocket auth
+- [x] **Phase 2: Authentication** - User registration, login, JWT sessions, device session management, WebSocket auth (completed 2026-04-09)
 - [ ] **Phase 3: Messaging Core** - Real-time WebSocket messaging, full message lifecycle, conversation management
 - [ ] **Phase 4: Groups & Presence** - Group administration, online/offline presence, offline delivery, browser notifications
 - [ ] **Phase 5: File Sharing** - File and image upload/download, inline previews, drag-and-drop
@@ -54,7 +54,7 @@ Plans:
 - [x] 02-01-PLAN.md — Schema extension (sessions + invites), new packages, global auth + rate-limit Fastify plugins
 - [x] 02-02-PLAN.md — Auth API routes: register, login, refresh, logout, sessions list+terminate, invite CLI
 - [x] 02-03-PLAN.md — WebSocket auth stub with preValidation enforcement (INFRA-03)
-- [ ] 02-04-PLAN.md — React client: AuthContext, protected routes, login/register/sessions pages
+- [x] 02-04-PLAN.md — React client: AuthContext, protected routes, login/register/sessions pages
 
 ### Phase 3: Messaging Core
 **Goal**: Users can have real-time text conversations — both private and group — with full message history and rich interaction (edit, delete, reply, reactions, typing, read receipts)
@@ -115,7 +115,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
-| 2. Authentication | 3/4 | In Progress|  |
+| 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
@@ -130,12 +130,12 @@ Plans:
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Pending |
 | INFRA-04 | Phase 1 | Pending |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| INFRA-03 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| AUTH-03 | Phase 2 | Complete |
+| AUTH-04 | Phase 2 | Complete |
+| AUTH-05 | Phase 2 | Complete |
+| INFRA-03 | Phase 2 | Complete |
 | MSG-01 | Phase 3 | Pending |
 | MSG-02 | Phase 3 | Pending |
 | MSG-03 | Phase 3 | Pending |
@@ -169,3 +169,4 @@ Plans:
 *Roadmap created: 2026-04-08*
 *Updated: 2026-04-08 — Phase 1 plans defined (3 plans, 3 waves)*
 *Updated: 2026-04-09 — Phase 2 plans defined (4 plans, 3 waves)*
+*Updated: 2026-04-09 — Phase 2 complete (4/4 plans, AUTH-01 through AUTH-05 + INFRA-03 done)*

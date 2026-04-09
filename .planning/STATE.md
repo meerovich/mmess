@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-09T09:10:00.000Z"
+last_updated: "2026-04-09T08:52:39Z"
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # State: mmess
@@ -26,8 +26,8 @@ progress:
 Phase: 02 (authentication) — EXECUTING
 Plan: 2 of 4
 **Phase:** 2
-**Plan:** 02-02 COMPLETE, next: 02-04 (02-03 already complete)
-**Status:** Executing Phase 02
+**Plan:** 02-04 COMPLETE — Phase 02 authentication fully complete
+**Status:** Phase 02 complete, ready for Phase 03
 
 **Progress:**
 
@@ -60,6 +60,7 @@ Plan: 2 of 4
 | Phase 02-authentication P01 | 6 | 3 tasks | 8 files |
 | Phase 02-authentication P03 | 15 | 1 tasks | 2 files |
 | Phase 02-authentication P02 | 20 | 2 tasks | 10 files |
+| Phase 02-authentication P04 | 12 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ Plan: 2 of 4
 | SELECT FOR UPDATE in Drizzle transaction for refresh | Prevents race condition where two concurrent refreshes both see same valid token (Pitfall C) |
 | clearCookie must match setCookie path | Mismatched paths silently fail to clear; logout must use exact paths used at login |
 | First-user auto-admin via COUNT(*) on users | Skip invite check when no users exist; enables bootstrap without initial invite |
+| BrowserRouter in App.tsx, not main.tsx | AuthProvider needs Router context; App.tsx owns BrowserRouter so all children can use hooks |
+| apiFetch refreshQueue serializes concurrent 401s | Multiple simultaneous expired-token requests share one refresh call — avoids token rotation race |
+| inviteToken in form body, not URL | Prevents token leakage in browser history, logs, and referrer headers |
 
 ### Architecture Notes
 
@@ -116,8 +120,8 @@ Plan: 2 of 4
 ## Session Continuity
 
 **Last updated:** 2026-04-09
-**Last action:** Completed 02-02 — Auth REST API: register/login/refresh/logout/me/sessions + invite CLI
-**Next action:** Execute 02-04 (React client: AuthContext, login/register/sessions pages)
+**Last action:** Completed 02-04 — React client auth UI: AuthContext, apiFetch, ProtectedRoute, login/register/sessions pages
+**Next action:** Execute Phase 03 — Messaging Core
 
 ---
 *State initialized: 2026-04-08*
