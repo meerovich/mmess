@@ -1,11 +1,17 @@
 import Fastify from 'fastify';
 import { runMigrations } from './db/migrate.js';
+import authPlugin from './plugins/auth.js';
+import rateLimitPlugin from './plugins/rate-limit.js';
 
 const app = Fastify({
   logger: {
     level: process.env.LOG_LEVEL ?? 'info',
   },
 });
+
+// Global plugins (order matters: cookie → jwt via authPlugin)
+app.register(authPlugin);
+app.register(rateLimitPlugin);
 
 app.get('/health', async (_request, _reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };
