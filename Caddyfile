@@ -1,0 +1,39 @@
+{$DOMAIN:localhost} {
+
+    # ── WebSocket proxy ────────────────────────────────────────────────────────
+    # Must be before the /api/* block. Uses HTTP/1.1 for Upgrade header (Pitfall 1 prevention).
+    # Caddy handles Upgrade and Connection headers automatically, but explicit http version
+    # ensures compatibility with all upstream configurations.
+    handle /ws* {
+        reverse_proxy api:3000 {
+            transport http {
+                versions 1.1
+            }
+        }
+    }
+
+    # ── API proxy ─────────────────────────────────────────────────────────────
+    handle /api/* {
+        reverse_proxy api:3000
+    }
+
+    # ── Uploaded files served directly by Caddy (not through Node.js) ────────
+    # Per D-16: Caddy serves files from the shared volume, bypassing Node.js
+    handle /uploads/* {
+        root * /data
+        file_server
+    }
+
+    # ── Frontend SPA (React + Vite) ───────────────────────────────────────────
+    handle {
+        root * /srv/www
+        try_files {path} /index.html
+        file_server
+    }
+
+    # ── Logging ───────────────────────────────────────────────────────────────
+    log {
+        output stdout
+        format console
+    }
+}

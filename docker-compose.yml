@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mmess}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mmess}
+      POSTGRES_DB: ${POSTGRES_DB:-mmess}
+    volumes:
+      - mmess_postgres:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mmess}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mmess}:${POSTGRES_PASSWORD:-mmess}@postgres:5432/${POSTGRES_DB:-mmess}
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      UPLOAD_DIR: /data/uploads
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+    volumes:
+      - mmess_uploads:/data/uploads       # named volume per D-15, INFRA-04
+    networks:
+      - internal
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"    # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./client/dist:/srv/www:ro          # serve built React SPA (D-12)
+      - mmess_uploads:/data/uploads:ro     # serve files directly (D-16)
+      - caddy_data:/data                   # TLS cert storage (persisted)
+      - caddy_config:/config
+    networks:
+      - internal
+    depends_on:
+      - api
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  mmess_postgres:
+    driver: local
+  mmess_uploads:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

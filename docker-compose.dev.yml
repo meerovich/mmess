@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"   # expose for direct psql access in dev
+    environment:
+      POSTGRES_USER: mmess
+      POSTGRES_PASSWORD: mmess
+      POSTGRES_DB: mmess
+    volumes:
+      - mmess_postgres_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mmess"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: node:22-alpine
+    working_dir: /app/server
+    command: npx tsx watch src/index.ts
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://mmess:mmess@postgres:5432/mmess
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: debug
+      JWT_ACCESS_SECRET: dev-access-secret-change-in-prod
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-prod
+      JWT_ACCESS_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      UPLOAD_DIR: /data/uploads
+      MAX_FILE_SIZE_MB: "50"
+    volumes:
+      - .:/app                              # bind-mount full monorepo for hot reload
+      - mmess_uploads_dev:/data/uploads
+      - /app/node_modules                   # anonymous volume prevents host node_modules override
+      - /app/server/node_modules
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./client/dist:/srv/www:ro
+      - mmess_uploads_dev:/data/uploads:ro
+      - caddy_data_dev:/data
+      - caddy_config_dev:/config
+    depends_on:
+      - api
+    environment:
+      DOMAIN: localhost
+
+volumes:
+  mmess_postgres_dev:
+    driver: local
+  mmess_uploads_dev:
+    driver: local
+  caddy_data_dev:
+    driver: local
+  caddy_config_dev:
+    driver: local
