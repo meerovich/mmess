@@ -36,8 +36,8 @@ Declared values (multiples of 4):
 
 | Token | CSS Variable | Value | Usage |
 |-------|-------------|-------|-------|
-| xs | `--space-xs` | 4px | Icon gaps, reaction badge inner padding, check mark gap |
-| sm | `--space-sm` | 8px | Input field inner padding (vertical), message bubble inner padding (vertical), sidebar item gap |
+| xs | `--space-xs` | 4px | Icon gaps, reaction badge inner padding, check mark gap, consecutive-message vertical gap |
+| sm | `--space-sm` | 8px | Input field inner padding (vertical), message bubble inner padding (vertical), sidebar item gap, new-sender-group vertical gap |
 | md | `--space-md` | 16px | Message bubble inner padding (horizontal), sidebar item padding, modal padding |
 | lg | `--space-lg` | 24px | Sidebar header padding, chat header padding, section breaks |
 | xl | `--space-xl` | 32px | Chat pane horizontal padding on wide viewports |
@@ -69,7 +69,7 @@ Additional type rules:
 - "Message deleted" placeholder: `--text-body` size, weight 400, color `--color-text-muted`, italic
 - Typing indicator text: `--text-label` size, weight 400, color `--color-text-muted`
 - Reaction badge count: `--text-label` size, weight 600
-- Unread badge text: 11px, weight 600, color white (exception — below label size floor, used only in badge pill)
+- Unread badge text: `--text-label` size (13px), weight 600, color white
 - Message input placeholder: `--text-body` size, color `--color-text-placeholder`
 
 ---
@@ -112,6 +112,8 @@ Accent is **not used** on: message bubbles (own bubbles use `--color-accent-mute
 ---
 
 ## Layout Contract
+
+**Primary focal point on desktop:** the message list and input area in the chat pane. The sidebar is supporting context, not the visual anchor.
 
 ### Desktop (≥ 768px): Split layout
 
@@ -220,11 +222,11 @@ The executor MUST create these components. Naming is prescriptive; internal stru
 
 ### Edit/Delete (MSG-07, MSG-08)
 - Hover a message (own message only, if permissions allow) → `···` overflow menu appears top-right of bubble
-- Menu items: "Edit", "Delete"
+- Menu items: "Edit", "Delete message"
 - Direct chats: no edit/delete menu rendered at all (D-21)
 - Group chats: menu appears only if `can_edit_messages: true` for current user
-- **Edit flow:** Clicking "Edit" replaces the textarea content with the message text and activates edit mode. A strip above the textarea shows `✏ Editing message` with × to cancel. Send button label changes to "Save". On confirm, WS `message:edit` sent. Message re-renders with updated content + "(edited)" suffix.
-- **Delete flow:** Clicking "Delete" shows an inline confirmation: `[Cancel] [Delete message]` (no modal). On confirm, WS `message:delete` sent. Message renders "Message deleted" placeholder.
+- **Edit flow:** Clicking "Edit" replaces the textarea content with the message text and activates edit mode. A strip above the textarea shows `✏ Editing message` with × to cancel. Send button label changes to "Save changes". On confirm, WS `message:edit` sent. Message re-renders with updated content + "(edited)" suffix.
+- **Delete flow:** Clicking "Delete message" shows an inline confirmation: `[Keep message] [Delete message]` (no modal). On confirm, WS `message:delete` sent. Message renders "Message deleted" placeholder.
 - Edited message: `(edited)` rendered as `--text-label` italic muted text inline after timestamp
 - Deleted message: full message bubble replaced with italic muted text "Message deleted"; no edit/delete menu
 
@@ -281,7 +283,7 @@ Own message (right-aligned):
 - Bubble border-radius: 18px with 4px on the corner adjacent to the avatar/sender side (tail effect via border-radius asymmetry, no pseudo-element tails)
 - Own bubble: `background: var(--color-bubble-own)`, `border: 1px solid var(--color-bubble-own-border)`
 - Other bubble: `background: var(--color-bubble-other)`, `border: 1px solid var(--color-border)`
-- Consecutive messages from same sender (within 5 min): reduce vertical gap to 2px (vs 8px for new sender group)
+- Consecutive messages from same sender (within 5 min): reduce vertical gap to 4px (`--space-xs`); new sender group gap: 8px (`--space-sm`)
 - Timestamp: right-aligned inside bubble, `--text-label`, `--color-text-secondary`
 
 ---
@@ -303,10 +305,10 @@ Own message (right-aligned):
 
 | Element | Copy |
 |---------|------|
-| Primary CTA (send message) | "Send" |
+| Primary CTA (send message) | "Send message" |
 | Primary CTA (start DM) | "Open chat" |
 | Primary CTA (create group) | "Create group" |
-| Primary CTA (save edit) | "Save" |
+| Primary CTA (save edit) | "Save changes" |
 | New DM button | "New chat" |
 | New group button | "New group" |
 | Empty state — no conversations | "No conversations yet" / "Start a chat with a friend to get started." |
@@ -324,13 +326,13 @@ Own message (right-aligned):
 | Reconnected confirmation | (no copy — banner disappears silently) |
 | Error state — send failed | "Message not sent. Tap to retry." |
 | Error state — load failed | "Couldn't load messages. Pull to refresh." |
-| Delete confirmation inline | "Delete this message?" / "[Cancel] [Delete]" |
+| Delete confirmation inline | "Delete this message?" / "[Keep message] [Delete message]" |
 | Back button (mobile) | "← Back" |
 | Online dot (placeholder) | No text label; dot only (tooltip deferred to Phase 4) |
 | Sessions "This device" badge | "This device" (carried from Phase 2) |
 
 Destructive actions in this phase: **Delete message** only.
-- Confirmation approach: inline confirmation within the message bubble (not a modal). Shows "Delete this message?" with two inline buttons: "Cancel" (ghost) and "Delete" (destructive red). No separate dialog. This keeps the action contextual and avoids accidental dismissal of an unrelated modal.
+- Confirmation approach: inline confirmation within the message bubble (not a modal). Shows "Delete this message?" with two inline buttons: "Keep message" (ghost) and "Delete message" (destructive red). No separate dialog. This keeps the action contextual and avoids accidental dismissal of an unrelated modal.
 
 ---
 
