@@ -8,8 +8,8 @@ progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 33
+  completed_plans: 2
+  percent: 67
 ---
 
 # State: mmess
@@ -24,16 +24,16 @@ progress:
 ## Current Position
 
 Phase: 01 (foundation) — EXECUTING
-Plan: 1 of 3
+Plan: 2 of 3
 **Phase:** 1 — Foundation
-**Plan:** 01 complete (01-01: Monorepo scaffold)
+**Plan:** 02 complete (01-02: Drizzle schema + migration runner)
 **Status:** Executing Phase 01
 
 **Progress:**
 
 ```
-[███░░░░░░░] 33% (1/3 plans in Phase 1)
-[Phase 1] [1/3] Foundation
+[██████░░░░] 67% (2/3 plans in Phase 1)
+[Phase 1] [2/3] Foundation
 [Phase 2] [ ] Authentication
 [Phase 3] [ ] Messaging Core
 [Phase 4] [ ] Groups & Presence
@@ -71,6 +71,10 @@ Plan: 1 of 3
 | ESLint 9 flat config (eslint.config.js) | Legacy .eslintrc.json dropped in ESLint 9; @typescript-eslint v8 requires ESLint 9 |
 | allowImportingTsExtensions in client tsconfig | Required for .tsx import paths with Vite Bundler moduleResolution |
 | npm workspaces with hoisted node_modules | Shared deps (fastify, react) live in root node_modules |
+| Full schema upfront (D-09) | All 7 tables defined in schema.ts now to avoid mid-feature migrations |
+| UUID PKs with gen_random_uuid() (D-07) | Prevents ID enumeration, enables offline ID generation |
+| Auto-migration on startup (D-10) | runMigrations() called before app.listen() ensures schema is always current |
+| Separate migration postgres client (max:1) | Avoids pool conflicts during drizzle migrate on startup |
 
 ### Architecture Notes
 
@@ -95,8 +99,8 @@ Plan: 1 of 3
 ## Session Continuity
 
 **Last updated:** 2026-04-08
-**Last action:** Completed 01-01 — monorepo scaffold (Fastify 5 server + React 19 client)
-**Next action:** Execute 01-02 (Drizzle schema + PostgreSQL setup)
+**Last action:** Completed 01-02 — Drizzle schema (7 tables) + migration runner wired to Fastify startup
+**Next action:** Execute 01-03 (Docker Compose + Caddy configuration)
 
 ---
 *State initialized: 2026-04-08*

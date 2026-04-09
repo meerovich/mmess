@@ -34,7 +34,7 @@
 
 Plans:
 - [x] 01-01-PLAN.md — Monorepo scaffold: root tooling, server workspace (Fastify+Drizzle+ws), client workspace (React+Vite)
-- [ ] 01-02-PLAN.md — Drizzle schema (all 7 tables), migration runner wired to Fastify startup
+- [x] 01-02-PLAN.md — Drizzle schema (all 7 tables), migration runner wired to Fastify startup
 - [ ] 01-03-PLAN.md — Docker Compose stack, Caddyfile with HTTPS+WebSocket proxy, verified end-to-end
 
 ### Phase 2: Authentication
@@ -108,7 +108,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In Progress|  |
+| 1. Foundation | 2/3 | In Progress|  |
 | 2. Authentication | 0/? | Not started | - |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |

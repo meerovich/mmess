@@ -59,7 +59,7 @@
 - [ ] **INFRA-01**: All traffic encrypted via HTTPS and WSS (Caddy auto-TLS)
 - [x] **INFRA-02**: Application deploys as Docker Compose stack on VPS
 - [ ] **INFRA-03**: WebSocket authentication enforced at handshake (JWT validation)
-- [ ] **INFRA-04**: File storage persisted on Docker named volume
+- [x] **INFRA-04**: File storage persisted on Docker named volume
 
 ## v2 Requirements
 
@@ -94,7 +94,7 @@
 |-------------|-------|--------|
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Complete |
-| INFRA-04 | Phase 1 | Pending |
+| INFRA-04 | Phase 1 | Complete |
 | AUTH-01 | Phase 2 | Pending |
 | AUTH-02 | Phase 2 | Pending |
 | AUTH-03 | Phase 2 | Pending |
