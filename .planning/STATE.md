@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-09T08:39:36.077Z"
+last_updated: "2026-04-09T09:10:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # State: mmess
@@ -26,12 +26,12 @@ progress:
 Phase: 02 (authentication) — EXECUTING
 Plan: 2 of 4
 **Phase:** 2
-**Plan:** 02-01 COMPLETE, next: 02-02
+**Plan:** 02-02 COMPLETE, next: 02-04 (02-03 already complete)
 **Status:** Executing Phase 02
 
 **Progress:**
 
-[███████░░░] 71%
+[████████░░] 86%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -59,6 +59,7 @@ Plan: 2 of 4
 | Phase 01-foundation P03 | 90 | 2 tasks | 9 files |
 | Phase 02-authentication P01 | 6 | 3 tasks | 8 files |
 | Phase 02-authentication P03 | 15 | 1 tasks | 2 files |
+| Phase 02-authentication P02 | 20 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,10 @@ Plan: 2 of 4
 | onlyCookie: true in jwtVerify | Prevents auth header token supply — access tokens only from httpOnly cookies |
 | Plain async function (not fp-wrapped) for wsRoutes | fp bubbles hooks to parent scope; plain function keeps preValidation scoped to /ws only |
 | preValidation over onRequest for WS auth | @fastify/cookie runs in onRequest; preValidation fires after cookies are parsed so access_token is available |
+| refresh_token cookie path=/api/auth/refresh | Browser-visible path before Caddy strips /api; browser only sends cookie to this exact path |
+| SELECT FOR UPDATE in Drizzle transaction for refresh | Prevents race condition where two concurrent refreshes both see same valid token (Pitfall C) |
+| clearCookie must match setCookie path | Mismatched paths silently fail to clear; logout must use exact paths used at login |
+| First-user auto-admin via COUNT(*) on users | Skip invite check when no users exist; enables bootstrap without initial invite |
 
 ### Architecture Notes
 
@@ -111,8 +116,8 @@ Plan: 2 of 4
 ## Session Continuity
 
 **Last updated:** 2026-04-09
-**Last action:** Completed 02-03 — WebSocket route stub with scoped preValidation auth enforcement; /ws rejects unauthenticated upgrades with HTTP 401
-**Next action:** Continue Phase 02 execution
+**Last action:** Completed 02-02 — Auth REST API: register/login/refresh/logout/me/sessions + invite CLI
+**Next action:** Execute 02-04 (React client: AuthContext, login/register/sessions pages)
 
 ---
 *State initialized: 2026-04-08*
