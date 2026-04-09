@@ -18,8 +18,9 @@ services:
 
   api:
     image: node:22-alpine
-    working_dir: /app/server
-    command: npx tsx watch src/index.ts
+    working_dir: /app
+    # Install deps inside container then start tsx watch (deps not available from host on Linux containers)
+    command: sh -c "npm ci --workspace=server && cd server && npx tsx watch src/index.ts"
     restart: unless-stopped
     depends_on:
       postgres:
@@ -38,14 +39,12 @@ services:
     volumes:
       - .:/app                              # bind-mount full monorepo for hot reload
       - mmess_uploads_dev:/data/uploads
-      - /app/node_modules                   # anonymous volume prevents host node_modules override
-      - /app/server/node_modules
 
   caddy:
     image: caddy:2-alpine
     ports:
-      - "80:80"
-      - "443:443"
+      - "8081:80"    # mapped to 8081 on Windows (port 80 reserved by HTTP.sys; 8080 used by Keycloak)
+      - "8443:443"   # mapped to 8443 on Windows (use https://localhost:8443 in dev)
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./client/dist:/srv/www:ro

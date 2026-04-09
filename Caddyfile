@@ -13,7 +13,9 @@
     }
 
     # ── API proxy ─────────────────────────────────────────────────────────────
+    # Strip /api prefix before forwarding to backend (backend routes are at / not /api/)
     handle /api/* {
+        uri strip_prefix /api
         reverse_proxy api:3000
     }
 

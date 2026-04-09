@@ -15,7 +15,7 @@ export async function runMigrations(): Promise<void> {
   const migrationClient = postgres(process.env.DATABASE_URL, { max: 1 });
   const db = drizzle(migrationClient);
 
-  const migrationsFolder = path.resolve(__dirname, '../../../drizzle');
+  const migrationsFolder = path.resolve(__dirname, '../../drizzle');
 
   try {
     await migrate(db, { migrationsFolder });
