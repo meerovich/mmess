@@ -3,6 +3,7 @@ import fastifyWebsocket from '@fastify/websocket';
 import { runMigrations } from './db/migrate.js';
 import authPlugin from './plugins/auth.js';
 import rateLimitPlugin from './plugins/rate-limit.js';
+import authRoutes from './routes/auth/index.js';
 import wsRoutes from './routes/ws/index.js';
 
 const app = Fastify({
@@ -18,7 +19,7 @@ app.register(rateLimitPlugin);
 app.register(fastifyWebsocket);
 
 // Route plugins
-// Note: authRoutes from plan 02-02 will be registered here once complete
+app.register(authRoutes);
 app.register(wsRoutes);
 
 app.get('/health', async (_request, _reply) => {
