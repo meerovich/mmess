@@ -51,7 +51,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Schema extension (sessions + invites), new packages, global auth + rate-limit Fastify plugins
+- [x] 02-01-PLAN.md — Schema extension (sessions + invites), new packages, global auth + rate-limit Fastify plugins
 - [ ] 02-02-PLAN.md — Auth API routes: register, login, refresh, logout, sessions list+terminate, invite CLI
 - [ ] 02-03-PLAN.md — WebSocket auth stub with preValidation enforcement (INFRA-03)
 - [ ] 02-04-PLAN.md — React client: AuthContext, protected routes, login/register/sessions pages
@@ -115,7 +115,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
-| 2. Authentication | 0/4 | Planned | - |
+| 2. Authentication | 1/4 | In Progress|  |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |

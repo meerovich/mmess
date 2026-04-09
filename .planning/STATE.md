@@ -2,13 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-09T07:33:59.433Z"
+status: executing
+last_updated: "2026-04-09T08:33:48.459Z"
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 7
+  completed_plans: 4
+  percent: 57
 ---
 
 # State: mmess
@@ -16,21 +17,21 @@ progress:
 ## Project Reference
 
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
-**Current Focus:** Phase 01 — foundation
+**Current Focus:** Phase 02 — authentication
 
 ---
 
 ## Current Position
 
-Phase: 01 (foundation) — COMPLETE
-Plan: 3 of 3 (all plans complete)
+Phase: 02 (authentication) — EXECUTING
+Plan: 2 of 4
 **Phase:** 2
-**Plan:** Not started
-**Status:** Ready to plan
+**Plan:** 02-01 COMPLETE, next: 02-02
+**Status:** Executing Phase 02
 
 **Progress:**
 
-```
+[██████░░░░] 57%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -38,6 +39,7 @@ Plan: 3 of 3 (all plans complete)
 [Phase 4] [ ] Groups & Presence
 [Phase 5] [ ] File Sharing
 [Phase 6] [ ] UI & Deploy
+
 ```
 
 ---
@@ -55,6 +57,7 @@ Plan: 3 of 3 (all plans complete)
 ---
 | Phase 01-foundation P01 | 25 | 3 tasks | 15 files |
 | Phase 01-foundation P03 | 90 | 2 tasks | 9 files |
+| Phase 02-authentication P01 | 6 | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -78,6 +81,9 @@ Plan: 3 of 3 (all plans complete)
 | Caddy uri strip_prefix /api | Backend routes at / not /api/; Caddyfile strips prefix when proxying /api/* |
 | Dev ports 8081:80, 8443:443 | Windows HTTP.sys holds port 80; Keycloak holds 8080; dev uses non-standard ports |
 | Dev container npm ci before tsx watch | node:22-alpine has no project deps; bind-mount provides source only, not node_modules |
+| @fastify/cookie registered before @fastify/jwt | Hard peer dep for cookie-mode JWT; order matters in auth plugin |
+| global=false on @fastify/rate-limit | Routes opt in individually with config.rateLimit for targeted rate limits |
+| onlyCookie: true in jwtVerify | Prevents auth header token supply — access tokens only from httpOnly cookies |
 
 ### Architecture Notes
 
@@ -102,8 +108,8 @@ Plan: 3 of 3 (all plans complete)
 ## Session Continuity
 
 **Last updated:** 2026-04-09
-**Last action:** Completed 01-03 — Docker Compose stack + Caddy HTTPS reverse proxy verified running
-**Next action:** Execute Phase 02 (Authentication — JWT + Argon2id + register/login endpoints)
+**Last action:** Completed 02-01 — Auth foundation: schema extended, @fastify/jwt + @fastify/cookie + @fastify/rate-limit plugins wired globally
+**Next action:** Execute 02-02 (Auth routes: register, login, logout, refresh)
 
 ---
 *State initialized: 2026-04-08*

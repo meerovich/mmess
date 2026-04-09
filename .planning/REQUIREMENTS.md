@@ -7,11 +7,11 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can register with email and password
-- [ ] **AUTH-02**: User can log in and receive JWT access + refresh tokens
-- [ ] **AUTH-03**: User session persists across browser restarts via refresh token
-- [ ] **AUTH-04**: User can log out from current session
-- [ ] **AUTH-05**: User can view and terminate active sessions on other devices
+- [x] **AUTH-01**: User can register with email and password
+- [x] **AUTH-02**: User can log in and receive JWT access + refresh tokens
+- [x] **AUTH-03**: User session persists across browser restarts via refresh token
+- [x] **AUTH-04**: User can log out from current session
+- [x] **AUTH-05**: User can view and terminate active sessions on other devices
 
 ### Messaging
 
@@ -58,7 +58,7 @@
 
 - [x] **INFRA-01**: All traffic encrypted via HTTPS and WSS (Caddy auto-TLS)
 - [x] **INFRA-02**: Application deploys as Docker Compose stack on VPS
-- [ ] **INFRA-03**: WebSocket authentication enforced at handshake (JWT validation)
+- [x] **INFRA-03**: WebSocket authentication enforced at handshake (JWT validation)
 - [x] **INFRA-04**: File storage persisted on Docker named volume
 
 ## v2 Requirements
@@ -95,12 +95,12 @@
 | INFRA-01 | Phase 1 | Complete |
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
-| AUTH-03 | Phase 2 | Pending |
-| AUTH-04 | Phase 2 | Pending |
-| AUTH-05 | Phase 2 | Pending |
-| INFRA-03 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
+| AUTH-03 | Phase 2 | Complete |
+| AUTH-04 | Phase 2 | Complete |
+| AUTH-05 | Phase 2 | Complete |
+| INFRA-03 | Phase 2 | Complete |
 | MSG-01 | Phase 3 | Pending |
 | MSG-02 | Phase 3 | Pending |
 | MSG-03 | Phase 3 | Pending |
