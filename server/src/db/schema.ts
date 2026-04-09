@@ -125,6 +125,9 @@ export const sessions = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     token_hash: text('token_hash').notNull().unique(),
     device_label: varchar('device_label', { length: 100 }),
+    user_agent: text('user_agent'),
+    ip_address: varchar('ip_address', { length: 45 }), // IPv6 max 45 chars
+    last_seen_at: timestamp('last_seen_at', { withTimezone: true }),
     expires_at: timestamp('expires_at', { withTimezone: true }).notNull(),
     ...timestamps(),
   },
@@ -132,3 +135,13 @@ export const sessions = pgTable(
     idx_user_sessions: index('idx_sessions_user').on(t.user_id),
   })
 );
+
+export const invites = pgTable('invites', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  token_hash: text('token_hash').notNull().unique(),
+  created_by: uuid('created_by').notNull().references(() => users.id),
+  used_by: uuid('used_by').references(() => users.id),
+  expires_at: timestamp('expires_at', { withTimezone: true }).notNull(),
+  used_at: timestamp('used_at', { withTimezone: true }),
+  ...timestamps(),
+});
