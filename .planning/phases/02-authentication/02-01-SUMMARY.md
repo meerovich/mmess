@@ -124,6 +124,17 @@ None — no external service configuration required. JWT_SECRET should be set in
 - `argon2`, `nanoid`, `ua-parser-js` installed and ready for use in 02-02 route handlers
 - Migration runs automatically on server startup via `runMigrations()` — no manual steps needed
 
+## Self-Check: PASSED
+
+- server/src/plugins/auth.ts — FOUND
+- server/src/plugins/rate-limit.ts — FOUND
+- server/drizzle/0001_silly_red_skull.sql — FOUND
+- .planning/phases/02-authentication/02-01-SUMMARY.md — FOUND
+- Commit 06f0749 (chore: install deps) — FOUND
+- Commit 74b61a3 (feat: extend schema) — FOUND
+- Commit db71177 (feat: plugins + index.ts) — FOUND
+- Commit e526249 (docs: SUMMARY + STATE + ROADMAP) — FOUND
+
 ---
 *Phase: 02-authentication*
 *Completed: 2026-04-09*
