@@ -12,7 +12,9 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ HTTPS/WSS transport security — Phase 1
+- ✓ Docker Compose deployment — Phase 1
+- ✓ File storage on named Docker volume — Phase 1
 
 ### Active
 
@@ -23,7 +25,6 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - [ ] File and image sharing
 - [ ] Message history and persistence
 - [ ] Online/offline status indicators
-- [ ] HTTPS/WSS transport security
 - [ ] Responsive web UI
 
 ### Out of Scope
@@ -78,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-08 after initialization*
+*Last updated: 2026-04-09 after Phase 1: Foundation*
