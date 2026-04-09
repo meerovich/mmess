@@ -16,12 +16,13 @@ Real-time WebSocket text messaging with full message lifecycle: send/receive ins
 ### WebSocket Protocol
 - **D-01:** JSON envelope format: `{ type: string, payload: object, id?: string }`
 - **D-02:** Message types (initial set):
-  - Client→Server: `message:send`, `message:edit`, `message:delete`, `reaction:add`, `reaction:remove`, `typing:start`, `typing:stop`, `read:mark`, `history:request`
+  - Client→Server: `message:send`, `message:edit`, `message:delete`, `reaction:add`, `reaction:remove`, `typing:start`, `typing:stop`, `read:mark`
   - Server→Client: `message:new`, `message:edited`, `message:deleted`, `reaction:added`, `reaction:removed`, `typing:user`, `read:by`, `error`, `ack`
+  - **Revised 2026-04-09:** `history:request` removed per research recommendation — reconnect replay now uses REST `GET /api/conversations/:id/messages?after=cursor` instead (aligns with ARCHITECTURE.md Pattern 3 "history always via HTTP")
 - **D-03:** Each client→server message includes a client-generated `id` (nanoid); server echoes it in `ack` for optimistic UI confirmation
 - **D-04:** DB-first delivery: server persists message to PostgreSQL FIRST (in transaction with conversation.last_message_id update), then fans out via WebSocket to other participants (resolves PITFALLS #2)
 - **D-05:** Reconnect strategy: fixed 5-second retry interval (per user preference; simpler than exponential backoff)
-- **D-06:** On reconnect, client sends `history:request` with `last_seen_message_id` per conversation; server replays missed messages (resolves silent loss)
+- **D-06:** On reconnect, client calls REST `GET /api/conversations/:id/messages?after=last_seen_message_id` for each active conversation to replay missed messages (resolves silent loss). **Revised 2026-04-09** from the originally-planned WS `history:request` type: research showed REST-based replay is simpler (single protocol for history), uses the already-existing cursor-pagination endpoint, and avoids dual-path complexity. The guarantee is preserved — DB-first delivery + REST replay = no silent loss.
 - **D-07:** WebSocket auth already enforced at handshake (Phase 2); sender_id always read from `request.user.sub` JWT claim — never from client payload
 - **D-08:** No rate limiting on WS messages in v1 (small user base); enforced via PostgreSQL connection pool back-pressure
 
