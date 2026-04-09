@@ -69,8 +69,16 @@ Plans:
   6. User can react to messages with emoji; reactions are visible to all participants
   7. User can start a private conversation with another user and a group conversation with multiple users
   8. Conversation list is sorted by most recent activity
-**Plans**: TBD
+**Plans**: 6 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 03-01-PLAN.md — Schema migration (message_reads table + can_edit_messages column) + client package installs
+- [ ] 03-02-PLAN.md — WS connection registry + all WS message handlers (message, reaction, typing, read)
+- [ ] 03-03-PLAN.md — REST endpoints: GET /api/conversations, messages history, POST /api/conversations, user search
+- [ ] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
+- [ ] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
+- [ ] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
 
 ### Phase 4: Groups & Presence
 **Goal**: Group conversations are fully manageable by admins, and all users can see who is online with guaranteed delivery of messages sent while offline
@@ -116,7 +124,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 0/? | Not started | - |
+| 3. Messaging Core | 0/6 | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
@@ -170,3 +178,4 @@ Plans:
 *Updated: 2026-04-08 — Phase 1 plans defined (3 plans, 3 waves)*
 *Updated: 2026-04-09 — Phase 2 plans defined (4 plans, 3 waves)*
 *Updated: 2026-04-09 — Phase 2 complete (4/4 plans, AUTH-01 through AUTH-05 + INFRA-03 done)*
+*Updated: 2026-04-09 — Phase 3 plans defined (6 plans, 4 waves)*
