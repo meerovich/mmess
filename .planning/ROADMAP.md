@@ -10,7 +10,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Foundation** - Project scaffold, database schema, Docker Compose skeleton, Caddy TLS wiring
+- [x] **Phase 1: Foundation** - Project scaffold, database schema, Docker Compose skeleton, Caddy TLS wiring (completed 2026-04-09)
 - [ ] **Phase 2: Authentication** - User registration, login, JWT sessions, device session management, WebSocket auth
 - [ ] **Phase 3: Messaging Core** - Real-time WebSocket messaging, full message lifecycle, conversation management
 - [ ] **Phase 4: Groups & Presence** - Group administration, online/offline presence, offline delivery, browser notifications
@@ -35,7 +35,7 @@
 Plans:
 - [x] 01-01-PLAN.md — Monorepo scaffold: root tooling, server workspace (Fastify+Drizzle+ws), client workspace (React+Vite)
 - [x] 01-02-PLAN.md — Drizzle schema (all 7 tables), migration runner wired to Fastify startup
-- [ ] 01-03-PLAN.md — Docker Compose stack, Caddyfile with HTTPS+WebSocket proxy, verified end-to-end
+- [x] 01-03-PLAN.md — Docker Compose stack, Caddyfile with HTTPS+WebSocket proxy, verified end-to-end
 
 ### Phase 2: Authentication
 **Goal**: Users can securely create accounts, log in, maintain sessions across browser restarts, and control their active devices
@@ -108,7 +108,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In Progress|  |
+| 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 0/? | Not started | - |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |

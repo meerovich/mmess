@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-08T16:20:39.389Z"
+last_updated: "2026-04-09T07:22:20.489Z"
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
-  percent: 67
+  completed_plans: 3
+  percent: 100
 ---
 
 # State: mmess
@@ -23,17 +23,17 @@ progress:
 
 ## Current Position
 
-Phase: 01 (foundation) — EXECUTING
-Plan: 2 of 3
+Phase: 01 (foundation) — COMPLETE
+Plan: 3 of 3 (all plans complete)
 **Phase:** 1 — Foundation
-**Plan:** 02 complete (01-02: Drizzle schema + migration runner)
-**Status:** Executing Phase 01
+**Plan:** 03 complete (01-03: Docker Compose + Caddy stack verified)
+**Status:** Phase 01 complete — ready for Phase 02 (Authentication)
 
 **Progress:**
 
 ```
-[██████░░░░] 67% (2/3 plans in Phase 1)
-[Phase 1] [2/3] Foundation
+[██████████] 100% (3/3 plans in Phase 1)
+[Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
 [Phase 3] [ ] Messaging Core
 [Phase 4] [ ] Groups & Presence
@@ -55,6 +55,7 @@ Plan: 2 of 3
 
 ---
 | Phase 01-foundation P01 | 25 | 3 tasks | 15 files |
+| Phase 01-foundation P03 | 90 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Plan: 2 of 3
 | UUID PKs with gen_random_uuid() (D-07) | Prevents ID enumeration, enables offline ID generation |
 | Auto-migration on startup (D-10) | runMigrations() called before app.listen() ensures schema is always current |
 | Separate migration postgres client (max:1) | Avoids pool conflicts during drizzle migrate on startup |
+| Caddy uri strip_prefix /api | Backend routes at / not /api/; Caddyfile strips prefix when proxying /api/* |
+| Dev ports 8081:80, 8443:443 | Windows HTTP.sys holds port 80; Keycloak holds 8080; dev uses non-standard ports |
+| Dev container npm ci before tsx watch | node:22-alpine has no project deps; bind-mount provides source only, not node_modules |
 
 ### Architecture Notes
 
@@ -98,9 +102,9 @@ Plan: 2 of 3
 
 ## Session Continuity
 
-**Last updated:** 2026-04-08
-**Last action:** Completed 01-02 — Drizzle schema (7 tables) + migration runner wired to Fastify startup
-**Next action:** Execute 01-03 (Docker Compose + Caddy configuration)
+**Last updated:** 2026-04-09
+**Last action:** Completed 01-03 — Docker Compose stack + Caddy HTTPS reverse proxy verified running
+**Next action:** Execute Phase 02 (Authentication — JWT + Argon2id + register/login endpoints)
 
 ---
 *State initialized: 2026-04-08*
