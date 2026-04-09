@@ -53,6 +53,7 @@ export const conversation_participants = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     is_admin: boolean('is_admin').notNull().default(false),
+    can_edit_messages: boolean('can_edit_messages').notNull().default(false),
     last_read_message_id: uuid('last_read_message_id'), // for unread count (PITFALLS.md #8)
     joined_at: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -101,6 +102,24 @@ export const message_reactions = pgTable(
   },
   (t) => ({
     unique_reaction: unique().on(t.message_id, t.user_id, t.emoji),
+  })
+);
+
+export const message_reads = pgTable(
+  'message_reads',
+  {
+    message_id: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    read_at: timestamp('read_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: unique().on(t.message_id, t.user_id), // composite PK — one row per user per message
+    idx_message: index('idx_mr_message').on(t.message_id),
+    idx_user: index('idx_mr_user').on(t.user_id),
   })
 );
 

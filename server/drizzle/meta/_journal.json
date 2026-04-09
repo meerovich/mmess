@@ -15,6 +15,13 @@
       "when": 1775723393236,
       "tag": "0001_silly_red_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775743945996,
+      "tag": "0002_reflective_energizer",
+      "breakpoints": true
     }
   ]
 }
