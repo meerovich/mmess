@@ -48,7 +48,13 @@ Plans:
   4. User can log out from the current session and is redirected to login
   5. User can view all active sessions and terminate any session from another device
   6. WebSocket connections are rejected if the handshake JWT is missing or invalid
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Schema extension (sessions + invites), new packages, global auth + rate-limit Fastify plugins
+- [ ] 02-02-PLAN.md — Auth API routes: register, login, refresh, logout, sessions list+terminate, invite CLI
+- [ ] 02-03-PLAN.md — WebSocket auth stub with preValidation enforcement (INFRA-03)
+- [ ] 02-04-PLAN.md — React client: AuthContext, protected routes, login/register/sessions pages
 
 ### Phase 3: Messaging Core
 **Goal**: Users can have real-time text conversations — both private and group — with full message history and rich interaction (edit, delete, reply, reactions, typing, read receipts)
@@ -109,7 +115,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
-| 2. Authentication | 0/? | Not started | - |
+| 2. Authentication | 0/4 | Planned | - |
 | 3. Messaging Core | 0/? | Not started | - |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
@@ -162,3 +168,4 @@ Plans:
 ---
 *Roadmap created: 2026-04-08*
 *Updated: 2026-04-08 — Phase 1 plans defined (3 plans, 3 waves)*
+*Updated: 2026-04-09 — Phase 2 plans defined (4 plans, 3 waves)*
