@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import { runMigrations } from './db/migrate.js';
 
 const app = Fastify({
   logger: {
@@ -12,6 +13,9 @@ app.get('/health', async (_request, _reply) => {
 
 const start = async () => {
   try {
+    // Run DB migrations before accepting any connections (D-10)
+    await runMigrations();
+
     const port = Number(process.env.PORT ?? 3000);
     const host = process.env.HOST ?? '0.0.0.0';
     await app.listen({ port, host });
