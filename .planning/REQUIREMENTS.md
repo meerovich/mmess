@@ -19,17 +19,17 @@
 - [ ] **MSG-02**: User can receive messages in real-time without page refresh
 - [ ] **MSG-03**: User can view paginated message history (scroll up to load older)
 - [ ] **MSG-04**: User sees typing indicator when another user is composing a message
-- [ ] **MSG-05**: User sees read receipt status on sent messages (delivered/read)
+- [x] **MSG-05**: User sees read receipt status on sent messages (delivered/read)
 - [ ] **MSG-06**: User sees unread message count per conversation
 - [ ] **MSG-07**: User can edit their own sent messages
 - [ ] **MSG-08**: User can delete their own sent messages
 - [ ] **MSG-09**: User can reply to a specific message (quoted reply)
-- [ ] **MSG-10**: User can add emoji reactions to messages
+- [x] **MSG-10**: User can add emoji reactions to messages
 
 ### Conversations
 
-- [ ] **CONV-01**: User can start a private (1-on-1) conversation with another user
-- [ ] **CONV-02**: User can create a group conversation with multiple participants
+- [x] **CONV-01**: User can start a private (1-on-1) conversation with another user
+- [x] **CONV-02**: User can create a group conversation with multiple participants
 - [ ] **CONV-03**: User sees a list of all conversations sorted by last activity
 - [ ] **CONV-04**: Group admin can add/remove participants
 - [ ] **CONV-05**: Group admin can change group name and avatar
@@ -105,14 +105,14 @@
 | MSG-02 | Phase 3 | Pending |
 | MSG-03 | Phase 3 | Pending |
 | MSG-04 | Phase 3 | Pending |
-| MSG-05 | Phase 3 | Pending |
+| MSG-05 | Phase 3 | Complete |
 | MSG-06 | Phase 3 | Pending |
 | MSG-07 | Phase 3 | Pending |
 | MSG-08 | Phase 3 | Pending |
 | MSG-09 | Phase 3 | Pending |
-| MSG-10 | Phase 3 | Pending |
-| CONV-01 | Phase 3 | Pending |
-| CONV-02 | Phase 3 | Pending |
+| MSG-10 | Phase 3 | Complete |
+| CONV-01 | Phase 3 | Complete |
+| CONV-02 | Phase 3 | Complete |
 | CONV-03 | Phase 3 | Pending |
 | CONV-04 | Phase 4 | Pending |
 | CONV-05 | Phase 4 | Pending |

@@ -73,7 +73,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 03-01-PLAN.md — Schema migration (message_reads table + can_edit_messages column) + client package installs
+- [x] 03-01-PLAN.md — Schema migration (message_reads table + can_edit_messages column) + client package installs
 - [ ] 03-02-PLAN.md — WS connection registry + all WS message handlers (message, reaction, typing, read)
 - [ ] 03-03-PLAN.md — REST endpoints: GET /api/conversations, messages history, POST /api/conversations, user search
 - [ ] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
@@ -124,7 +124,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 0/6 | Not started | - |
+| 3. Messaging Core | 1/6 | In Progress|  |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |

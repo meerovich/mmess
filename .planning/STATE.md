@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-09T09:01:58.653Z"
+status: executing
+last_updated: "2026-04-09T14:16:22.249Z"
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 86
+  total_plans: 13
+  completed_plans: 8
+  percent: 62
 ---
 
 # State: mmess
@@ -17,21 +17,21 @@ progress:
 ## Project Reference
 
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
-**Current Focus:** Phase 02 — authentication
+**Current Focus:** Phase 03 — messaging-core
 
 ---
 
 ## Current Position
 
-Phase: 02 (authentication) — EXECUTING
-Plan: 2 of 4
+Phase: 03 (messaging-core) — EXECUTING
+Plan: 2 of 6
 **Phase:** 3
-**Plan:** Not started
-**Status:** Ready to plan
+**Plan:** 1 complete, starting plan 2
+**Status:** Executing Phase 03
 
 **Progress:**
 
-[████████░░] 86%
+[██████░░░░] 62%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -61,6 +61,7 @@ Plan: 2 of 4
 | Phase 02-authentication P03 | 15 | 1 tasks | 2 files |
 | Phase 02-authentication P02 | 20 | 2 tasks | 10 files |
 | Phase 02-authentication P04 | 12 | 2 tasks | 9 files |
+| Phase 03-messaging-core P01 | 8 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Plan: 2 of 4
 | BrowserRouter in App.tsx, not main.tsx | AuthProvider needs Router context; App.tsx owns BrowserRouter so all children can use hooks |
 | apiFetch refreshQueue serializes concurrent 401s | Multiple simultaneous expired-token requests share one refresh call — avoids token rotation race |
 | inviteToken in form body, not URL | Prevents token leakage in browser history, logs, and referrer headers |
+| --legacy-peer-deps for @emoji-mart/react | @emoji-mart/react@1.1.1 peer dep declares react@^18 but works with React 19; legacy flag avoids install failure |
+| nanoid hoisted from server, not reinstalled in client | nanoid is in server/package.json and hoisted to root node_modules by npm workspaces; client can import directly |
 
 ### Architecture Notes
 
@@ -120,8 +123,8 @@ Plan: 2 of 4
 ## Session Continuity
 
 **Last updated:** 2026-04-09
-**Last action:** Completed 02-04 — React client auth UI: AuthContext, apiFetch, ProtectedRoute, login/register/sessions pages
-**Next action:** Execute Phase 03 — Messaging Core
+**Last action:** Completed 03-01 — Schema extensions (message_reads, can_edit_messages) + client deps (@emoji-mart, date-fns, nanoid)
+**Next action:** Execute Phase 03 Plan 02 — messaging-core next plan
 
 ---
 *State initialized: 2026-04-08*
