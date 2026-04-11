@@ -1,0 +1,19 @@
+.list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.loadingMore {
+  text-align: center;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  padding: var(--space-sm);
+}

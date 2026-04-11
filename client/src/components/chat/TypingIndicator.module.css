@@ -1,0 +1,8 @@
+.container {
+  height: 20px;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  padding: 0 var(--space-md);
+  display: flex;
+  align-items: center;
+}
