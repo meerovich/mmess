@@ -76,21 +76,10 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
       break;
     case 'typing:user':
       if (msg.payload?.conversation_id) {
-        // Server sends a full list of current typers or an is_typing flag.
-        // Adapt: if is_typing is present, this is a single user update.
-        // We rebuild typers list from the server payload.
-        const conversationId = msg.payload.conversation_id as string;
-        const userId = msg.payload.user_id as string;
-        const username = msg.payload.username as string;
-        const isTyping = msg.payload.is_typing as boolean;
-        // We use SET_TYPING_USERS but need to know the current typers list.
-        // For now we store a partial list per the server's signal.
-        // The server sends individual typing:user events — client must maintain the list.
-        // We dispatch with a sentinel that the reducer can handle for add/remove.
         dispatch({
           type: 'SET_TYPING_USERS',
-          conversationId,
-          typers: isTyping ? [{ userId, username }] : [],
+          conversationId: msg.payload.conversation_id as string,
+          typers: (msg.payload.typers as { userId: string; username: string }[]) ?? [],
         });
       }
       break;
@@ -104,10 +93,10 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
       }
       break;
     case 'conversation:new':
-      if (msg.payload?.conversation) {
+      if (msg.payload) {
         dispatch({
           type: 'UPSERT_CONVERSATION',
-          conversation: msg.payload.conversation as import('../types/chat').Conversation,
+          conversation: msg.payload as unknown as import('../types/chat').Conversation,
         });
       }
       break;
