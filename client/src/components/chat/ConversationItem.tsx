@@ -1,4 +1,4 @@
-import { formatDistanceToNow, format, isToday, isThisYear } from 'date-fns';
+import { formatDistanceToNow, format, isThisYear } from 'date-fns';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChatLayout } from './ChatLayout';
@@ -28,6 +28,15 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { setShowChat } = useChatLayout();
 
   const isActive = conversation.id === state.activeConversationId;
+
+  // Presence: only show dot for DM conversations (the other participant)
+  const { presenceByUser } = state;
+  const presenceTargetId =
+    conversation.type === 'direct' && user
+      ? conversation.participants.find(p => p.user_id !== user.id)?.user_id ?? null
+      : null;
+  const presence = presenceTargetId ? presenceByUser[presenceTargetId] : null;
+  const isOnline = presence?.online ?? false;
 
   // For DMs: display the other participant's name
   const displayName =
@@ -60,7 +69,19 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     >
       <div className={styles.avatarWrapper}>
         <Avatar name={displayName} size="sm" />
-        <span className={styles.onlineDot} aria-hidden="true" />
+        {presenceTargetId && (
+          <span
+            className={`${styles.onlineDot} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
+            title={
+              isOnline
+                ? 'Online'
+                : presence?.last_seen_at
+                ? `Last seen ${formatDistanceToNow(new Date(presence.last_seen_at), { addSuffix: true })}`
+                : 'Last seen unknown'
+            }
+            aria-label={isOnline ? 'Online' : 'Offline'}
+          />
+        )}
       </div>
 
       <div className={styles.content}>

@@ -9,6 +9,29 @@
   flex-direction: row-reverse;
 }
 
+.avatarWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--color-surface); /* matches chat pane bg */
+}
+
+.onlineDotOnline {
+  background-color: var(--color-presence-online);
+}
+
+.onlineDotOffline {
+  background-color: var(--color-presence-offline);
+}
+
 .avatar {
   width: 32px;
   height: 32px;

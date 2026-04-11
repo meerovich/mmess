@@ -72,6 +72,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
 
+  // Presence dot on sender avatar (D-20)
+  const senderPresence = state.presenceByUser[message.sender_id];
+  const senderOnline = senderPresence?.online ?? false;
+
   const conversation = state.conversations.find(c => c.id === message.conversation_id);
   const currentParticipant = conversation?.participants.find(p => p.user_id === currentUserId);
 
@@ -113,8 +117,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     >
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
-        <div className={`${styles.avatar} ${isGrouped ? styles.avatarHidden : ''}`}>
-          <span>{message.sender.username.charAt(0).toUpperCase()}</span>
+        <div className={styles.avatarWrapper}>
+          <div className={`${styles.avatar} ${isGrouped ? styles.avatarHidden : ''}`}>
+            <span>{message.sender.username.charAt(0).toUpperCase()}</span>
+          </div>
+          {!isGrouped && (
+            <span
+              className={`${styles.onlineDot} ${senderOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
+              aria-label={senderOnline ? 'Online' : 'Offline'}
+            />
+          )}
         </div>
       )}
 

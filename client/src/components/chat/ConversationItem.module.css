@@ -30,8 +30,15 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-online);
-  border: 2px solid var(--color-surface-secondary);
+  border: 2px solid var(--color-surface-secondary); /* matches sidebar bg */
+}
+
+.onlineDotOnline {
+  background-color: var(--color-presence-online);
+}
+
+.onlineDotOffline {
+  background-color: var(--color-presence-offline);
 }
 
 .content {
