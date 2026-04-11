@@ -6,6 +6,7 @@ import {
   messages,
   message_reactions,
   users,
+  files,
 } from '../../db/schema.js';
 import { eq, and, or, lt, desc, sql } from 'drizzle-orm';
 
@@ -81,9 +82,15 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
         created_at: messages.created_at,
         sender_username: users.username,
         sender_avatar_url: users.avatar_url,
+        file_id: messages.file_id,
+        file_original_name: files.original_name,
+        file_mimetype: files.mimetype,
+        file_size_bytes: files.size_bytes,
+        file_thumbnail_path: files.thumbnail_path,
       })
       .from(messages)
       .innerJoin(users, eq(messages.sender_id, users.id))
+      .leftJoin(files, eq(messages.file_id, files.id))
       .where(
         and(
           eq(messages.conversation_id, conversationId),
@@ -194,6 +201,14 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       },
       reply_to: m.reply_to_id ? (replyToMap.get(m.reply_to_id) ?? null) : null,
       reactions: reactionsMap.get(m.id) ?? [],
+      file_id: m.file_id ?? null,
+      file_name: m.file_original_name ?? null,
+      file_mime: m.file_mimetype ?? null,
+      file_size: m.file_size_bytes ?? null,
+      is_image: m.file_mimetype ? m.file_mimetype.startsWith('image/') : null,
+      thumbnail_url: m.file_thumbnail_path && m.file_id
+        ? `/api/files/${m.file_id}/thumb`
+        : null,
     }));
 
     return reply.send({
