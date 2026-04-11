@@ -8,6 +8,7 @@ import wsRoutes from './routes/ws/index.js';
 import conversationsListRoutes from './routes/conversations/index.js';
 import conversationsMessagesRoutes from './routes/conversations/messages.js';
 import conversationsCreateRoutes from './routes/conversations/create.js';
+import conversationsAdminRoutes from './routes/conversations/admin.js';
 import usersRoutes from './routes/users/search.js';
 
 const app = Fastify({
@@ -28,6 +29,7 @@ app.register(wsRoutes);
 app.register(conversationsListRoutes);
 app.register(conversationsMessagesRoutes);
 app.register(conversationsCreateRoutes);
+app.register(conversationsAdminRoutes);
 app.register(usersRoutes);
 
 app.get('/health', async (_request, _reply) => {
