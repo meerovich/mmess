@@ -146,7 +146,7 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       .map((m) => m.reply_to_id)
       .filter((id): id is string => id !== null);
 
-    const replyToMap = new Map<string, { id: string; sender_id: string; content: string | null }>();
+    const replyToMap = new Map<string, { id: string; sender_id: string; content: string | null; sender: { id: string; username: string } }>();
 
     if (replyToIds.length > 0) {
       const replyMessages = await db
@@ -154,8 +154,10 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
           id: messages.id,
           sender_id: messages.sender_id,
           content: messages.content,
+          sender_username: users.username,
         })
         .from(messages)
+        .innerJoin(users, eq(messages.sender_id, users.id))
         .where(
           sql`${messages.id} = ANY(ARRAY[${sql.join(
             replyToIds.map((id) => sql`${id}::uuid`),
@@ -164,7 +166,12 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
         );
 
       for (const rm of replyMessages) {
-        replyToMap.set(rm.id, rm);
+        replyToMap.set(rm.id, {
+          id: rm.id,
+          sender_id: rm.sender_id,
+          content: rm.content,
+          sender: { id: rm.sender_id, username: rm.sender_username },
+        });
       }
     }
 
