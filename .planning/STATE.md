@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-last_updated: "2026-04-11T16:24:16.790Z"
+last_updated: "2026-04-11T17:04:16.967Z"
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 28
+  completed_plans: 28
   percent: 100
 ---
 
@@ -81,6 +81,7 @@ Plan: 1 of 6
 | Phase 05-file-sharing P04 | 12 | 2 tasks | 9 files |
 | Phase 05-file-sharing P06 | 8 | 2 tasks | 4 files |
 | Phase 05-file-sharing P05 | 15 | 2 tasks | 6 files |
+| Phase 05-file-sharing P07 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,8 @@ Plan: 1 of 6
 | files.conversation_id set atomically in message:send transaction | Anti-reuse lock — prevents same file being sent in multiple messages; set in same tx as message insert |
 | UploadState discriminated union narrowed inline in JSX | TypeScript cannot narrow uploadState based on boolean intermediates; inline status checks required for type-safe access to progress/message fields |
 | window.location.href for file downloads | Native browser download via Content-Disposition header; no blob streaming or fetch required |
+| Reuse already-fetched fileRecord for WS payload enrichment | Zero extra DB round-trip — fileRecord is already validated before the transaction; spread into enrichedMessage post-tx |
+| LEFT JOIN on files in history endpoint | INNER JOIN would filter out text-only messages (file_id=null); LEFT JOIN returns all messages with null file fields for non-file messages |
 
 ### Architecture Notes
 
@@ -174,9 +177,9 @@ Plan: 1 of 6
 
 ## Session Continuity
 
-**Last updated:** 2026-04-11T16:01:04Z
-**Last action:** Completed 05-05 — Wired file upload UX into MessageInput (paperclip, drag-drop, UploadStrip, file_id in WS payload) and file rendering into MessageItem (inline image preview + Lightbox, FileCard for non-images)
-**Next action:** Phase 05 complete — proceed to Phase 06 or verify deployment
+**Last updated:** 2026-04-11T17:05:00Z
+**Last action:** Completed 05-07 — Enriched WS ack/broadcast and history endpoint with file metadata (file_name, file_mime, file_size, is_image, thumbnail_url) via fileRecord reuse and LEFT JOIN on files table
+**Next action:** Phase 05 fully complete — proceed to Phase 06 (UI & Deploy) or run final integration verification
 
 ---
 *State initialized: 2026-04-08*
