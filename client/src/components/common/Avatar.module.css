@@ -8,6 +8,7 @@
   color: white;
   flex-shrink: 0;
   user-select: none;
+  object-fit: cover;
 }
 
 .sm {
