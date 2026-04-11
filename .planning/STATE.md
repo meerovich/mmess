@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T15:36:40.833Z"
+last_updated: "2026-04-11T15:43:17.671Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 27
-  completed_plans: 22
-  percent: 81
+  completed_plans: 23
+  percent: 85
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 1 of 6
 
 **Progress:**
 
-[████████░░] 81%
+[█████████░] 85%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -76,6 +76,7 @@ Plan: 1 of 6
 | Phase 04-groups-presence P04 | 15 | 2 tasks | 4 files |
 | Phase 04-groups-presence P05 | 15 | 2 tasks | 9 files |
 | Phase 05-file-sharing P01 | 3 | 2 tasks | 7 files |
+| Phase 05-file-sharing P02 | 10 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,8 @@ Plan: 1 of 6
 | Notification tag=conversation_id deduplicates browser notifications | One visible notification per conversation regardless of message burst rate |
 | Files routed through Fastify (JWT-gated), not Caddy static | /uploads/* Caddy block removed; auth-gated file access via API only |
 | Named mmess_node_modules volume in dev compose | Shadows host bind-mount; prevents sharp musl/glibc binary mismatch in Alpine container |
+| reply.code(N).send({ error }) for upload route HTTP errors | Consistent with existing routes; fastify.httpErrors requires @fastify/sensible which is not installed |
+| Scoped @fastify/multipart inside filesRoutes plugin | Registered inside plugin only — avoids global multipart conflicts with other routes |
 
 ### Architecture Notes
 
@@ -163,8 +166,8 @@ Plan: 1 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 05-01 — schema extensions (thumbnail_path, conversation_id, messages FK), sharp + file-type install, Caddyfile restructure (/api/files* block), Docker Compose volume fixes
-**Next action:** Phase 05 Plan 02 — file upload API endpoint (Fastify multipart + sharp thumbnail generation)
+**Last action:** Completed 05-02 — POST /files multipart upload endpoint (magic-byte validation, date-sharded UUID storage, sharp thumbnails, rate-limit 5/min)
+**Next action:** Phase 05 Plan 03 — GET /api/files/:id download + thumbnail endpoint
 
 ---
 *State initialized: 2026-04-08*
