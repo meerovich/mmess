@@ -15,14 +15,14 @@
 
 ### Messaging
 
-- [ ] **MSG-01**: User can send text messages in real-time via WebSocket
-- [ ] **MSG-02**: User can receive messages in real-time without page refresh
+- [x] **MSG-01**: User can send text messages in real-time via WebSocket
+- [x] **MSG-02**: User can receive messages in real-time without page refresh
 - [ ] **MSG-03**: User can view paginated message history (scroll up to load older)
-- [ ] **MSG-04**: User sees typing indicator when another user is composing a message
+- [x] **MSG-04**: User sees typing indicator when another user is composing a message
 - [x] **MSG-05**: User sees read receipt status on sent messages (delivered/read)
 - [ ] **MSG-06**: User sees unread message count per conversation
-- [ ] **MSG-07**: User can edit their own sent messages
-- [ ] **MSG-08**: User can delete their own sent messages
+- [x] **MSG-07**: User can edit their own sent messages
+- [x] **MSG-08**: User can delete their own sent messages
 - [ ] **MSG-09**: User can reply to a specific message (quoted reply)
 - [x] **MSG-10**: User can add emoji reactions to messages
 
@@ -101,14 +101,14 @@
 | AUTH-04 | Phase 2 | Complete |
 | AUTH-05 | Phase 2 | Complete |
 | INFRA-03 | Phase 2 | Complete |
-| MSG-01 | Phase 3 | Pending |
-| MSG-02 | Phase 3 | Pending |
+| MSG-01 | Phase 3 | Complete |
+| MSG-02 | Phase 3 | Complete |
 | MSG-03 | Phase 3 | Pending |
-| MSG-04 | Phase 3 | Pending |
+| MSG-04 | Phase 3 | Complete |
 | MSG-05 | Phase 3 | Complete |
 | MSG-06 | Phase 3 | Pending |
-| MSG-07 | Phase 3 | Pending |
-| MSG-08 | Phase 3 | Pending |
+| MSG-07 | Phase 3 | Complete |
+| MSG-08 | Phase 3 | Complete |
 | MSG-09 | Phase 3 | Pending |
 | MSG-10 | Phase 3 | Complete |
 | CONV-01 | Phase 3 | Complete |

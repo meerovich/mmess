@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-09T14:16:22.249Z"
+last_updated: "2026-04-11T10:37:03.363Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 8
-  percent: 62
+  completed_plans: 9
+  percent: 69
 ---
 
 # State: mmess
@@ -26,12 +26,12 @@ progress:
 Phase: 03 (messaging-core) — EXECUTING
 Plan: 2 of 6
 **Phase:** 3
-**Plan:** 1 complete, starting plan 2
+**Plan:** 2 complete, starting plan 3
 **Status:** Executing Phase 03
 
 **Progress:**
 
-[██████░░░░] 62%
+[███████░░░] 69%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -62,6 +62,7 @@ Plan: 2 of 6
 | Phase 02-authentication P02 | 20 | 2 tasks | 10 files |
 | Phase 02-authentication P04 | 12 | 2 tasks | 9 files |
 | Phase 03-messaging-core P01 | 8 | 2 tasks | 5 files |
+| Phase 03-messaging-core P02 | 15 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Plan: 2 of 6
 | inviteToken in form body, not URL | Prevents token leakage in browser history, logs, and referrer headers |
 | --legacy-peer-deps for @emoji-mart/react | @emoji-mart/react@1.1.1 peer dep declares react@^18 but works with React 19; legacy flag avoids install failure |
 | nanoid hoisted from server, not reinstalled in client | nanoid is in server/package.json and hoisted to root node_modules by npm workspaces; client can import directly |
+| dynamic import('../registry.js') inside WS handlers | Avoids circular module dependency at load time; registry module is cached after first load so no runtime penalty |
+| PostgresJsDatabase type with db cast as any in index.ts | Handlers use PostgresJsDatabase<Record<string,never>>; db has full schema type; cast bridges the generic mismatch |
 
 ### Architecture Notes
 
@@ -122,9 +125,9 @@ Plan: 2 of 6
 
 ## Session Continuity
 
-**Last updated:** 2026-04-09
-**Last action:** Completed 03-01 — Schema extensions (message_reads, can_edit_messages) + client deps (@emoji-mart, date-fns, nanoid)
-**Next action:** Execute Phase 03 Plan 02 — messaging-core next plan
+**Last updated:** 2026-04-11
+**Last action:** Completed 03-02 — WebSocket handlers + connection registry (registry.ts, message/reaction/typing/read handlers, full dispatch loop)
+**Next action:** Execute Phase 03 Plan 03 — messaging-core next plan
 
 ---
 *State initialized: 2026-04-08*
