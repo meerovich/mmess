@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T10:37:03.363Z"
+last_updated: "2026-04-11T12:00:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 9
-  percent: 69
+  completed_plans: 10
+  percent: 77
 ---
 
 # State: mmess
@@ -24,14 +24,14 @@ progress:
 ## Current Position
 
 Phase: 03 (messaging-core) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 **Phase:** 3
-**Plan:** 2 complete, starting plan 3
+**Plan:** 3 complete, starting plan 4
 **Status:** Executing Phase 03
 
 **Progress:**
 
-[███████░░░] 69%
+[████████░░] 77%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -63,6 +63,7 @@ Plan: 2 of 6
 | Phase 02-authentication P04 | 12 | 2 tasks | 9 files |
 | Phase 03-messaging-core P01 | 8 | 2 tasks | 5 files |
 | Phase 03-messaging-core P02 | 15 | 2 tasks | 6 files |
+| Phase 03-messaging-core P03 | 25 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Plan: 2 of 6
 | nanoid hoisted from server, not reinstalled in client | nanoid is in server/package.json and hoisted to root node_modules by npm workspaces; client can import directly |
 | dynamic import('../registry.js') inside WS handlers | Avoids circular module dependency at load time; registry module is cached after first load so no runtime penalty |
 | PostgresJsDatabase type with db cast as any in index.ts | Handlers use PostgresJsDatabase<Record<string,never>>; db has full schema type; cast bridges the generic mismatch |
+| Direct ws/registry import in create.ts | Plain broadcast() import instead of Fastify decorator — cleaner coupling after 03-02 landed with module exports |
+| Compound (created_at,id) cursor uses indexOf not split | indexOf('|') for cursor decode is unambiguous regardless of ISO timestamp format |
 
 ### Architecture Notes
 
@@ -126,8 +129,8 @@ Plan: 2 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-02 — WebSocket handlers + connection registry (registry.ts, message/reaction/typing/read handlers, full dispatch loop)
-**Next action:** Execute Phase 03 Plan 03 — messaging-core next plan
+**Last action:** Completed 03-03 — REST endpoints: GET /api/conversations, GET /api/conversations/:id/messages, POST /api/conversations, GET /api/users?q=
+**Next action:** Execute Phase 03 Plan 04 — messaging-core next plan
 
 ---
 *State initialized: 2026-04-08*

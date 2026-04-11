@@ -75,7 +75,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Schema migration (message_reads table + can_edit_messages column) + client package installs
 - [x] 03-02-PLAN.md — WS connection registry + all WS message handlers (message, reaction, typing, read)
-- [ ] 03-03-PLAN.md — REST endpoints: GET /api/conversations, messages history, POST /api/conversations, user search
+- [x] 03-03-PLAN.md — REST endpoints: GET /api/conversations, messages history, POST /api/conversations, user search
 - [ ] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
 - [ ] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
 - [ ] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
@@ -124,7 +124,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 2/6 | In Progress|  |
+| 3. Messaging Core | 3/6 | In Progress|  |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
@@ -146,17 +146,17 @@ Plans:
 | INFRA-03 | Phase 2 | Complete |
 | MSG-01 | Phase 3 | Pending |
 | MSG-02 | Phase 3 | Pending |
-| MSG-03 | Phase 3 | Pending |
+| MSG-03 | Phase 3 | Complete |
 | MSG-04 | Phase 3 | Pending |
 | MSG-05 | Phase 3 | Pending |
-| MSG-06 | Phase 3 | Pending |
+| MSG-06 | Phase 3 | Complete |
 | MSG-07 | Phase 3 | Pending |
 | MSG-08 | Phase 3 | Pending |
 | MSG-09 | Phase 3 | Pending |
 | MSG-10 | Phase 3 | Pending |
-| CONV-01 | Phase 3 | Pending |
-| CONV-02 | Phase 3 | Pending |
-| CONV-03 | Phase 3 | Pending |
+| CONV-01 | Phase 3 | Complete |
+| CONV-02 | Phase 3 | Complete |
+| CONV-03 | Phase 3 | Complete |
 | CONV-04 | Phase 4 | Pending |
 | CONV-05 | Phase 4 | Pending |
 | CONV-06 | Phase 4 | Pending |
@@ -179,3 +179,4 @@ Plans:
 *Updated: 2026-04-09 — Phase 2 plans defined (4 plans, 3 waves)*
 *Updated: 2026-04-09 — Phase 2 complete (4/4 plans, AUTH-01 through AUTH-05 + INFRA-03 done)*
 *Updated: 2026-04-09 — Phase 3 plans defined (6 plans, 4 waves)*
+*Updated: 2026-04-11 — Phase 3 plan 03-03 complete (REST endpoints); 3/6 plans done*
