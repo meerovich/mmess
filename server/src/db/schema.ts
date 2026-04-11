@@ -31,6 +31,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   password_hash: text('password_hash').notNull(),
   avatar_url: text('avatar_url'),
+  last_seen_at: timestamp('last_seen_at', { withTimezone: true }), // null = never seen (Plan 04-02 updates on WS disconnect)
   ...timestamps(),
 });
 
