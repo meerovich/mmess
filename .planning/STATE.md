@@ -174,9 +174,9 @@ Plan: 1 of 6
 
 ## Session Continuity
 
-**Last updated:** 2026-04-11
-**Last action:** Completed 05-04 — Extended Message type with file fields, uploadFile() XHR helper, CSS tokens, and FileIcon/FileCard/UploadStrip leaf components
-**Next action:** Phase 05 Plan 05 — MessageInput + MessageItem file attachment integration
+**Last updated:** 2026-04-11T16:01:04Z
+**Last action:** Completed 05-05 — Wired file upload UX into MessageInput (paperclip, drag-drop, UploadStrip, file_id in WS payload) and file rendering into MessageItem (inline image preview + Lightbox, FileCard for non-images)
+**Next action:** Phase 05 complete — proceed to Phase 06 or verify deployment
 
 ---
 *State initialized: 2026-04-08*
