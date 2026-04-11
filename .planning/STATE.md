@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T10:49:06.447Z"
+last_updated: "2026-04-11T10:57:01.463Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 11
-  percent: 85
+  completed_plans: 12
+  percent: 92
 ---
 
 # State: mmess
@@ -26,12 +26,12 @@ progress:
 Phase: 03 (messaging-core) — EXECUTING
 Plan: 3 of 6
 **Phase:** 3
-**Plan:** 4 complete, starting plan 5
+**Plan:** 5 complete, starting plan 6
 **Status:** Executing Phase 03
 
 **Progress:**
 
-[█████████░] 85%
+[█████████░] 92%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -65,6 +65,7 @@ Plan: 3 of 6
 | Phase 03-messaging-core P02 | 15 | 2 tasks | 6 files |
 | Phase 03-messaging-core P03 | 25 | 2 tasks | 5 files |
 | Phase 03-messaging-core P04 | 30 | 2 tasks | 8 files |
+| Phase 03-messaging-core P05 | 25 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Plan: 3 of 6
 | ChatProvider+WebSocketProvider scoped per route not at app root | Keeps chat state isolated to chat pages; avoids WS connection on /login and /register |
 | handleIncoming defined outside WebSocketProvider component | No component dependency; zero re-render risk on message receipt |
 | conversation:new handled in WebSocketProvider | Live-updates conversation list when server pushes new conversations without polling |
+| ChatLayout imports ChatPane directly (no prop slot) | TypeScript error expected until Plan 06 completes; resolves when both plans merge |
+| ChatLayoutContext is file-local | Only useChatLayout() hook exported for mobile pane toggle — keeps context implementation private |
+| vite-env.d.ts added (Rule 3 auto-fix) | CSS module type declarations were absent since earlier phases used inline styles only |
 
 ### Architecture Notes
 
@@ -133,8 +137,8 @@ Plan: 3 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-04 — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider singleton, CSS design tokens, route wiring
-**Next action:** Execute Phase 03 Plan 05 — chat UI components (ChatLayout, ConversationList, ChatPane, MessageList, MessageInput)
+**Last action:** Completed 03-05 — Sidebar UI: Avatar, ChatLayout split grid, ConversationList, ConversationItem, NewChatModal, NewGroupModal, App.tsx wired to ChatLayout
+**Next action:** Execute Phase 03 Plan 06 — ChatPane, MessageList, MessageItem, MessageInput, TypingIndicator (parallel plan)
 
 ---
 *State initialized: 2026-04-08*

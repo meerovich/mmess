@@ -77,7 +77,7 @@ Plans:
 - [x] 03-02-PLAN.md — WS connection registry + all WS message handlers (message, reaction, typing, read)
 - [x] 03-03-PLAN.md — REST endpoints: GET /api/conversations, messages history, POST /api/conversations, user search
 - [x] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
-- [ ] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
+- [x] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
 - [ ] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
 
 ### Phase 4: Groups & Presence
@@ -124,7 +124,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 4/6 | In Progress|  |
+| 3. Messaging Core | 5/6 | In Progress|  |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
