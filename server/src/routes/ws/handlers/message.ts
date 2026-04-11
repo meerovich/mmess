@@ -94,15 +94,26 @@ export async function handleMessageSend(
     return [msg];
   });
 
+  // Build enriched payload — attach file metadata if present (GAP-1 fix)
+  const enrichedMessage = fileRecord
+    ? {
+        ...newMessage,
+        file_name: fileRecord.original_name,
+        file_mime: fileRecord.mimetype,
+        file_size: fileRecord.size_bytes,
+        is_image: fileRecord.mimetype.startsWith('image/'),
+        thumbnail_url: fileRecord.thumbnail_path
+          ? `/api/files/${newMessage.file_id}/thumb`
+          : null,
+      }
+    : newMessage;
+
   // Ack sender (D-03)
-  socket.send(JSON.stringify({ type: 'ack', payload: { message: newMessage }, id: clientId }));
+  socket.send(JSON.stringify({ type: 'ack', payload: { message: enrichedMessage }, id: clientId }));
 
   // Fan out to other participants (D-04)
   const participantIds = await getParticipantIds(db, payload.conversation_id);
-  broadcast(participantIds, { type: 'message:new', payload: newMessage }, userId);
-
-  // Suppress unused variable warning — fileRecord used for validation side effects only
-  void fileRecord;
+  broadcast(participantIds, { type: 'message:new', payload: enrichedMessage }, userId);
 }
 
 export async function handleMessageEdit(
