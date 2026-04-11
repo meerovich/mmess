@@ -51,4 +51,8 @@
   /* Colors — reactions */
   --color-reaction-bg: #f1f3f4;
   --color-reaction-bg-active: #e8f0fe;
+
+  /* Colors — presence indicators (Phase 4) */
+  --color-presence-online: #22c55e;
+  --color-presence-offline: #9ca3af;
 }

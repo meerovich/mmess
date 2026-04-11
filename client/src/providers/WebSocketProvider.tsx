@@ -100,6 +100,26 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
         });
       }
       break;
+    case 'presence:update':
+      if (msg.payload?.user_id) {
+        dispatch({
+          type: 'SET_PRESENCE',
+          userId: msg.payload.user_id as string,
+          presence: {
+            online: msg.payload.online as boolean,
+            last_seen_at: (msg.payload.last_seen_at as string | null) ?? null,
+          },
+        });
+      }
+      break;
+    case 'conversation:updated':
+      if (msg.payload?.conversation) {
+        dispatch({
+          type: 'CONVERSATION_UPDATED',
+          conversation: msg.payload.conversation as import('../types/chat').Conversation,
+        });
+      }
+      break;
     case 'error':
       console.error('[WS]', msg.payload);
       break;

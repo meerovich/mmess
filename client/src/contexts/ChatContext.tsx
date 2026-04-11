@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 import { apiFetch } from '../lib/api';
 import type {
   ChatState,
@@ -6,6 +6,7 @@ import type {
   Conversation,
   Message,
   MessagePaginationState,
+  PresenceState,
 } from '../types/chat';
 
 const initialState: ChatState = {
@@ -14,6 +15,7 @@ const initialState: ChatState = {
   messages: {},
   typingUsers: {},
   wsStatus: 'disconnected',
+  presenceByUser: {},
 };
 
 interface ChatReducerState extends ChatState {
@@ -182,6 +184,37 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         },
       };
 
+    case 'SET_PRESENCE':
+      return {
+        ...state,
+        presenceByUser: {
+          ...state.presenceByUser,
+          [action.userId]: action.presence,
+        },
+      };
+
+    case 'SET_PRESENCE_BULK': {
+      const updates: Record<string, PresenceState> = {};
+      for (const { userId, presence } of action.entries) {
+        updates[userId] = presence;
+      }
+      return {
+        ...state,
+        presenceByUser: { ...state.presenceByUser, ...updates },
+      };
+    }
+
+    case 'CONVERSATION_UPDATED': {
+      const idx = state.conversations.findIndex(c => c.id === action.conversation.id);
+      if (idx === -1) {
+        // New conversation (e.g. admin added us) — prepend
+        return { ...state, conversations: [action.conversation, ...state.conversations] };
+      }
+      const updated = [...state.conversations];
+      updated[idx] = action.conversation;
+      return { ...state, conversations: updated };
+    }
+
     default:
       return state;
   }
@@ -197,7 +230,9 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(chatReducer, initialReducerState);
+  const prevWsStatus = useRef<string>('disconnected');
 
+  // Initial fetch on mount
   useEffect(() => {
     apiFetch('/api/conversations')
       .then(res => res.ok ? res.json() : [])
@@ -208,6 +243,19 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         // Silently fail — WS reconnect will sync state when available
       });
   }, []);
+
+  // Re-fetch on WS reconnect to pick up missed conversations (D-26, PRES-03)
+  useEffect(() => {
+    if (prevWsStatus.current === 'reconnecting' && state.wsStatus === 'connected') {
+      apiFetch('/api/conversations')
+        .then(res => res.ok ? res.json() : [])
+        .then((conversations: Conversation[]) => {
+          dispatch({ type: 'SET_CONVERSATIONS', conversations });
+        })
+        .catch(() => {});
+    }
+    prevWsStatus.current = state.wsStatus;
+  }, [state.wsStatus]);
 
   return (
     <ChatContext.Provider
