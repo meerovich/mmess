@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T14:30:29.218Z"
+last_updated: "2026-04-11T14:34:23.146Z"
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 21
-  completed_plans: 18
-  percent: 86
+  completed_plans: 19
+  percent: 90
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 1 of 5
 
 **Progress:**
 
-[█████████░] 86%
+[█████████░] 90%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -72,6 +72,7 @@ Plan: 1 of 5
 | Phase 03-messaging-core P09 | 10 | 2 tasks | 2 files |
 | Phase 04-groups-presence P01 | 3 | 2 tasks | 3 files |
 | Phase 04-groups-presence P02 | 18 | 2 tasks | 4 files |
+| Phase 04-groups-presence P03 | 12 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,9 @@ Plan: 1 of 5
 | GET /api/users returns { users: UserResult[] } not bare array | NewChatModal and NewGroupModal both unwrap data.users before passing to setResults/filter |
 | ISO 8601 lexicographic comparison for read-receipt timestamps | last_read_at >= created_at valid for UTC ISO strings — no Date parsing overhead; both strings from same PostgreSQL server |
 | Canonical ReplyTo import over inline interface in ReplyPreview | Single source of truth in types/chat.ts; avoids future drift when ReplyTo type evolves |
+| prevWsStatus useRef detects reconnecting→connected transition | Avoids extra state; cleanly triggers conversation re-fetch on WS reconnect (D-26, PRES-03) |
+| CONVERSATION_UPDATED distinct from UPSERT_CONVERSATION | Semantically separate: UPSERT for live new convs (conversation:new), UPDATED for admin mutation broadcasts |
+| Presence color tokens distinct from --color-online | D-22 spec: --color-presence-online=#22c55e vs --color-online=#1e8e3e; different visual semantics |
 
 ### Architecture Notes
 
@@ -151,8 +155,8 @@ Plan: 1 of 5
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 04-01 — users.last_seen_at schema extension + 5 group admin REST endpoints (rename, add/remove participants, update permissions, leave) with conversation:updated WS broadcasts
-**Next action:** Phase 04 Plan 02 (presence: last_seen_at updates on WS disconnect) and Plan 03 (group management UI)
+**Last action:** Completed 04-03 — PresenceState type + ChatContext reducer cases (SET_PRESENCE, SET_PRESENCE_BULK, CONVERSATION_UPDATED) + WS handlers + reconnect re-fetch + CSS presence tokens
+**Next action:** Phase 04 Plan 04 (PresenceDot component + ConversationItem presence display) and Plan 05 (group management UI)
 
 ---
 *State initialized: 2026-04-08*
