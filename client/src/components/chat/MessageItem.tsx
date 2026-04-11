@@ -6,7 +6,7 @@ import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar } from './ReactionBar';
 import styles from './MessageItem.module.css';
-import type { Message } from '../../types/chat';
+import type { Message, Participant } from '../../types/chat';
 
 interface MessageItemProps {
   message: Message;
@@ -22,7 +22,7 @@ function ReadReceipt({
 }: {
   message: Message;
   currentUserId: string;
-  participants: { user_id: string; username: string }[];
+  participants: Participant[];
 }) {
   if (message.sender_id !== currentUserId) return null;
 
@@ -37,13 +37,19 @@ function ReadReceipt({
   // Check if all other participants have read
   const otherParticipants = participants.filter(p => p.user_id !== currentUserId);
 
-  // In the real implementation this would compare last_read_message_id.
-  // Since participants in our type don't carry that field,
-  // we show single check for 'sent' status (no full read info available here).
-  const isAllRead = false; // read:by WS events update conversation state elsewhere
+  // isAllRead: true when every other participant's last_read_at >= this message's created_at.
+  // last_read_at is the created_at of the last message they read (ISO string from server).
+  // Both are ISO strings — lexicographic comparison is valid for ISO 8601 timestamps.
+  const isAllRead =
+    otherParticipants.length > 0 &&
+    otherParticipants.every(p =>
+      p.last_read_at != null && p.last_read_at >= message.created_at
+    );
 
-  const tooltipParts: string[] = [];
-  const tooltipText = tooltipParts.length > 0 ? tooltipParts.join(', ') : undefined;
+  const tooltipParts: string[] = otherParticipants
+    .filter(p => p.last_read_at != null && p.last_read_at >= message.created_at)
+    .map(p => p.username);
+  const tooltipText = tooltipParts.length > 0 ? `Read by: ${tooltipParts.join(', ')}` : undefined;
 
   return (
     <span
