@@ -22,10 +22,14 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - ✓ Message history and persistence — Phase 3
 - ✓ Online/offline status indicators — Phase 4
 - ✓ File and image sharing — Phase 5
+- ✓ Responsive web UI — Phase 6
+- ✓ Dark/light/system theme toggle — Phase 6
+- ✓ Conversation search — Phase 6
+- ✓ Production deploy artifacts (Docker healthchecks, env template, backup/restore, README) — Phase 6
 
 ### Active
 
-- [ ] Responsive web UI
+(None — v1 milestone complete)
 
 ### Out of Scope
 
@@ -79,4 +83,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after Phase 5: File Sharing*
+*Last updated: 2026-04-11 after Phase 6: UI & Deploy — v1 milestone complete*
