@@ -11,6 +11,7 @@ import conversationsCreateRoutes from './routes/conversations/create.js';
 import conversationsAdminRoutes from './routes/conversations/admin.js';
 import usersRoutes from './routes/users/search.js';
 import presenceRoutes from './routes/ws/presence.js';
+import filesRoutes from './routes/files/index.js';
 
 const app = Fastify({
   logger: {
@@ -33,6 +34,7 @@ app.register(conversationsCreateRoutes);
 app.register(conversationsAdminRoutes);
 app.register(usersRoutes);
 app.register(presenceRoutes);
+app.register(filesRoutes, { prefix: '/files' });
 
 app.get('/health', async (_request, _reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };
