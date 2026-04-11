@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T15:48:34.628Z"
+last_updated: "2026-04-11T16:02:00.000Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 27
-  completed_plans: 24
-  percent: 89
+  completed_plans: 25
+  percent: 93
 ---
 
 # State: mmess
@@ -78,6 +78,7 @@ Plan: 1 of 6
 | Phase 05-file-sharing P01 | 3 | 2 tasks | 7 files |
 | Phase 05-file-sharing P02 | 10 | 2 tasks | 5 files |
 | Phase 05-file-sharing P03 | 8 | 2 tasks | 2 files |
+| Phase 05-file-sharing P04 | 12 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,8 @@ Plan: 1 of 6
 | checkFileAccess three-path check for file downloads | Uploader OR conversation participant (via message.file_id JOIN) OR avatar_url exact string match — covers all legitimate access scenarios |
 | db as unknown as DB cast in GET file routes | filesRoutes imports db with full schema type; checkFileAccess takes PostgresJsDatabase<Record<string,never>>; cast bridges generic mismatch |
 | files.conversation_id set atomically in message:send transaction | Anti-reuse lock — prevents same file being sent in multiple messages; set in same tx as message insert |
+| UploadState discriminated union narrowed inline in JSX | TypeScript cannot narrow uploadState based on boolean intermediates; inline status checks required for type-safe access to progress/message fields |
+| window.location.href for file downloads | Native browser download via Content-Disposition header; no blob streaming or fetch required |
 
 ### Architecture Notes
 
@@ -170,8 +173,8 @@ Plan: 1 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 05-03 — GET /api/files/:id + /thumb download endpoints with JWT + 3-path access check; handleMessageSend extended with file_id validation and conversation_id locking
-**Next action:** Phase 05 Plan 04 — client-side file attachment UI
+**Last action:** Completed 05-04 — Extended Message type with file fields, uploadFile() XHR helper, CSS tokens, and FileIcon/FileCard/UploadStrip leaf components
+**Next action:** Phase 05 Plan 05 — MessageInput + MessageItem file attachment integration
 
 ---
 *State initialized: 2026-04-08*
