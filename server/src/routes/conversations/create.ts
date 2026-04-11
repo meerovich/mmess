@@ -8,6 +8,7 @@ import {
   users,
 } from '../../db/schema.js';
 import { eq, and, sql } from 'drizzle-orm';
+import { broadcast } from '../ws/registry.js';
 
 interface CreateConversationBody {
   type: 'direct' | 'group';
@@ -268,16 +269,12 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
 
 /**
  * Broadcast conversation:new to all participants via WS registry (D-38).
- * Gracefully skips if the registry is not yet available (plan 03-02 dependency).
  */
 function broadcastConversationNew(fastify: FastifyInstance, conversation: unknown) {
   try {
-    const f = fastify as any;
-    if (typeof f.wsBroadcastToUsers === 'function') {
-      const participantIds = (conversation as any).participants.map((p: any) => p.user_id);
-      f.wsBroadcastToUsers(participantIds, { type: 'conversation:new', payload: conversation });
-    }
+    const participantIds = (conversation as any).participants.map((p: any) => p.user_id as string);
+    broadcast(participantIds, { type: 'conversation:new', payload: conversation });
   } catch (err) {
-    fastify.log.warn({ err }, 'Could not broadcast conversation:new — WS registry not available');
+    fastify.log.warn({ err }, 'Could not broadcast conversation:new');
   }
 }
