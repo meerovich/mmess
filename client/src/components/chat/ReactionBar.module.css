@@ -1,0 +1,73 @@
+.reactionBarWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-xs);
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.badge {
+  padding: 2px var(--space-xs);
+  border-radius: 10px;
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--color-reaction-bg);
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  transition: background 0.15s;
+}
+
+.badge:hover {
+  background: var(--color-reaction-bg-active);
+}
+
+.badgeActive {
+  background: var(--color-reaction-bg-active);
+  border-color: var(--color-accent);
+}
+
+.addReactionWrapper {
+  position: relative;
+}
+
+.addReactionBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-reaction-bg);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  font-size: var(--text-label);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+}
+
+.addReactionBtn:hover {
+  background: var(--color-reaction-bg-active);
+}
+
+.pickerContainer {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+.pickerLoading {
+  padding: var(--space-md);
+  color: var(--color-text-muted);
+  font-size: var(--text-label);
+}

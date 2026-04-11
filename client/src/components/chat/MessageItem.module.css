@@ -1,0 +1,242 @@
+.item {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-sm);
+  position: relative;
+}
+
+.item.own {
+  flex-direction: row-reverse;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-accent-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.avatarHidden {
+  visibility: hidden;
+}
+
+.bubble {
+  max-width: 70%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 18px;
+  position: relative;
+}
+
+.bubble.own {
+  background: var(--color-bubble-own);
+  border: 1px solid var(--color-bubble-own-border);
+  border-bottom-right-radius: 4px;
+}
+
+.bubble.other {
+  background: var(--color-bubble-other);
+  border: 1px solid var(--color-border);
+  border-bottom-left-radius: 4px;
+}
+
+.senderName {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-accent);
+  margin-bottom: var(--space-xs);
+}
+
+.content {
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.deleted {
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+
+.timestamp {
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+  text-align: right;
+  margin-top: var(--space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.edited {
+  font-style: italic;
+  color: var(--color-text-muted);
+  margin-left: var(--space-xs);
+}
+
+.receipt {
+  display: inline;
+  margin-left: var(--space-xs);
+}
+
+.receipt.allRead {
+  color: var(--color-success);
+}
+
+.receipt.pending {
+  color: var(--color-text-muted);
+}
+
+/* Reply preview inside bubble */
+.replyPreview {
+  display: flex;
+  flex-direction: column;
+  border-left: 3px solid var(--color-accent);
+  padding: var(--space-xs) var(--space-sm);
+  margin-bottom: var(--space-xs);
+  background: rgba(11, 87, 208, 0.05);
+  border-radius: 0 4px 4px 0;
+  gap: 2px;
+}
+
+.replyPreviewSender {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.replyPreviewText {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Hover menu */
+.menuWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+}
+
+.menuWrapperOwn {
+  flex-direction: row-reverse;
+}
+
+.menuBtn {
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+}
+
+.menuBtn:hover {
+  background: var(--color-border);
+}
+
+.overflowMenu {
+  position: relative;
+}
+
+.dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  min-width: 140px;
+  overflow: hidden;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+}
+
+.dropdownItem:hover {
+  background: var(--color-surface-secondary);
+}
+
+.dropdownItemDestructive {
+  color: var(--color-destructive);
+}
+
+/* Inline delete confirmation */
+.deleteConfirm {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border);
+}
+
+.deleteConfirmText {
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+  display: block;
+  margin-bottom: var(--space-xs);
+}
+
+.deleteConfirmButtons {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.keepBtn {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  font-size: var(--text-label);
+  color: var(--color-text-primary);
+}
+
+.keepBtn:hover {
+  background: var(--color-surface-secondary);
+}
+
+.deleteBtn {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  border-radius: 6px;
+  background: var(--color-destructive);
+  color: white;
+  cursor: pointer;
+  font-size: var(--text-label);
+}
+
+.deleteBtn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 767px) {
+  .bubble {
+    max-width: 85%;
+  }
+}
