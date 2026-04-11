@@ -10,6 +10,7 @@ import conversationsMessagesRoutes from './routes/conversations/messages.js';
 import conversationsCreateRoutes from './routes/conversations/create.js';
 import conversationsAdminRoutes from './routes/conversations/admin.js';
 import usersRoutes from './routes/users/search.js';
+import presenceRoutes from './routes/ws/presence.js';
 
 const app = Fastify({
   logger: {
@@ -31,6 +32,7 @@ app.register(conversationsMessagesRoutes);
 app.register(conversationsCreateRoutes);
 app.register(conversationsAdminRoutes);
 app.register(usersRoutes);
+app.register(presenceRoutes);
 
 app.get('/health', async (_request, _reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };

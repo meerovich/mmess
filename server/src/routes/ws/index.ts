@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { register, unregister } from './registry.js';
+import { broadcastPresenceOnline, schedulePresenceOffline } from './presence.js';
 import { handleMessageSend, handleMessageEdit, handleMessageDelete } from './handlers/message.js';
 import { handleReactionAdd, handleReactionRemove } from './handlers/reaction.js';
 import { handleTypingStart, handleTypingStop, cleanupTypingForUser } from './handlers/typing.js';
@@ -26,6 +27,12 @@ export default async function wsRoutes(fastify: FastifyInstance): Promise<void> 
 
     register(userId, socket);
     fastify.log.info({ userId }, 'WebSocket connection established');
+
+    // Presence: broadcast online to shared-conversation contacts (D-16)
+    // Fire-and-forget — don't await to avoid blocking the connection
+    broadcastPresenceOnline(userId).catch((err) => {
+      fastify.log.warn({ userId, err }, 'presence:online broadcast failed');
+    });
 
     socket.on('message', async (raw) => {
       let envelope: { type: string; payload: Record<string, unknown>; id?: string };
@@ -76,6 +83,8 @@ export default async function wsRoutes(fastify: FastifyInstance): Promise<void> 
     socket.on('close', () => {
       unregister(userId, socket);
       cleanupTypingForUser(userId);
+      // Presence: schedule offline broadcast after 3s grace period (D-17, PITFALLS #7)
+      schedulePresenceOffline(userId);
       fastify.log.info({ userId }, 'WebSocket connection closed');
     });
 
