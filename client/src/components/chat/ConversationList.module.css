@@ -64,3 +64,85 @@
   color: var(--color-text-secondary);
   margin: 0;
 }
+
+/* Search row (D-09) */
+.searchRow {
+  padding: var(--space-sm) var(--space-md);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.searchInputWrap {
+  display: flex;
+  align-items: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 0 var(--space-sm);
+  height: 36px;
+  gap: var(--space-xs);
+}
+
+.searchInputWrap:focus-within {
+  border-color: var(--color-border-focus);
+}
+
+.searchIcon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  color: var(--color-text-primary);
+  min-width: 0;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+/* D-19: 44px touch target for clear button (visual icon stays 16px) */
+.clearBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  line-height: 0;
+  margin-right: calc(-1 * var(--space-sm));
+}
+
+.clearBtn:hover {
+  color: var(--color-text-primary);
+}
+
+/* Footer zone (D-06) */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  height: 60px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.footerName {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

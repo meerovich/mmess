@@ -117,7 +117,7 @@
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--color-accent);
   border-radius: 6px;
-  font-size: var(--text-body);
+  font-size: 16px;  /* D-18: explicit 16px prevents iOS Safari zoom on focus */
   font-weight: 600;
   color: var(--color-text-primary);
   background: var(--color-surface);
@@ -291,7 +291,7 @@
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  font-size: var(--text-body);
+  font-size: 16px;  /* D-18: explicit 16px prevents iOS Safari zoom on focus */
   color: var(--color-text-primary);
   background: var(--color-surface);
   box-sizing: border-box;
