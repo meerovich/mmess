@@ -76,7 +76,7 @@ export const messages = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     content: text('content'),
-    file_id: uuid('file_id'), // references files.id — set after files table
+    file_id: uuid('file_id').references(() => files.id, { onDelete: 'set null' }),
     reply_to_id: uuid('reply_to_id'), // self-reference for quoted replies
     is_deleted: boolean('is_deleted').notNull().default(false),
     edited_at: timestamp('edited_at', { withTimezone: true }),
@@ -133,6 +133,9 @@ export const files = pgTable('files', {
   storage_name: varchar('storage_name', { length: 255 }).notNull().unique(), // UUID-based, never user-supplied (PITFALLS.md #4)
   mimetype: varchar('mimetype', { length: 127 }).notNull(),
   size_bytes: integer('size_bytes').notNull(),
+  thumbnail_path: text('thumbnail_path'),           // null for non-images (D-12)
+  conversation_id: uuid('conversation_id')           // set when file attached to a message (D-06)
+    .references(() => conversations.id, { onDelete: 'set null' }),
   ...timestamps(),
 });
 
