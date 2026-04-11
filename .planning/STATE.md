@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T10:57:01.463Z"
+last_updated: "2026-04-11T10:58:14Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 12
-  percent: 92
+  completed_plans: 13
+  percent: 100
 ---
 
 # State: mmess
@@ -23,15 +23,15 @@ progress:
 
 ## Current Position
 
-Phase: 03 (messaging-core) — EXECUTING
-Plan: 3 of 6
+Phase: 03 (messaging-core) — COMPLETE
+Plan: 6 of 6
 **Phase:** 3
-**Plan:** 5 complete, starting plan 6
-**Status:** Executing Phase 03
+**Plan:** 6 complete — Phase 03 DONE
+**Status:** Phase 03 complete
 
 **Progress:**
 
-[█████████░] 92%
+[██████████] 100%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -66,6 +66,7 @@ Plan: 3 of 6
 | Phase 03-messaging-core P03 | 25 | 2 tasks | 5 files |
 | Phase 03-messaging-core P04 | 30 | 2 tasks | 8 files |
 | Phase 03-messaging-core P05 | 25 | 2 tasks | 14 files |
+| Phase 03-messaging-core P06 | 18 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -113,6 +114,9 @@ Plan: 3 of 6
 | ChatLayout imports ChatPane directly (no prop slot) | TypeScript error expected until Plan 06 completes; resolves when both plans merge |
 | ChatLayoutContext is file-local | Only useChatLayout() hook exported for mobile pane toggle — keeps context implementation private |
 | vite-env.d.ts added (Rule 3 auto-fix) | CSS module type declarations were absent since earlier phases used inline styles only |
+| editMessage + replyTo lifted to ChatPane | Common ancestor of MessageItem and MessageInput; simpler than a separate context for edit state |
+| EmojiPicker as React.ComponentType<any> | @emoji-mart/react has no TS declarations; any-cast on lazy component is the pragmatic workaround |
+| read:mark sent from MessageList not MessageItem | Last message ref lives in MessageList; IntersectionObserver on that ref dispatches debounced read:mark |
 
 ### Architecture Notes
 
@@ -137,8 +141,8 @@ Plan: 3 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-05 — Sidebar UI: Avatar, ChatLayout split grid, ConversationList, ConversationItem, NewChatModal, NewGroupModal, App.tsx wired to ChatLayout
-**Next action:** Execute Phase 03 Plan 06 — ChatPane, MessageList, MessageItem, MessageInput, TypingIndicator (parallel plan)
+**Last action:** Completed 03-06 — Chat Pane UI: ChatPane, MessageList, MessageItem, ReplyPreview, ReactionBar, MessageInput, TypingIndicator — Phase 03 complete
+**Next action:** Phase 04 — Groups & Presence
 
 ---
 *State initialized: 2026-04-08*

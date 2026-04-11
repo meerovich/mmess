@@ -23,7 +23,7 @@
 - [x] **MSG-06**: User sees unread message count per conversation
 - [x] **MSG-07**: User can edit their own sent messages
 - [x] **MSG-08**: User can delete their own sent messages
-- [ ] **MSG-09**: User can reply to a specific message (quoted reply)
+- [x] **MSG-09**: User can reply to a specific message (quoted reply)
 - [x] **MSG-10**: User can add emoji reactions to messages
 
 ### Conversations
@@ -109,7 +109,7 @@
 | MSG-06 | Phase 3 | Complete |
 | MSG-07 | Phase 3 | Complete |
 | MSG-08 | Phase 3 | Complete |
-| MSG-09 | Phase 3 | Pending |
+| MSG-09 | Phase 3 | Complete |
 | MSG-10 | Phase 3 | Complete |
 | CONV-01 | Phase 3 | Complete |
 | CONV-02 | Phase 3 | Complete |
