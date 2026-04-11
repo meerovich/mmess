@@ -6,7 +6,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SessionsPage } from './pages/SessionsPage';
-import { ChatPage } from './pages/ChatPage';
+import { ChatLayout } from './components/chat/ChatLayout';
 
 export default function App() {
   return (
@@ -21,7 +21,7 @@ export default function App() {
               element={
                 <ChatProvider>
                   <WebSocketProvider>
-                    <ChatPage />
+                    <ChatLayout />
                   </WebSocketProvider>
                 </ChatProvider>
               }
@@ -31,7 +31,7 @@ export default function App() {
               element={
                 <ChatProvider>
                   <WebSocketProvider>
-                    <ChatPage />
+                    <ChatLayout />
                   </WebSocketProvider>
                 </ChatProvider>
               }
