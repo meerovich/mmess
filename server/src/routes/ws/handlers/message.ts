@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
-import { messages, conversations, conversation_participants } from '../../../db/schema.js';
+import { messages, conversations, conversation_participants, files } from '../../../db/schema.js';
 
 type DB = PostgresJsDatabase<Record<string, never>>;
 
@@ -17,7 +17,12 @@ export async function handleMessageSend(
   db: DB,
   socket: WebSocket,
   userId: string,
-  payload: { conversation_id: string; content: string; reply_to_id?: string },
+  payload: {
+    conversation_id: string;
+    content?: string;       // optional caption when file_id present (D-19)
+    reply_to_id?: string;
+    file_id?: string;       // two-step upload flow
+  },
   clientId: string
 ): Promise<void> {
   const { broadcast } = await import('../registry.js');
@@ -35,15 +40,41 @@ export async function handleMessageSend(
     return;
   }
 
+  // File validation (D-20)
+  let fileRecord: typeof files.$inferSelect | null = null;
+  if (payload.file_id) {
+    const [f] = await db.select().from(files).where(eq(files.id, payload.file_id));
+    if (!f) {
+      socket.send(JSON.stringify({ type: 'error', payload: { message: 'File not found' }, id: clientId }));
+      return;
+    }
+    if (f.uploader_id !== userId) {
+      socket.send(JSON.stringify({ type: 'error', payload: { message: 'Not your file' }, id: clientId }));
+      return;
+    }
+    if (f.conversation_id !== null) {
+      socket.send(JSON.stringify({ type: 'error', payload: { message: 'File already used in another message' }, id: clientId }));
+      return;
+    }
+    fileRecord = f;
+  }
+
+  // Content OR file required
+  if (!payload.content?.trim() && !payload.file_id) {
+    socket.send(JSON.stringify({ type: 'error', payload: { message: 'Message must have content or a file' }, id: clientId }));
+    return;
+  }
+
   // DB-first: insert message + update conversation.last_message_id in one transaction (D-04)
   const [newMessage] = await db.transaction(async (tx) => {
     const [msg] = await tx
       .insert(messages)
       .values({
         conversation_id: payload.conversation_id,
-        sender_id: userId,          // always from JWT (D-07)
-        content: payload.content,
+        sender_id: userId,                            // always from JWT (D-07)
+        content: payload.content?.trim() || null,     // null if no caption
         reply_to_id: payload.reply_to_id ?? null,
+        file_id: payload.file_id ?? null,             // attach file to message
       })
       .returning();
 
@@ -51,6 +82,14 @@ export async function handleMessageSend(
       .update(conversations)
       .set({ last_message_id: msg.id, updated_at: new Date() })
       .where(eq(conversations.id, payload.conversation_id));
+
+    // Set files.conversation_id to lock file to this conversation (D-20 anti-reuse)
+    if (payload.file_id) {
+      await tx
+        .update(files)
+        .set({ conversation_id: payload.conversation_id })
+        .where(eq(files.id, payload.file_id));
+    }
 
     return [msg];
   });
@@ -61,6 +100,9 @@ export async function handleMessageSend(
   // Fan out to other participants (D-04)
   const participantIds = await getParticipantIds(db, payload.conversation_id);
   broadcast(participantIds, { type: 'message:new', payload: newMessage }, userId);
+
+  // Suppress unused variable warning — fileRecord used for validation side effects only
+  void fileRecord;
 }
 
 export async function handleMessageEdit(
