@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T19:12:17.143Z"
+last_updated: "2026-04-11T19:17:28.186Z"
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 32
-  completed_plans: 29
-  percent: 91
+  completed_plans: 31
+  percent: 97
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 2 of 4
 
 **Progress:**
 
-[█████████░] 91%
+[██████████] 97%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -83,6 +83,9 @@ Plan: 2 of 4
 | Phase 05-file-sharing P05 | 15 | 2 tasks | 6 files |
 | Phase 05-file-sharing P07 | 5 | 2 tasks | 2 files |
 | Phase 06-ui-deploy P01 | 12 | 2 tasks | 14 files |
+| Phase 06-ui-deploy P02 | 8 | 2 tasks | 8 files |
+| Phase 06-ui-deploy P03 | 12 | 2 tasks | 6 files |
+| Phase 06-ui-deploy P02 | 8 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -178,9 +181,9 @@ Plan: 2 of 4
 
 ## Session Continuity
 
-**Last updated:** 2026-04-11T22:20:00Z
-**Last action:** Completed 06-01 — Dark theme token block (24 overrides), CSS debt eliminated (zero hardcoded literals), index.html PWA meta + pre-hydration script, manifest.json + icon PNGs, safe-area insets on ChatLayout
-**Next action:** Proceed to Plan 02 (ThemeToggle component + useTheme hook)
+**Last updated:** 2026-04-11T22:50:00Z
+**Last action:** Completed 06-03 — Docker healthchecks (api Node.js http.get, caddy version liveness), .env.production.example template, scripts/backup.sh + restore.sh with 7-backup retention, README.md full deploy guide
+**Next action:** Proceed to Plan 04 (conversation search + mobile polish)
 
 ---
 *State initialized: 2026-04-08*
