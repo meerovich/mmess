@@ -4,6 +4,7 @@ import {
   conversations,
   conversation_participants,
   messages,
+  message_reads,
   users,
 } from '../../db/schema.js';
 import { eq, desc, and, gt, isNull, sql } from 'drizzle-orm';
@@ -41,6 +42,9 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
         user_id: users.id,
         username: users.username,
         avatar_url: users.avatar_url,
+        is_admin: conversation_participants.is_admin,
+        can_edit_messages: conversation_participants.can_edit_messages,
+        last_read_message_id: conversation_participants.last_read_message_id,
       })
       .from(conversation_participants)
       .innerJoin(users, eq(conversation_participants.user_id, users.id))
@@ -52,11 +56,57 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       );
 
     // Build a map: conversationId -> participants
-    const participantsByConv = new Map<string, Array<{ user_id: string; username: string; avatar_url: string | null }>>();
+    const participantsByConv = new Map<string, Array<{
+      user_id: string;
+      username: string;
+      avatar_url: string | null;
+      is_admin: boolean;
+      can_edit_messages: boolean;
+      last_read_message_id: string | null;
+      last_read_at: string | null;
+    }>>();
     for (const p of allParticipants) {
       const list = participantsByConv.get(p.conversation_id) ?? [];
-      list.push({ user_id: p.user_id, username: p.username, avatar_url: p.avatar_url });
+      list.push({
+        user_id: p.user_id,
+        username: p.username,
+        avatar_url: p.avatar_url,
+        is_admin: p.is_admin,
+        can_edit_messages: p.can_edit_messages,
+        last_read_message_id: p.last_read_message_id ?? null,
+        last_read_at: null, // populated below via last_read_message_id lookup
+      });
       participantsByConv.set(p.conversation_id, list);
+    }
+
+    // Populate last_read_at: fetch created_at of each participant's last_read_message_id
+    const lastReadIds = allParticipants
+      .map((p) => p.last_read_message_id)
+      .filter((id): id is string => id !== null);
+
+    if (lastReadIds.length > 0) {
+      const lastReadMsgs = await db
+        .select({ id: messages.id, created_at: messages.created_at })
+        .from(messages)
+        .where(
+          sql`${messages.id} = ANY(ARRAY[${sql.join(
+            lastReadIds.map((id) => sql`${id}::uuid`),
+            sql`, `
+          )}])`
+        );
+
+      const msgCreatedAtMap = new Map<string, Date>(lastReadMsgs.map((m) => [m.id, m.created_at]));
+
+      for (const [, participants] of participantsByConv.entries()) {
+        for (const p of participants) {
+          if (p.last_read_message_id) {
+            const createdAt = msgCreatedAtMap.get(p.last_read_message_id);
+            if (createdAt) {
+              p.last_read_at = createdAt.toISOString();
+            }
+          }
+        }
+      }
     }
 
     // Fetch last messages for conversations that have one
