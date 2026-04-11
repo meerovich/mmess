@@ -1,0 +1,66 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  padding: var(--space-lg) var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.actionButton {
+  background: var(--color-accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.actionButton:hover {
+  opacity: 0.9;
+}
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.emptyState {
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.emptySubtitle {
+  font-size: var(--text-body);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
