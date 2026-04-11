@@ -1,9 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
+import { uploadFile } from '../../lib/api';
+import { UploadStrip } from './UploadStrip';
 import styles from './MessageInput.module.css';
-import type { Message } from '../../types/chat';
+import type { Message, UploadState } from '../../types/chat';
 
 // nanoid is hoisted from server workspace to root node_modules
 import { nanoid } from 'nanoid';
@@ -27,10 +29,13 @@ export function MessageInput({
   const { dispatch } = useChat();
   const sendWs = useSendMessage();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
 
   const [value, setValue] = useState('');
+  const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
+  const [isDragging, setIsDragging] = useState(false);
 
   // Populate textarea when entering edit mode
   useEffect(() => {
@@ -52,6 +57,80 @@ export function MessageInput({
       }
     };
   }, [conversationId, sendWs]);
+
+  const handleFileSelect = useCallback((file: File) => {
+    // Client-side size check (D-01): 25 MB max
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadState({ status: 'error', file, message: 'file too large (25 MB max)' });
+      return;
+    }
+
+    const abortController = new AbortController();
+    setUploadState({ status: 'uploading', file, progress: 0, abortController });
+
+    uploadFile(
+      file,
+      (progress) => setUploadState(prev =>
+        prev.status === 'uploading' ? { ...prev, progress } : prev
+      ),
+      abortController.signal,
+    ).then((result) => {
+      setUploadState({
+        status: 'ready',
+        file,
+        fileId: result.id,
+        thumbnailUrl: result.thumbnail_url ?? undefined,
+      });
+    }).catch((err: Error) => {
+      if (err.name === 'AbortError') {
+        setUploadState({ status: 'idle' });
+        return;
+      }
+      setUploadState({ status: 'error', file, message: err.message || 'Please try again.' });
+    });
+  }, []);
+
+  const handleCancelUpload = useCallback(() => {
+    if (uploadState.status === 'uploading') {
+      uploadState.abortController.abort();
+    }
+    setUploadState({ status: 'idle' });
+  }, [uploadState]);
+
+  const handleRetry = useCallback(() => {
+    if (uploadState.status === 'error') {
+      handleFileSelect(uploadState.file);
+    }
+  }, [uploadState, handleFileSelect]);
+
+  // Drag-drop window event listeners
+  useEffect(() => {
+    const handleDragEnter = (e: DragEvent) => {
+      if (e.dataTransfer?.types.includes('Files')) setIsDragging(true);
+    };
+    const handleDragLeave = (e: DragEvent) => {
+      // Only deactivate when cursor leaves the window entirely
+      if (e.relatedTarget === null) setIsDragging(false);
+    };
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer?.files[0];
+      if (file) handleFileSelect(file);
+    };
+    const handleDragOver = (e: DragEvent) => { e.preventDefault(); };
+
+    window.addEventListener('dragenter', handleDragEnter);
+    window.addEventListener('dragleave', handleDragLeave);
+    window.addEventListener('drop', handleDrop);
+    window.addEventListener('dragover', handleDragOver);
+    return () => {
+      window.removeEventListener('dragenter', handleDragEnter);
+      window.removeEventListener('dragleave', handleDragLeave);
+      window.removeEventListener('drop', handleDrop);
+      window.removeEventListener('dragover', handleDragOver);
+    };
+  }, [handleFileSelect]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -91,11 +170,12 @@ export function MessageInput({
 
   const handleSend = () => {
     const trimmed = value.trim();
-    if (!trimmed) return;
+    // Allow send when file is ready even with empty text (caption is optional)
+    if (!trimmed && uploadState.status !== 'ready') return;
     if (!user) return;
 
     if (editMessage) {
-      // Edit flow
+      // Edit flow — files not applicable to edits
       sendWs({
         type: 'message:edit',
         payload: {
@@ -109,11 +189,15 @@ export function MessageInput({
     } else {
       // New message — optimistic UI
       const tempId = nanoid();
+      const fileId = uploadState.status === 'ready' ? uploadState.fileId : undefined;
+      const thumbnailUrl = uploadState.status === 'ready' ? uploadState.thumbnailUrl : undefined;
+      const uploadFile_ = uploadState.status === 'ready' ? uploadState.file : null;
+
       const optimisticMessage: Message = {
         id: tempId,
         conversation_id: conversationId,
         sender_id: user.id,
-        content: trimmed,
+        content: trimmed || null,
         reply_to_id: replyTo?.id ?? null,
         reply_to: replyTo
           ? {
@@ -132,6 +216,13 @@ export function MessageInput({
         },
         reactions: [],
         status: 'sending',
+        // File fields
+        file_id: fileId ?? null,
+        file_name: uploadFile_ ? uploadFile_.name : null,
+        file_mime: uploadFile_ ? uploadFile_.type : null,
+        file_size: uploadFile_ ? uploadFile_.size : null,
+        is_image: uploadFile_ ? uploadFile_.type.startsWith('image/') : null,
+        thumbnail_url: thumbnailUrl ?? null,
       };
 
       dispatch({ type: 'OPTIMISTIC_MESSAGE_ADD', conversationId, message: optimisticMessage });
@@ -141,11 +232,14 @@ export function MessageInput({
         id: tempId,
         payload: {
           conversation_id: conversationId,
-          content: trimmed,
+          content: trimmed || undefined,
           reply_to_id: replyTo?.id ?? null,
+          file_id: fileId,
         },
       });
 
+      // Clear upload state and reply
+      setUploadState({ status: 'idle' });
       onClearReply?.();
       setValue('');
     }
@@ -163,11 +257,19 @@ export function MessageInput({
     textareaRef.current?.focus();
   };
 
-  const isDisabled = value.trim().length === 0;
+  // Send is disabled when: no text AND no ready file; OR upload in progress; OR upload error
+  const isDisabled =
+    (value.trim().length === 0 && uploadState.status !== 'ready') ||
+    uploadState.status === 'uploading' ||
+    uploadState.status === 'error';
+
   const conversationName = conversationId; // used for aria-label
 
   return (
-    <div className={styles.inputArea}>
+    <div
+      className={`${styles.inputArea} ${isDragging ? styles.dragOver : ''}`}
+      aria-dropeffect={isDragging ? 'copy' : undefined}
+    >
       {/* Reply strip */}
       {replyTo && (
         <div className={styles.replyStrip}>
@@ -202,7 +304,49 @@ export function MessageInput({
         </div>
       )}
 
+      {/* Upload strip — shown when not idle */}
+      {uploadState.status !== 'idle' && (
+        <UploadStrip
+          uploadState={uploadState as Exclude<UploadState, { status: 'idle' }>}
+          onCancel={handleCancelUpload}
+          onRetry={handleRetry}
+        />
+      )}
+
       <div className={styles.row}>
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: 'none' }}
+          aria-label="Attach file"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFileSelect(file);
+            e.target.value = ''; // reset so same file can be re-selected
+          }}
+        />
+
+        {/* Paperclip button (D-27) */}
+        <button
+          className={styles.attachBtn}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadState.status === 'uploading'}
+          aria-label="Attach file"
+          aria-disabled={uploadState.status === 'uploading'}
+          type="button"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+            <path
+              d="M15.5 8.5l-7.3 7.3a4.5 4.5 0 01-6.4-6.4l7.8-7.8a3 3 0 014.2 4.2L6.5 13.1a1.5 1.5 0 01-2.1-2.1L11 4.4"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
         <textarea
           ref={textareaRef}
           className={styles.textarea}
