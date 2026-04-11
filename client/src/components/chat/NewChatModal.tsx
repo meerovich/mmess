@@ -46,8 +46,8 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
     setIsSearching(true);
     const timer = setTimeout(() => {
       apiFetch(`/api/users?q=${encodeURIComponent(query)}&limit=20`)
-        .then(res => res.ok ? res.json() : [])
-        .then((data: UserResult[]) => setResults(data))
+        .then(res => res.ok ? res.json() : { users: [] })
+        .then((data: { users: UserResult[] }) => setResults(data.users ?? []))
         .catch(() => setResults([]))
         .finally(() => setIsSearching(false));
     }, 300);

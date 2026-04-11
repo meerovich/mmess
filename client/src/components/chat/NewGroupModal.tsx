@@ -53,11 +53,11 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
     setIsSearching(true);
     const timer = setTimeout(() => {
       apiFetch(`/api/users?q=${encodeURIComponent(query)}&limit=20`)
-        .then(res => res.ok ? res.json() : [])
-        .then((data: UserResult[]) => {
+        .then(res => res.ok ? res.json() : { users: [] })
+        .then((data: { users: UserResult[] }) => {
           // Filter out already-selected users
           const selectedIds = new Set(selectedUsers.map(u => u.id));
-          setResults(data.filter((u: UserResult) => !selectedIds.has(u.id)));
+          setResults((data.users ?? []).filter((u: UserResult) => !selectedIds.has(u.id)));
         })
         .catch(() => setResults([]))
         .finally(() => setIsSearching(false));
