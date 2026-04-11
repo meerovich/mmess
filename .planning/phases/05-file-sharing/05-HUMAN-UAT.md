@@ -18,11 +18,11 @@ result: [pending — sender path should work per executor tests]
 
 ### 2. Recipient sees file attachment
 expected: User B, in the same conversation, sees User A's file message render with FileCard or inline image thumbnail — same as sender's view.
-result: **KNOWN GAP** — server WS broadcast omits file metadata (only file_id sent). MessageItem gates on file_name/is_image which are missing. Recipients currently see empty message.
+result: [pending — GAP-1 closed in plan 05-07: message.ts now enriches ack + broadcast payloads with file_name/file_mime/file_size/is_image/thumbnail_url]
 
 ### 3. File persists across page reload
 expected: User A reloads the page. File message still shows FileCard/inline image via GET /api/conversations/:id/messages.
-result: **KNOWN GAP** — history endpoint does not LEFT JOIN files table. File metadata absent in response.
+result: [pending — GAP-2 closed in plan 05-07: messages.ts now LEFT JOINs files table and maps metadata]
 
 ### 4. Download preserves original filename
 expected: Recipient clicks FileCard. Browser downloads with original filename via Content-Disposition header.
@@ -56,28 +56,20 @@ result: [pending]
 
 total: 10
 passed: 0
-issues: 2
-pending: 8
+issues: 0
+pending: 10
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-### Known server-side gaps (user approved phase with these tracked)
+### Resolved (plan 05-07)
 
-**GAP-1: WS broadcast/ack missing file metadata**
-- File: `server/src/routes/ws/handlers/message.ts` (handleMessageSend)
-- Symptom: Recipients see empty messages when sender sends a file
-- Root cause: Server sends raw `messages.insert().returning()` row which contains only `file_id` (UUID). Fields `file_name`, `file_mime`, `file_size`, `is_image`, `thumbnail_url` live in the `files` table and are never joined.
-- Fix: After transaction, if `file_id` is set, query `files` table and attach metadata to both ack payload and broadcast payload
-- User accepted this as a known issue; intended to be fixed in a future gap-closure pass
+**GAP-1 ✓ CLOSED** — `server/src/routes/ws/handlers/message.ts` now spreads fileRecord into enrichedMessage for both ack and broadcast payloads. Code-verified in re-verification pass.
 
-**GAP-2: History endpoint missing file metadata**
-- File: `server/src/routes/conversations/messages.ts` (GET /conversations/:id/messages)
-- Symptom: File attachments disappear on page reload for everyone (including sender)
-- Root cause: Query joins only `messages + users`. `file_id` not selected. No LEFT JOIN on files.
-- Fix: Add LEFT JOIN on `files` on `messages.file_id = files.id`; select and map file metadata columns in the response shape
-- User accepted this as a known issue; intended to be fixed in a future gap-closure pass
+**GAP-2 ✓ CLOSED** — `server/src/routes/conversations/messages.ts` adds LEFT JOIN on files + maps all file metadata columns. Code-verified in re-verification pass.
+
+Both fixes awaiting runtime E2E confirmation alongside the rest of the Phase 5 human UAT items.
 
 ### Sender-only workaround
 
