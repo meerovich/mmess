@@ -37,10 +37,10 @@
 
 ### File Sharing
 
-- [ ] **FILE-01**: User can upload and send files in a conversation
-- [ ] **FILE-02**: User can upload and send images with inline preview
-- [ ] **FILE-03**: User can drag-and-drop files into the chat to upload
-- [ ] **FILE-04**: User can download received files
+- [x] **FILE-01**: User can upload and send files in a conversation
+- [x] **FILE-02**: User can upload and send images with inline preview
+- [x] **FILE-03**: User can drag-and-drop files into the chat to upload
+- [x] **FILE-04**: User can download received files
 
 ### Presence & Notifications
 
@@ -120,10 +120,10 @@
 | PRES-01 | Phase 4 | Complete |
 | PRES-02 | Phase 4 | Complete |
 | PRES-03 | Phase 4 | Complete |
-| FILE-01 | Phase 5 | Pending |
-| FILE-02 | Phase 5 | Pending |
-| FILE-03 | Phase 5 | Pending |
-| FILE-04 | Phase 5 | Pending |
+| FILE-01 | Phase 5 | Complete |
+| FILE-02 | Phase 5 | Complete |
+| FILE-03 | Phase 5 | Complete |
+| FILE-04 | Phase 5 | Complete |
 | UI-01 | Phase 6 | Pending |
 | UI-02 | Phase 6 | Pending |
 | UI-03 | Phase 6 | Pending |

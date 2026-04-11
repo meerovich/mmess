@@ -116,7 +116,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 05-01-PLAN.md — Schema migration (thumbnail_path, conversation_id, FK on messages.file_id) + install sharp/file-type + Caddyfile/Docker infra changes
+- [x] 05-01-PLAN.md — Schema migration (thumbnail_path, conversation_id, FK on messages.file_id) + install sharp/file-type + Caddyfile/Docker infra changes
 - [ ] 05-02-PLAN.md — Backend POST /api/files: multipart streaming, magic-byte validation, date-sharded UUID storage, sharp thumbnail, rate limit
 - [ ] 05-03-PLAN.md — Backend GET /api/files/:id + /thumb with JWT + membership check; extend WS message:send to accept file_id
 - [ ] 05-04-PLAN.md — Frontend foundations: extend Message type, uploadFile XHR helper, CSS tokens, FileIcon + FileCard + UploadStrip components

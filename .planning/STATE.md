@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-11T14:47:52.912Z"
+status: executing
+last_updated: "2026-04-11T15:36:40.833Z"
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
-  percent: 100
+  total_plans: 27
+  completed_plans: 22
+  percent: 81
 ---
 
 # State: mmess
@@ -17,21 +17,21 @@ progress:
 ## Project Reference
 
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
-**Current Focus:** Phase 04 — groups-presence
+**Current Focus:** Phase 05 — file-sharing
 
 ---
 
 ## Current Position
 
-Phase: 04 (groups-presence) — EXECUTING
-Plan: 1 of 5
+Phase: 05 (file-sharing) — EXECUTING
+Plan: 1 of 6
 **Phase:** 5
 **Plan:** Not started
-**Status:** Ready to plan
+**Status:** Executing Phase 05
 
 **Progress:**
 
-[██████████] 100%
+[████████░░] 81%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -75,6 +75,7 @@ Plan: 1 of 5
 | Phase 04-groups-presence P03 | 12 | 2 tasks | 4 files |
 | Phase 04-groups-presence P04 | 15 | 2 tasks | 4 files |
 | Phase 04-groups-presence P05 | 15 | 2 tasks | 9 files |
+| Phase 05-file-sharing P01 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,8 @@ Plan: 1 of 5
 | Module-level _currentUserId + _navigate refs in WebSocketProvider | handleIncoming defined outside component; module-level refs avoid stale closure on message:new notification logic |
 | presenceTargetId null removes DM presence dot entirely for groups | DOM-absent (not hidden) for group ConversationItems — cleaner than invisible element |
 | Notification tag=conversation_id deduplicates browser notifications | One visible notification per conversation regardless of message burst rate |
+| Files routed through Fastify (JWT-gated), not Caddy static | /uploads/* Caddy block removed; auth-gated file access via API only |
+| Named mmess_node_modules volume in dev compose | Shadows host bind-mount; prevents sharp musl/glibc binary mismatch in Alpine container |
 
 ### Architecture Notes
 
@@ -160,8 +163,8 @@ Plan: 1 of 5
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 04-05 — presence dots on ConversationItem (DM) + MessageItem (sender), NotificationBanner permission request, browser notification fire logic in WebSocketProvider
-**Next action:** Phase 04 complete — proceed to Phase 05 (File Sharing)
+**Last action:** Completed 05-01 — schema extensions (thumbnail_path, conversation_id, messages FK), sharp + file-type install, Caddyfile restructure (/api/files* block), Docker Compose volume fixes
+**Next action:** Phase 05 Plan 02 — file upload API endpoint (Fastify multipart + sharp thumbnail generation)
 
 ---
 *State initialized: 2026-04-08*
