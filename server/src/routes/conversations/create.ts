@@ -17,7 +17,7 @@ interface CreateConversationBody {
 }
 
 export default async function conversationsCreateRoutes(fastify: FastifyInstance) {
-  fastify.post<{ Body: CreateConversationBody }>('/api/conversations', {
+  fastify.post<{ Body: CreateConversationBody }>('/conversations', {
     preHandler: [fastify.authenticate],
     schema: {
       body: {

@@ -6,7 +6,7 @@ import { and, ne, sql } from 'drizzle-orm';
 export default async function usersSearchRoutes(fastify: FastifyInstance) {
   fastify.get<{
     Querystring: { q?: string; limit?: string };
-  }>('/api/users', {
+  }>('/users', {
     preHandler: [fastify.authenticate],
     schema: {
       querystring: {

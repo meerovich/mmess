@@ -14,7 +14,7 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
   fastify.get<{
     Params: { id: string };
     Querystring: { before?: string; limit?: string };
-  }>('/api/conversations/:id/messages', {
+  }>('/conversations/:id/messages', {
     preHandler: [fastify.authenticate],
     schema: {
       params: {

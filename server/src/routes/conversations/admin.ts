@@ -68,9 +68,10 @@ async function getParticipant(conversationId: string, userId: string) {
 
 export default async function conversationsAdminRoutes(fastify: FastifyInstance) {
 
-  // PATCH /api/conversations/:id — rename group (admin-only) (D-09)
+  // PATCH /conversations/:id — rename group (admin-only) (D-09)
+  // Note: Caddy strips /api prefix before proxying — backend paths are unprefixed
   fastify.patch<{ Params: { id: string }; Body: { name?: string } }>(
-    '/api/conversations/:id',
+    '/conversations/:id',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -106,9 +107,9 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
     }
   );
 
-  // POST /api/conversations/:id/participants — add members (admin-only) (D-10)
+  // POST /conversations/:id/participants — add members (admin-only) (D-10)
   fastify.post<{ Params: { id: string }; Body: { user_ids: string[] } }>(
-    '/api/conversations/:id/participants',
+    '/conversations/:id/participants',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -166,9 +167,9 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
     }
   );
 
-  // DELETE /api/conversations/:id/participants/:user_id — kick (admin-only) (D-11)
+  // DELETE /conversations/:id/participants/:user_id — kick (admin-only) (D-11)
   fastify.delete<{ Params: { id: string; user_id: string } }>(
-    '/api/conversations/:id/participants/:user_id',
+    '/conversations/:id/participants/:user_id',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -234,12 +235,12 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
     }
   );
 
-  // PATCH /api/conversations/:id/participants/:user_id — update permissions (admin-only) (D-12)
+  // PATCH /conversations/:id/participants/:user_id — update permissions (admin-only) (D-12)
   fastify.patch<{
     Params: { id: string; user_id: string };
     Body: { can_edit_messages?: boolean };
   }>(
-    '/api/conversations/:id/participants/:user_id',
+    '/conversations/:id/participants/:user_id',
     {
       preHandler: [fastify.authenticate],
       schema: {
@@ -289,9 +290,9 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
     }
   );
 
-  // DELETE /api/conversations/:id/me — leave group (D-13)
+  // DELETE /conversations/:id/me — leave group (D-13)
   fastify.delete<{ Params: { id: string } }>(
-    '/api/conversations/:id/me',
+    '/conversations/:id/me',
     {
       preHandler: [fastify.authenticate],
       schema: {

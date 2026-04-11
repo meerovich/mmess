@@ -81,7 +81,7 @@ export function schedulePresenceOffline(userId: string): void {
  */
 export default async function presenceRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Querystring: { user_ids?: string } }>(
-    '/api/presence',
+    '/presence',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
       const raw = request.query.user_ids ?? '';

@@ -10,7 +10,7 @@ import {
 import { eq, desc, and, gt, isNull, sql } from 'drizzle-orm';
 
 export default async function conversationsListRoutes(fastify: FastifyInstance) {
-  fastify.get('/api/conversations', {
+  fastify.get('/conversations', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const userId = request.user.sub;
