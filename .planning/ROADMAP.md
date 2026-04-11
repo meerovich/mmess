@@ -79,8 +79,8 @@ Plans:
 - [x] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
 - [x] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
 - [x] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
-- [ ] 03-07-PLAN.md — Gap closure: Fix 4 client payload shape bugs (typing:user, conversation:new, 2x user search)
-- [ ] 03-08-PLAN.md — Gap closure: Extend server responses with reply_to.sender + participant last_read_at; update TS types
+- [x] 03-07-PLAN.md — Gap closure: Fix 4 client payload shape bugs (typing:user, conversation:new, 2x user search)
+- [x] 03-08-PLAN.md — Gap closure: Extend server responses with reply_to.sender + participant last_read_at; update TS types
 - [ ] 03-09-PLAN.md — Gap closure: Wire ReadReceipt isAllRead computation + ReplyPreview sender name; human verify
 
 ### Phase 4: Groups & Presence
@@ -127,7 +127,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 5/9 | In Progress|  |
+| 3. Messaging Core | 8/9 | In Progress|  |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |

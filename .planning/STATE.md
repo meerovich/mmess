@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-last_updated: "2026-04-11T10:58:14Z"
+status: completed
+last_updated: "2026-04-11T12:14:14.377Z"
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 13
-  completed_plans: 13
-  percent: 100
+  total_plans: 16
+  completed_plans: 15
+  percent: 94
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 6 of 6
 
 **Progress:**
 
-[██████████] 100%
+[█████████░] 94%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -67,6 +67,8 @@ Plan: 6 of 6
 | Phase 03-messaging-core P04 | 30 | 2 tasks | 8 files |
 | Phase 03-messaging-core P05 | 25 | 2 tasks | 14 files |
 | Phase 03-messaging-core P06 | 18 | 2 tasks | 13 files |
+| Phase 03-messaging-core P07 | 10 | 2 tasks | 3 files |
+| Phase 03-messaging-core P08 | 8 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -117,6 +119,9 @@ Plan: 6 of 6
 | editMessage + replyTo lifted to ChatPane | Common ancestor of MessageItem and MessageInput; simpler than a separate context for edit state |
 | EmojiPicker as React.ComponentType<any> | @emoji-mart/react has no TS declarations; any-cast on lazy component is the pragmatic workaround |
 | read:mark sent from MessageList not MessageItem | Last message ref lives in MessageList; IntersectionObserver on that ref dispatches debounced read:mark |
+| typing:user WS handler reads msg.payload.typers array | Server broadcasts full current-typers list per conversation; client dispatches SET_TYPING_USERS with it directly |
+| conversation:new WS handler dispatches msg.payload directly | Server puts conversation object at payload root — no .conversation wrapper; client fixed to match |
+| GET /api/users returns { users: UserResult[] } not bare array | NewChatModal and NewGroupModal both unwrap data.users before passing to setResults/filter |
 
 ### Architecture Notes
 
@@ -141,8 +146,8 @@ Plan: 6 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-06 — Chat Pane UI: ChatPane, MessageList, MessageItem, ReplyPreview, ReactionBar, MessageInput, TypingIndicator — Phase 03 complete
-**Next action:** Phase 04 — Groups & Presence
+**Last action:** Completed 03-08 — REST contract extensions: reply_to.sender join + participant read receipt fields + client types
+**Next action:** Phase 03 Plan 09 — Wire ReadReceipt and ReplyPreview using new fields
 
 ---
 *State initialized: 2026-04-08*
