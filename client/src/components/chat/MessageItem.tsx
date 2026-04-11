@@ -5,6 +5,8 @@ import { useChat } from '../../contexts/ChatContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar } from './ReactionBar';
+import { FileCard } from './FileCard';
+import { Lightbox } from './Lightbox';
 import styles from './MessageItem.module.css';
 import type { Message, Participant } from '../../types/chat';
 
@@ -68,6 +70,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
@@ -145,7 +148,44 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         {message.is_deleted ? (
           <div className={`${styles.content} ${styles.deleted}`}>Message deleted</div>
         ) : (
-          <div className={styles.content}>{message.content}</div>
+          <>
+            {/* Image attachment — inline thumbnail with click-to-lightbox (D-29, D-30) */}
+            {message.file_id && message.is_image && (
+              <div
+                className={styles.imageContainer}
+                onClick={() => setLightboxOpen(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') setLightboxOpen(true); }}
+                aria-label={`View ${message.file_name || 'image'}`}
+              >
+                <img
+                  src={message.thumbnail_url ?? `/api/files/${message.file_id}/thumb`}
+                  alt={message.file_name || 'Attached image'}
+                  className={styles.inlineImage}
+                  onError={(e) => {
+                    // Fall back to hiding broken image
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* File card — non-image attachment (D-32) */}
+            {message.file_id && !message.is_image && message.file_name && (
+              <FileCard
+                fileId={message.file_id}
+                fileName={message.file_name}
+                fileSize={message.file_size ?? 0}
+                mimeType={message.file_mime ?? 'application/octet-stream'}
+              />
+            )}
+
+            {/* Text content (caption or regular message) */}
+            {message.content && (
+              <div className={styles.content}>{message.content}</div>
+            )}
+          </>
         )}
 
         {/* Reactions */}
@@ -194,6 +234,15 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           </div>
         )}
       </div>
+
+      {/* Lightbox — full-size image viewer (D-30, D-31) */}
+      {lightboxOpen && message.file_id && (
+        <Lightbox
+          fileId={message.file_id}
+          fileName={message.file_name || 'Image'}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
 
       {/* Hover menu */}
       {isHovered && !message.is_deleted && (

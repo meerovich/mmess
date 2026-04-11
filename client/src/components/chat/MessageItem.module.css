@@ -258,6 +258,23 @@
   opacity: 0.9;
 }
 
+.imageContainer {
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--color-surface-secondary);
+  display: inline-block;
+  max-width: 320px;
+}
+
+.inlineImage {
+  display: block;
+  max-width: 320px;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
 @media (max-width: 767px) {
   .bubble {
     max-width: 85%;
