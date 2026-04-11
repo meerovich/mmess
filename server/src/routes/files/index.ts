@@ -1,16 +1,69 @@
 import { pipeline } from 'stream/promises';
-import { createWriteStream } from 'fs';
+import { createWriteStream, createReadStream, existsSync } from 'fs';
 import { unlink, stat } from 'fs/promises';
 import type { FastifyInstance } from 'fastify';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { files } from '../../db/schema.js';
+import { files, messages, conversations, conversation_participants } from '../../db/schema.js';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import {
   getUploadPath,
   ensureUploadDir,
   thumbnailRelativePath,
+  absolutePath,
 } from '../../lib/upload/storage.js';
 import { validateMime } from '../../lib/upload/validate.js';
 import { generateThumbnail } from '../../lib/upload/thumbnail.js';
+
+type DB = PostgresJsDatabase<Record<string, never>>;
+
+/**
+ * Access check (D-16) — three allowed paths:
+ * 1. User is the original uploader
+ * 2. File is referenced as a group avatar (exact string match)
+ * 3. User is a conversation participant of any message with this file_id
+ */
+async function checkFileAccess(
+  dbConn: DB,
+  userId: string,
+  file: typeof files.$inferSelect
+): Promise<boolean> {
+  // Check 1: user is the original uploader
+  if (file.uploader_id === userId) return true;
+
+  // Check 2: file is referenced as a group avatar (exact string match — NOT LIKE %)
+  const avatarUrl = `/api/files/${file.id}`;
+  const [avatarConv] = await dbConn
+    .select({ id: conversations.id })
+    .from(conversations)
+    .innerJoin(
+      conversation_participants,
+      and(
+        eq(conversation_participants.conversation_id, conversations.id),
+        eq(conversation_participants.user_id, userId)
+      )
+    )
+    .where(eq(conversations.avatar_url, avatarUrl))
+    .limit(1);
+  if (avatarConv) return true;
+
+  // Check 3: user is a participant in any conversation with a message referencing this file
+  const [participantRow] = await dbConn
+    .select({ user_id: conversation_participants.user_id })
+    .from(messages)
+    .innerJoin(
+      conversation_participants,
+      and(
+        eq(conversation_participants.conversation_id, messages.conversation_id),
+        eq(conversation_participants.user_id, userId)
+      )
+    )
+    .where(eq(messages.file_id, file.id))
+    .limit(1);
+  if (participantRow) return true;
+
+  return false;
+}
 
 export default async function filesRoutes(fastify: FastifyInstance) {
   // Register @fastify/multipart scoped to this plugin only (avoid global conflict)
@@ -122,5 +175,71 @@ export default async function filesRoutes(fastify: FastifyInstance) {
       thumbnail_url: thumbRelPath ? `/api/files/${file.id}/thumb` : null,
       download_url: `/api/files/${file.id}`,
     });
+  });
+
+  // GET /files/:id — authenticated file download (D-16)
+  fastify.get('/:id', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      response: {
+        '4xx': { type: 'object', properties: { error: { type: 'string' } } },
+        '5xx': { type: 'object', properties: { error: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub;
+    const { id: fileId } = request.params as { id: string };
+
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) return reply.code(404).send({ error: 'File not found' });
+
+    const hasAccess = await checkFileAccess(db as unknown as DB, userId, file);
+    if (!hasAccess) return reply.code(403).send({ error: 'Access denied' });
+
+    const filePath = absolutePath(file.storage_name);
+    if (!existsSync(filePath)) return reply.code(404).send({ error: 'File not found on disk' });
+
+    const stats = await stat(filePath);
+
+    return reply
+      .header('Content-Type', file.mimetype)
+      .header('Content-Length', stats.size)
+      .header('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_name)}"`)
+      .header('Cache-Control', 'private, max-age=3600')
+      .send(createReadStream(filePath));
+  });
+
+  // GET /files/:id/thumb — authenticated thumbnail (D-17)
+  fastify.get('/:id/thumb', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      response: {
+        '4xx': { type: 'object', properties: { error: { type: 'string' } } },
+        '5xx': { type: 'object', properties: { error: { type: 'string' } } },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub;
+    const { id: fileId } = request.params as { id: string };
+
+    const [file] = await db.select().from(files).where(eq(files.id, fileId));
+    if (!file) return reply.code(404).send({ error: 'File not found' });
+    if (!file.thumbnail_path) return reply.code(404).send({ error: 'No thumbnail for this file' });
+
+    const hasAccess = await checkFileAccess(db as unknown as DB, userId, file);
+    if (!hasAccess) return reply.code(403).send({ error: 'Access denied' });
+
+    const thumbPath = absolutePath(file.thumbnail_path);
+    if (!existsSync(thumbPath)) return reply.code(404).send({ error: 'Thumbnail not found on disk' });
+
+    const stats = await stat(thumbPath);
+
+    return reply
+      .header('Content-Type', 'image/webp')
+      .header('Content-Length', stats.size)
+      .header('Cache-Control', 'private, max-age=3600')
+      .send(createReadStream(thumbPath));
   });
 }
