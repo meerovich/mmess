@@ -126,7 +126,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
         {/* Reply preview */}
         {message.reply_to && (
-          <ReplyPreview replyTo={message.reply_to as { sender_id: string; content: string | null; sender?: { username: string } }} />
+          <ReplyPreview replyTo={message.reply_to} />
         )}
 
         {/* Message content */}

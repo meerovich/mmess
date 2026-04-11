@@ -1,13 +1,9 @@
 import React from 'react';
+import type { ReplyTo } from '../../types/chat';
 import styles from './MessageItem.module.css';
 
 interface ReplyPreviewProps {
-  replyTo: {
-    sender_id: string;
-    content: string | null;
-    sender?: { username: string };
-    id?: string;
-  } | null;
+  replyTo: ReplyTo | null;
 }
 
 export function ReplyPreview({ replyTo }: ReplyPreviewProps) {
