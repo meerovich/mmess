@@ -1,13 +1,17 @@
+/* Inline-flex so the wrapper only takes as much horizontal space as its children,
+   and the add-reaction (+) button sits next to the badges instead of claiming
+   its own row under every message. Wraps only when the row actually overflows. */
 .reactionBarWrapper {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
   flex-wrap: wrap;
   margin-top: var(--space-xs);
+  max-width: 100%;
 }
 
 .reactions {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: var(--space-xs);
 }
@@ -23,6 +27,8 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  height: 22px;
+  line-height: 1;
   transition: background 0.15s;
 }
 
@@ -37,24 +43,41 @@
 
 .addReactionWrapper {
   position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
+/* Compact inline "+" trigger. Matches badge height so it does not stretch the row.
+   Desktop: hidden by default, revealed when the parent message bubble is hovered
+   (see MessageItem.module.css `.bubble:hover :global(.mmess-add-reaction-btn)`).
+   Mobile: always visible (override below). */
 .addReactionBtn {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   background: var(--color-reaction-bg);
   border: 1px solid var(--color-border);
   cursor: pointer;
   font-size: var(--text-label);
-  display: flex;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--color-text-secondary);
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
 }
 
-.addReactionBtn:hover {
+.addReactionBtn:hover,
+.addReactionBtn:focus-visible {
   background: var(--color-reaction-bg-active);
+  opacity: 1;
+}
+
+/* When the picker is open, force the button visible even if hover is lost. */
+.addReactionBtnOpen {
+  opacity: 1;
 }
 
 .pickerContainer {
@@ -64,6 +87,32 @@
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border-radius: 8px;
+  /* Constrain picker so it cannot blow the parent bubble wider than viewport */
+  max-width: min(360px, 90vw);
+  max-height: min(400px, 60vh);
+  overflow: auto;
+}
+
+/* Mobile: pin picker to the bottom of the viewport as a sheet with a scrim.
+   Prevents the emoji-mart picker from pushing content horizontally OR
+   floating above the viewport where the user cannot reach it. */
+@media (max-width: 767px) {
+  .pickerContainer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    max-width: 100vw;
+    max-height: 70vh;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  /* On mobile there is no hover; always show the + trigger. */
+  .addReactionBtn {
+    opacity: 1;
+  }
 }
 
 .pickerLoading {

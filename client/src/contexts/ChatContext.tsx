@@ -129,11 +129,8 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
       const msgs = state.messages[action.conversationId] ?? [];
       const updatedMsgs = msgs.map((m: Message) => {
         if (m.id !== action.messageId) return m;
-        const alreadyPresent = m.reactions.some(
-          r => r.user_id === action.reaction.user_id && r.emoji === action.reaction.emoji
-        );
-        if (alreadyPresent) return m;
-        return { ...m, reactions: [...m.reactions, action.reaction] };
+        const filtered = m.reactions.filter(r => r.user_id !== action.reaction.user_id);
+        return { ...m, reactions: [...filtered, action.reaction] };
       });
       return {
         ...state,

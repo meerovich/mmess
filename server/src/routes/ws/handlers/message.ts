@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
-import { messages, conversations, conversation_participants, files } from '../../../db/schema.js';
+import { messages, conversations, conversation_participants, files, users } from '../../../db/schema.js';
 
 type DB = PostgresJsDatabase<Record<string, never>>;
 
@@ -11,6 +11,82 @@ async function getParticipantIds(db: DB, conversationId: string): Promise<string
     .from(conversation_participants)
     .where(eq(conversation_participants.conversation_id, conversationId));
   return rows.map(r => r.user_id);
+}
+
+/**
+ * Build the wire-format message that the frontend expects.
+ *
+ * Frontend `Message` type (client/src/types/chat.ts) requires nested objects
+ * that are NOT present in the raw messages row:
+ *   - sender: { id, username, avatar_url }   ← from users join
+ *   - reactions: []                           ← always empty for a brand-new message
+ *   - reply_to: { id, sender_id, content, sender?: { id, username } } | null
+ *
+ * Without these, MessageItem crashes with "Cannot read properties of undefined
+ * (reading 'username')" on the very next render — which manifests as a white
+ * screen after send because React unmounts the whole tree on unhandled errors.
+ */
+async function enrichMessage(
+  db: DB,
+  row: typeof messages.$inferSelect,
+  fileRecord: typeof files.$inferSelect | null
+): Promise<Record<string, unknown>> {
+  // Sender — REQUIRED for MessageItem render
+  const [sender] = await db
+    .select({ id: users.id, username: users.username, avatar_url: users.avatar_url })
+    .from(users)
+    .where(eq(users.id, row.sender_id));
+
+  // Reply-to — populate full object if the message is a reply
+  let reply_to: Record<string, unknown> | null = null;
+  if (row.reply_to_id) {
+    const [parent] = await db
+      .select({
+        id: messages.id,
+        sender_id: messages.sender_id,
+        content: messages.content,
+      })
+      .from(messages)
+      .where(eq(messages.id, row.reply_to_id));
+    if (parent) {
+      const [parentSender] = await db
+        .select({ id: users.id, username: users.username })
+        .from(users)
+        .where(eq(users.id, parent.sender_id));
+      reply_to = {
+        id: parent.id,
+        sender_id: parent.sender_id,
+        content: parent.content,
+        sender: parentSender ?? null,
+      };
+    }
+  }
+
+  const fileFields = fileRecord
+    ? {
+        file_name: fileRecord.original_name,
+        file_mime: fileRecord.mimetype,
+        file_size: fileRecord.size_bytes,
+        is_image: fileRecord.mimetype.startsWith('image/'),
+        thumbnail_url: fileRecord.thumbnail_path
+          ? `/api/files/${row.file_id}/thumb`
+          : null,
+      }
+    : {
+        file_name: null,
+        file_mime: null,
+        file_size: null,
+        is_image: null,
+        thumbnail_url: null,
+      };
+
+  return {
+    ...row,
+    sender: sender ?? null,
+    reactions: [],
+    reply_to,
+    ...fileFields,
+  };
 }
 
 export async function handleMessageSend(
@@ -94,26 +170,16 @@ export async function handleMessageSend(
     return [msg];
   });
 
-  // Build enriched payload — attach file metadata if present (GAP-1 fix)
-  const enrichedMessage = fileRecord
-    ? {
-        ...newMessage,
-        file_name: fileRecord.original_name,
-        file_mime: fileRecord.mimetype,
-        file_size: fileRecord.size_bytes,
-        is_image: fileRecord.mimetype.startsWith('image/'),
-        thumbnail_url: fileRecord.thumbnail_path
-          ? `/api/files/${newMessage.file_id}/thumb`
-          : null,
-      }
-    : newMessage;
+  // Build enriched payload with sender/reactions/reply_to + file metadata
+  // (white-screen fix — client MessageItem requires these nested objects)
+  const enrichedMessage = await enrichMessage(db, newMessage, fileRecord);
 
-  // Ack sender (D-03)
+  // Ack sender (D-03) — wrapped in { message: ... } to match client handleIncoming
   socket.send(JSON.stringify({ type: 'ack', payload: { message: enrichedMessage }, id: clientId }));
 
-  // Fan out to other participants (D-04)
+  // Fan out to other participants (D-04) — ALSO wrapped so client reads payload.message
   const participantIds = await getParticipantIds(db, payload.conversation_id);
-  broadcast(participantIds, { type: 'message:new', payload: enrichedMessage }, userId);
+  broadcast(participantIds, { type: 'message:new', payload: { message: enrichedMessage } }, userId);
 }
 
 export async function handleMessageEdit(
@@ -171,9 +237,17 @@ export async function handleMessageEdit(
     .where(eq(messages.id, payload.message_id))
     .returning();
 
-  socket.send(JSON.stringify({ type: 'ack', payload: { message: updated }, id: clientId }));
+  // Load file record if present, then enrich with sender/reactions/reply_to
+  let fileRecordForEdit: typeof files.$inferSelect | null = null;
+  if (updated.file_id) {
+    const [f] = await db.select().from(files).where(eq(files.id, updated.file_id));
+    fileRecordForEdit = f ?? null;
+  }
+  const enrichedUpdated = await enrichMessage(db, updated, fileRecordForEdit);
+
+  socket.send(JSON.stringify({ type: 'ack', payload: { message: enrichedUpdated }, id: clientId }));
   const participantIds = await getParticipantIds(db, msg.conversation_id);
-  broadcast(participantIds, { type: 'message:edited', payload: updated }, userId);
+  broadcast(participantIds, { type: 'message:edited', payload: { message: enrichedUpdated } }, userId);
 }
 
 export async function handleMessageDelete(

@@ -114,6 +114,9 @@ export function ConversationList() {
         <div className={styles.footer}>
           <Avatar name={user.username} size="sm" />
           <span className={styles.footerName}>{user.username}</span>
+          <span className={styles.versionLabel} title={`Build ${__APP_VERSION__}`}>
+            v{__APP_VERSION__}
+          </span>
           <ThemeToggle />
         </div>
       )}

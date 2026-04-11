@@ -36,8 +36,17 @@ app.register(usersRoutes);
 app.register(presenceRoutes);
 app.register(filesRoutes, { prefix: '/files' });
 
+// APP_VERSION is injected at container startup via docker-compose.yml
+// environment (set by scripts/deploy.sh on the VPS). Falls back to 'dev'
+// when running outside the deploy flow (local dev, tests).
+const APP_VERSION = process.env.APP_VERSION ?? 'dev';
+
 app.get('/health', async (_request, _reply) => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+  return {
+    status: 'ok',
+    version: APP_VERSION,
+    timestamp: new Date().toISOString(),
+  };
 });
 
 const start = async () => {

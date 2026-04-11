@@ -35,6 +35,7 @@ services:
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       UPLOAD_DIR: /data/uploads
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+      APP_VERSION: ${APP_VERSION:-dev}
     volumes:
       - mmess_uploads:/data/uploads       # named volume per D-15, INFRA-04
     networks:

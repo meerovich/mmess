@@ -50,6 +50,7 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const grouped = groupReactions(reactions, currentUserId);
+  const hasReactions = grouped.length > 0;
 
   const handleBadgeClick = (emoji: string, reactedByMe: boolean) => {
     if (reactedByMe) {
@@ -73,9 +74,28 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
     setShowPicker(false);
   };
 
+  // When there are no reactions and the picker is closed, we still render the
+  // add-reaction button but mark the wrapper as "empty" so MessageItem.module.css
+  // can collapse it out of the document flow until the parent bubble is hovered
+  // (desktop) or we're on mobile (always visible via media query).
+  const wrapperClass = [
+    styles.reactionBarWrapper,
+    !hasReactions ? 'mmess-reaction-bar-empty' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  const addBtnClass = [
+    styles.addReactionBtn,
+    'mmess-add-reaction-btn',
+    showPicker ? styles.addReactionBtnOpen : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div className={styles.reactionBarWrapper}>
-      {grouped.length > 0 && (
+    <div className={wrapperClass}>
+      {hasReactions && (
         <div className={styles.reactions}>
           {grouped.map(g => (
             <button
@@ -93,7 +113,7 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
 
       <div className={styles.addReactionWrapper}>
         <button
-          className={styles.addReactionBtn}
+          className={addBtnClass}
           onClick={() => setShowPicker(prev => !prev)}
           aria-label="Add reaction"
         >

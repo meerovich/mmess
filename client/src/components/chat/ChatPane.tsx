@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useChatLayout } from './ChatLayout';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
 import { GroupSettingsModal } from './GroupSettingsModal';
 import styles from './ChatPane.module.css';
 import type { Conversation, Message } from '../../types/chat';
-
-interface ChatPaneProps {
-  onBack?: () => void;
-}
 
 function getConversationName(conversation: Conversation, currentUserId: string): string {
   if (conversation.type === 'group') {
@@ -21,13 +18,22 @@ function getConversationName(conversation: Conversation, currentUserId: string):
   return other?.username ?? conversation.name ?? 'Chat';
 }
 
-export function ChatPane({ onBack }: ChatPaneProps) {
-  const { state } = useChat();
+export function ChatPane() {
+  const { state, dispatch } = useChat();
   const { activeConversationId, conversations, wsStatus } = state;
   const { user } = useAuth();
+  const { setShowChat } = useChatLayout();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Mobile back navigation: clear active conversation + close chat pane so the
+  // sidebar becomes visible again. On desktop both panes are always visible,
+  // so setShowChat(false) is a no-op except on mobile.
+  const handleBack = () => {
+    dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
+    setShowChat(false);
+  };
 
   if (!activeConversationId) {
     return (
@@ -52,11 +58,13 @@ export function ChatPane({ onBack }: ChatPaneProps) {
       )}
 
       <header className={styles.header}>
-        {onBack && (
-          <button className={styles.backButton} onClick={onBack} aria-label="Back to conversations">
-            ← Back
-          </button>
-        )}
+        <button
+          className={styles.backButton}
+          onClick={handleBack}
+          aria-label="Back to conversations"
+        >
+          ← Back
+        </button>
         <div className={styles.headerAvatar}>
           <span className={styles.avatarInitial}>
             {conversationName.charAt(0).toUpperCase()}

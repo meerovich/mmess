@@ -72,6 +72,21 @@ docker compose restart api
 
 ### Update to a new version
 
+Preferred (auto-bumps patch version and rebuilds client + server):
+
+```bash
+./scripts/deploy.sh
+docker compose logs -f --tail=50 api
+```
+
+`scripts/deploy.sh` runs `git pull`, increments the `version` field in the
+root `package.json` (e.g. `1.0.3` -> `1.0.4`), rebuilds the client with
+`VITE_APP_VERSION` injected, and restarts the stack with `APP_VERSION`
+exported for the api container. The running version is visible in the sidebar
+footer of the web UI and at `GET /health` (`{ status, version, timestamp }`).
+
+Manual path (no version bump) still works:
+
 ```bash
 git pull
 docker compose up -d --build

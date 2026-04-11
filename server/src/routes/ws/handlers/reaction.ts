@@ -26,13 +26,76 @@ export async function handleReactionAdd(
     return;
   }
 
-  // Upsert — onConflictDoNothing ensures idempotency
+  // Fetch any existing reactions by this user on this message.
+  // Invariant (new): at most one row per (message_id, user_id). We still tolerate
+  // multiple rows defensively for legacy data.
+  const existing = await db
+    .select({ emoji: message_reactions.emoji })
+    .from(message_reactions)
+    .where(and(
+      eq(message_reactions.message_id, payload.message_id),
+      eq(message_reactions.user_id, userId)
+    ));
+
+  const participantIds = await getConvParticipants(db, msg.conversation_id);
+
+  // Toggle-off: user clicked the same emoji they already have (and only that one).
+  if (existing.length === 1 && existing[0].emoji === payload.emoji) {
+    await db.delete(message_reactions)
+      .where(and(
+        eq(message_reactions.message_id, payload.message_id),
+        eq(message_reactions.user_id, userId),
+        eq(message_reactions.emoji, payload.emoji)
+      ));
+
+    const removedEvent = {
+      type: 'reaction:removed',
+      payload: {
+        message_id: payload.message_id,
+        user_id: userId,
+        emoji: payload.emoji,
+        conversation_id: msg.conversation_id,
+      },
+    };
+    socket.send(JSON.stringify({ type: 'ack', payload: removedEvent.payload, id: clientId }));
+    broadcast(participantIds, removedEvent, userId);
+    return;
+  }
+
+  // Replace or add path: drop any prior reaction(s) from this user, then insert new.
+  // Capture previous emojis (distinct) so we can emit reaction:removed for the old one(s).
+  const previousEmojis = Array.from(new Set(existing.map(r => r.emoji)))
+    .filter(e => e !== payload.emoji);
+
+  if (existing.length > 0) {
+    await db.delete(message_reactions)
+      .where(and(
+        eq(message_reactions.message_id, payload.message_id),
+        eq(message_reactions.user_id, userId)
+      ));
+  }
+
+  // Emit reaction:removed for each prior emoji BEFORE the new reaction:added so
+  // client reducers stay consistent (remove old, then add new).
+  for (const oldEmoji of previousEmojis) {
+    const removedEvent = {
+      type: 'reaction:removed',
+      payload: {
+        message_id: payload.message_id,
+        user_id: userId,
+        emoji: oldEmoji,
+        conversation_id: msg.conversation_id,
+      },
+    };
+    socket.send(JSON.stringify(removedEvent));
+    broadcast(participantIds, removedEvent, userId);
+  }
+
   await db.insert(message_reactions)
     .values({ message_id: payload.message_id, user_id: userId, emoji: payload.emoji })
     .onConflictDoNothing();
 
-  const participantIds = await getConvParticipants(db, msg.conversation_id);
-  const event = {
+  const addedEvent = {
     type: 'reaction:added',
     payload: {
       message_id: payload.message_id,
@@ -41,8 +104,8 @@ export async function handleReactionAdd(
       conversation_id: msg.conversation_id,
     },
   };
-  socket.send(JSON.stringify({ type: 'ack', payload: event.payload, id: clientId }));
-  broadcast(participantIds, event, userId);
+  socket.send(JSON.stringify({ type: 'ack', payload: addedEvent.payload, id: clientId }));
+  broadcast(participantIds, addedEvent, userId);
 }
 
 export async function handleReactionRemove(

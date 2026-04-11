@@ -146,3 +146,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Build version badge — subtle, non-intrusive. */
+.versionLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+}

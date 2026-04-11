@@ -1,6 +1,14 @@
 .layout {
   display: flex;
+  /* Fallback for browsers without dvh support */
   height: 100vh;
+  /* iOS Safari dynamic viewport — excludes URL bar / system chrome, so the
+     MessageInput no longer slips below the visible area when the toolbar is
+     visible. Newer Chromium/WebKit support this; older engines fall back to
+     100vh above. */
+  height: 100dvh;
+  width: 100vw;
+  max-width: 100vw;
   overflow: hidden;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -14,18 +22,22 @@
   border-right: 1px solid var(--color-border);
   background: var(--color-surface-secondary);
   overflow-y: auto;
+  min-width: 0;
 }
 
 .pane {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 @media (max-width: 767px) {
   .sidebar {
     width: 100vw;
+    max-width: 100vw;
   }
 
   .sidebar.hidden {

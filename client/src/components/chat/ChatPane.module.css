@@ -43,6 +43,15 @@
   color: var(--color-accent);
   padding: var(--space-xs);
   flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* On desktop the sidebar is always visible, so the back button is redundant. */
+@media (min-width: 768px) {
+  .backButton {
+    display: none;
+  }
 }
 
 .headerAvatar {

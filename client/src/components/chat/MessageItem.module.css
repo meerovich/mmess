@@ -275,8 +275,31 @@
   border-radius: 8px;
 }
 
+/* Reaction bar: reveal add-reaction (+) button on bubble hover (desktop).
+   When there are no reactions, collapse the empty wrapper entirely so it
+   does not reserve a row under every message. The `mmess-*` classes are
+   plain (non-module) classes set by ReactionBar.tsx for this cross-module
+   hover relationship. */
+.bubble:hover :global(.mmess-add-reaction-btn) {
+  opacity: 1;
+}
+
+.bubble :global(.mmess-reaction-bar-empty) {
+  display: none;
+}
+
+.bubble:hover :global(.mmess-reaction-bar-empty) {
+  display: inline-flex;
+}
+
 @media (max-width: 767px) {
   .bubble {
     max-width: 85%;
+  }
+
+  /* Mobile: no hover state — always keep the empty reaction bar in flow so
+     the tap target is reachable. */
+  .bubble :global(.mmess-reaction-bar-empty) {
+    display: inline-flex;
   }
 }
