@@ -1,0 +1,32 @@
+.group {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.btn:hover {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+}
+
+.btn.active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
