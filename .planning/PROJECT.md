@@ -20,11 +20,11 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - ✓ Private (1-on-1) chats — Phase 3
 - ✓ Group chats — Phase 3
 - ✓ Message history and persistence — Phase 3
+- ✓ Online/offline status indicators — Phase 4
 
 ### Active
 
 - [ ] File and image sharing
-- [ ] Online/offline status indicators
 - [ ] Responsive web UI
 
 ### Out of Scope
@@ -79,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after Phase 3: Messaging Core*
+*Last updated: 2026-04-11 after Phase 4: Groups & Presence*
