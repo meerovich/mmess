@@ -132,8 +132,14 @@ Plans:
   1. The interface is fully usable on both desktop and mobile browsers without horizontal scrolling or broken layout
   2. User can toggle between light and dark theme; preference persists across sessions
   3. User can search or filter the conversation list to find a specific conversation
-**Plans**: TBD
+**Plans**: 4 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 06-01-PLAN.md — Design system: dark theme tokens, CSS debt cleanup, index.html mobile meta + PWA manifest + safe-area insets
+- [ ] 06-02-PLAN.md — ThemeToggle component (3-state segmented control) + ConversationList search + sidebar footer
+- [ ] 06-03-PLAN.md — Docker healthchecks (api + caddy), .env.production.example, backup/restore scripts, README deploy guide
+- [ ] 06-04-PLAN.md — Human UAT: theme toggle, conversation search, mobile layout, regression check (blocking checkpoint)
 
 ---
 
@@ -146,7 +152,7 @@ Plans:
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 5/5 | Complete   | 2026-04-11 |
 | 5. File Sharing | 7/7 | Complete   | 2026-04-11 |
-| 6. UI & Deploy | 0/? | Not started | - |
+| 6. UI & Deploy | 0/4 | Not started | - |
 
 ---
 
@@ -203,3 +209,4 @@ Plans:
 *Updated: 2026-04-11 — Phase 4 plans defined (5 plans, 3 waves)*
 *Updated: 2026-04-11 — Phase 5 plans defined (6 plans, 4 waves)*
 *Updated: 2026-04-11 — Phase 5 gap-closure plan 05-07 added (file metadata enrichment for WS + history)*
+*Updated: 2026-04-11 — Phase 6 plans defined (4 plans, 3 waves)*
