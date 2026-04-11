@@ -21,10 +21,10 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - ✓ Group chats — Phase 3
 - ✓ Message history and persistence — Phase 3
 - ✓ Online/offline status indicators — Phase 4
+- ✓ File and image sharing — Phase 5 (⚠ recipient rendering has known server-side gaps tracked in 05-HUMAN-UAT.md)
 
 ### Active
 
-- [ ] File and image sharing
 - [ ] Responsive web UI
 
 ### Out of Scope
@@ -79,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after Phase 4: Groups & Presence*
+*Last updated: 2026-04-11 after Phase 5: File Sharing*
