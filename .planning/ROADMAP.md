@@ -12,7 +12,7 @@
 
 - [x] **Phase 1: Foundation** - Project scaffold, database schema, Docker Compose skeleton, Caddy TLS wiring (completed 2026-04-09)
 - [x] **Phase 2: Authentication** - User registration, login, JWT sessions, device session management, WebSocket auth (completed 2026-04-09)
-- [ ] **Phase 3: Messaging Core** - Real-time WebSocket messaging, full message lifecycle, conversation management
+- [x] **Phase 3: Messaging Core** - Real-time WebSocket messaging, full message lifecycle, conversation management (completed 2026-04-11)
 - [ ] **Phase 4: Groups & Presence** - Group administration, online/offline presence, offline delivery, browser notifications
 - [ ] **Phase 5: File Sharing** - File and image upload/download, inline previews, drag-and-drop
 - [ ] **Phase 6: UI & Deploy** - Responsive interface, theme toggle, conversation search, production Docker deployment
@@ -81,7 +81,7 @@ Plans:
 - [x] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
 - [x] 03-07-PLAN.md — Gap closure: Fix 4 client payload shape bugs (typing:user, conversation:new, 2x user search)
 - [x] 03-08-PLAN.md — Gap closure: Extend server responses with reply_to.sender + participant last_read_at; update TS types
-- [ ] 03-09-PLAN.md — Gap closure: Wire ReadReceipt isAllRead computation + ReplyPreview sender name; human verify
+- [x] 03-09-PLAN.md — Gap closure: Wire ReadReceipt isAllRead computation + ReplyPreview sender name; human verify
 
 ### Phase 4: Groups & Presence
 **Goal**: Group conversations are fully manageable by admins, and all users can see who is online with guaranteed delivery of messages sent while offline
@@ -127,7 +127,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 8/9 | In Progress|  |
+| 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |

@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-04-11T12:14:14.377Z"
+last_updated: "2026-04-11T12:19:15.740Z"
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_plans: 16
+  percent: 100
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 6 of 6
 
 **Progress:**
 
-[█████████░] 94%
+[██████████] 100%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -69,6 +69,7 @@ Plan: 6 of 6
 | Phase 03-messaging-core P06 | 18 | 2 tasks | 13 files |
 | Phase 03-messaging-core P07 | 10 | 2 tasks | 3 files |
 | Phase 03-messaging-core P08 | 8 | 3 tasks | 3 files |
+| Phase 03-messaging-core P09 | 10 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,8 @@ Plan: 6 of 6
 | typing:user WS handler reads msg.payload.typers array | Server broadcasts full current-typers list per conversation; client dispatches SET_TYPING_USERS with it directly |
 | conversation:new WS handler dispatches msg.payload directly | Server puts conversation object at payload root — no .conversation wrapper; client fixed to match |
 | GET /api/users returns { users: UserResult[] } not bare array | NewChatModal and NewGroupModal both unwrap data.users before passing to setResults/filter |
+| ISO 8601 lexicographic comparison for read-receipt timestamps | last_read_at >= created_at valid for UTC ISO strings — no Date parsing overhead; both strings from same PostgreSQL server |
+| Canonical ReplyTo import over inline interface in ReplyPreview | Single source of truth in types/chat.ts; avoids future drift when ReplyTo type evolves |
 
 ### Architecture Notes
 
@@ -146,8 +149,8 @@ Plan: 6 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-08 — REST contract extensions: reply_to.sender join + participant read receipt fields + client types
-**Next action:** Phase 03 Plan 09 — Wire ReadReceipt and ReplyPreview using new fields
+**Last action:** Completed 03-09 — Wire ReadReceipt (isAllRead from last_read_at) + ReplyPreview (canonical ReplyTo type, real sender username)
+**Next action:** Phase 03 complete — all gap-closure plans (03-07, 03-08, 03-09) done; ready for Phase 04 or end-to-end verification
 
 ---
 *State initialized: 2026-04-08*
