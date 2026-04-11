@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { ChatProvider } from './contexts/ChatContext';
+import { WebSocketProvider } from './providers/WebSocketProvider';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SessionsPage } from './pages/SessionsPage';
+import { ChatPage } from './pages/ChatPage';
 
 export default function App() {
   return (
@@ -16,10 +19,21 @@ export default function App() {
             <Route
               path="/"
               element={
-                <div style={{ padding: 32 }}>
-                  <h2>Chat (Phase 3)</h2>
-                  <a href="/settings/sessions">Manage sessions</a>
-                </div>
+                <ChatProvider>
+                  <WebSocketProvider>
+                    <ChatPage />
+                  </WebSocketProvider>
+                </ChatProvider>
+              }
+            />
+            <Route
+              path="/chat/:conversationId"
+              element={
+                <ChatProvider>
+                  <WebSocketProvider>
+                    <ChatPage />
+                  </WebSocketProvider>
+                </ChatProvider>
               }
             />
             <Route path="/settings/sessions" element={<SessionsPage />} />
