@@ -14,6 +14,7 @@ export interface ReplyTo {
   id: string;
   sender_id: string;
   content: string | null;
+  sender?: { id: string; username: string };
 }
 
 export type MessageStatus = 'sending' | 'sent' | 'failed';
@@ -39,6 +40,8 @@ export interface Participant {
   avatar_url: string | null;
   is_admin: boolean;
   can_edit_messages: boolean;
+  last_read_message_id?: string | null;
+  last_read_at?: string | null; // ISO timestamp — message.created_at of the last-read message
 }
 
 export interface Conversation {
