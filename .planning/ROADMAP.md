@@ -14,7 +14,7 @@
 - [x] **Phase 2: Authentication** - User registration, login, JWT sessions, device session management, WebSocket auth (completed 2026-04-09)
 - [x] **Phase 3: Messaging Core** - Real-time WebSocket messaging, full message lifecycle, conversation management (completed 2026-04-11)
 - [x] **Phase 4: Groups & Presence** - Group administration, online/offline presence, offline delivery, browser notifications (completed 2026-04-11)
-- [ ] **Phase 5: File Sharing** - File and image upload/download, inline previews, drag-and-drop
+- [x] **Phase 5: File Sharing** - File and image upload/download, inline previews, drag-and-drop (completed 2026-04-11)
 - [ ] **Phase 6: UI & Deploy** - Responsive interface, theme toggle, conversation search, production Docker deployment
 
 ---
@@ -120,8 +120,8 @@ Plans:
 - [x] 05-02-PLAN.md — Backend POST /api/files: multipart streaming, magic-byte validation, date-sharded UUID storage, sharp thumbnail, rate limit
 - [x] 05-03-PLAN.md — Backend GET /api/files/:id + /thumb with JWT + membership check; extend WS message:send to accept file_id
 - [x] 05-04-PLAN.md — Frontend foundations: extend Message type, uploadFile XHR helper, CSS tokens, FileIcon + FileCard + UploadStrip components
-- [ ] 05-05-PLAN.md — MessageInput paperclip + drag-drop + upload state; MessageItem image/file rendering; Lightbox component
-- [ ] 05-06-PLAN.md — Avatar component extension + GroupSettingsModal admin avatar upload; human verify checkpoint
+- [x] 05-05-PLAN.md — MessageInput paperclip + drag-drop + upload state; MessageItem image/file rendering; Lightbox component
+- [x] 05-06-PLAN.md — Avatar component extension + GroupSettingsModal admin avatar upload; human verify checkpoint
 
 ### Phase 6: UI & Deploy
 **Goal**: The application has a polished, responsive interface with theme support and search, deployed to production via Docker Compose with full TLS
@@ -144,7 +144,7 @@ Plans:
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 5/5 | Complete   | 2026-04-11 |
-| 5. File Sharing | 3/6 | In Progress|  |
+| 5. File Sharing | 6/6 | Complete   | 2026-04-11 |
 | 6. UI & Deploy | 0/? | Not started | - |
 
 ---
