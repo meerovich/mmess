@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T12:00:00.000Z"
+last_updated: "2026-04-11T10:49:06.447Z"
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
-  percent: 77
+  completed_plans: 11
+  percent: 85
 ---
 
 # State: mmess
@@ -26,12 +26,12 @@ progress:
 Phase: 03 (messaging-core) — EXECUTING
 Plan: 3 of 6
 **Phase:** 3
-**Plan:** 3 complete, starting plan 4
+**Plan:** 4 complete, starting plan 5
 **Status:** Executing Phase 03
 
 **Progress:**
 
-[████████░░] 77%
+[█████████░] 85%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -64,6 +64,7 @@ Plan: 3 of 6
 | Phase 03-messaging-core P01 | 8 | 2 tasks | 5 files |
 | Phase 03-messaging-core P02 | 15 | 2 tasks | 6 files |
 | Phase 03-messaging-core P03 | 25 | 2 tasks | 5 files |
+| Phase 03-messaging-core P04 | 30 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,9 @@ Plan: 3 of 6
 | PostgresJsDatabase type with db cast as any in index.ts | Handlers use PostgresJsDatabase<Record<string,never>>; db has full schema type; cast bridges the generic mismatch |
 | Direct ws/registry import in create.ts | Plain broadcast() import instead of Fastify decorator — cleaner coupling after 03-02 landed with module exports |
 | Compound (created_at,id) cursor uses indexOf not split | indexOf('|') for cursor decode is unambiguous regardless of ISO timestamp format |
+| ChatProvider+WebSocketProvider scoped per route not at app root | Keeps chat state isolated to chat pages; avoids WS connection on /login and /register |
+| handleIncoming defined outside WebSocketProvider component | No component dependency; zero re-render risk on message receipt |
+| conversation:new handled in WebSocketProvider | Live-updates conversation list when server pushes new conversations without polling |
 
 ### Architecture Notes
 
@@ -129,8 +133,8 @@ Plan: 3 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-03 — REST endpoints: GET /api/conversations, GET /api/conversations/:id/messages, POST /api/conversations, GET /api/users?q=
-**Next action:** Execute Phase 03 Plan 04 — messaging-core next plan
+**Last action:** Completed 03-04 — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider singleton, CSS design tokens, route wiring
+**Next action:** Execute Phase 03 Plan 05 — chat UI components (ChatLayout, ConversationList, ChatPane, MessageList, MessageInput)
 
 ---
 *State initialized: 2026-04-08*
