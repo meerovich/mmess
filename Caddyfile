@@ -30,7 +30,23 @@
     }
 
     # ── Frontend SPA (React + Vite) ───────────────────────────────────────────
+    #
+    # Cache strategy:
+    #   - /assets/*  → content-hashed filenames (Vite rollup) — safe to cache
+    #     forever with `immutable`. New deploys produce new filenames so there
+    #     is no cache collision.
+    #   - index.html → MUST be revalidated on every visit, otherwise users
+    #     keep loading an HTML that references old JS bundles (the actual
+    #     bug that broke real-time messaging after the last deploy).
+    #   - everything else → standard short cache.
+    handle /assets/* {
+        header Cache-Control "public, max-age=31536000, immutable"
+        root * /srv/www
+        file_server
+    }
+
     handle {
+        header Cache-Control "no-store, must-revalidate"
         root * /srv/www
         try_files {path} /index.html
         file_server

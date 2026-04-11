@@ -34,6 +34,26 @@ export default async function wsRoutes(fastify: FastifyInstance): Promise<void> 
       fastify.log.warn({ userId, err }, 'presence:online broadcast failed');
     });
 
+    // App-level ping/pong keepalive. Without this, idle TCP connections get
+    // closed by Caddy/intermediate NATs after ~50-60 seconds of silence,
+    // causing users to miss broadcast events during the reconnect window.
+    // The `ws` library responds to ping frames with pong automatically on
+    // the client side, so sending ping every 25s keeps the tunnel warm.
+    // If no pong comes back within 35s we consider the peer dead and
+    // terminate — this is handled by `isAlive` + the second interval.
+    let isAlive = true;
+    socket.on('pong', () => { isAlive = true; });
+    const pingInterval = setInterval(() => {
+      if (!isAlive) {
+        // Peer didn't reply to previous ping — kill the connection so the
+        // client triggers its 5s reconnect loop from a clean state.
+        socket.terminate();
+        return;
+      }
+      isAlive = false;
+      try { socket.ping(); } catch { /* socket already closing */ }
+    }, 25_000);
+
     socket.on('message', async (raw) => {
       let envelope: { type: string; payload: Record<string, unknown>; id?: string };
       try {
@@ -81,6 +101,7 @@ export default async function wsRoutes(fastify: FastifyInstance): Promise<void> 
     });
 
     socket.on('close', () => {
+      clearInterval(pingInterval);
       unregister(userId, socket);
       cleanupTypingForUser(userId);
       // Presence: schedule offline broadcast after 3s grace period (D-17, PITFALLS #7)

@@ -192,4 +192,96 @@ running after repeated VPS deploys.
 
 ---
 
+## Hotfix 5 — Broadcast reaches only first visit, advisory lock crashes, WS disconnects (this commit)
+
+Three mutually-independent bugs discovered during the first real two-browser
+test of the v1.0.1 stack on https://chatboris.mooo.com. Fixed together and
+deployed as v1.0.2.
+
+### 5.1 Advisory lock BigInt overflow on DM creation
+
+- **File:** `server/src/routes/conversations/create.ts`
+- **Symptom:** `POST /api/conversations` (create DM) returns HTTP 500 with
+  `value "9493293139307664153" is out of range for type bigint` for some
+  user pairs. Admin↔tester happened to hit this (their md5-based hash
+  produced an unsigned 64-bit integer whose MSB was set, > signed int64
+  max).
+- **Root cause:** `createHash('md5').digest('hex').slice(0, 16)` takes 16
+  hex chars = 64 bits **unsigned**, but PostgreSQL BIGINT is signed int64
+  (max 2^63 − 1). About 50% of user pairs produced hashes that overflowed.
+- **Fix:** `slice(0, 15)` → 60 bits → always fits in signed BIGINT. Lock
+  collision probability is still negligible for tens of users.
+- **Latent bug** in Phase 3 plan 03-03 — only some user pairs triggered it,
+  miha↔tester worked which is why it was not caught before.
+
+### 5.2 Stale browser cache → users load old JS bundle
+
+- **File:** `Caddyfile`
+- **Symptom:** After deploy, real-time `message:new` broadcasts silently
+  dropped on the receiver. Reload page → messages appeared via the REST
+  history endpoint. Same pattern for reactions.
+- **Root cause:** Caddy served `/index.html` with only an `ETag` header
+  and no `Cache-Control`. Mobile browsers + desktop Chrome kept the old
+  HTML in memory/disk cache across deploys; the stale HTML referenced an
+  **old** content-hashed JS bundle (also cached) whose `handleIncoming`
+  expected a different wire format than the new server was sending.
+  Since wire contract changed in hotfix 3, clients using the old bundle
+  silently ignored `message:new` events.
+- **Fix:**
+  ```
+  handle /assets/* {
+      header Cache-Control "public, max-age=31536000, immutable"
+      root * /srv/www
+      file_server
+  }
+  handle {
+      header Cache-Control "no-store, must-revalidate"
+      root * /srv/www
+      try_files {path} /index.html
+      file_server
+  }
+  ```
+  Vite-built assets have content-hashed filenames so `immutable` is safe.
+  `index.html` revalidates on every visit so new deploys propagate.
+- **One-time user action**: existing sessions must do a **hard refresh**
+  (Ctrl+Shift+R or mobile pull-to-refresh / clear site data) to drop the
+  cached old bundle. Future deploys will be transparent.
+
+### 5.3 WebSocket connections dropped every 50–60 seconds
+
+- **File:** `server/src/routes/ws/index.ts`
+- **Symptom:** Backend logs showed `WebSocket connection established` →
+  `WebSocket connection closed` every ~50 seconds for idle clients. The
+  5s client reconnect loop healed it, but any broadcast that landed
+  during the reconnect gap was lost (server `broadcast()` is a no-op for
+  users whose socket is not registered at the instant).
+- **Root cause:** No app-level keepalive. Caddy's transport
+  `read_header_timeout` or intermediate NAT/ISP idle timers were closing
+  the TCP tunnel after ~50 seconds of silence.
+- **Fix:** Added a 25-second ping/pong interval per connection.
+  - `socket.ping()` every 25s.
+  - `socket.on('pong', …)` resets an `isAlive` flag.
+  - Next tick checks `isAlive`; if still false → `socket.terminate()`
+    which triggers the client's normal reconnect loop immediately.
+  - `clearInterval(pingInterval)` on close so no leaks per disconnect.
+- This also fixes an adjacent symptom: users appearing "offline" to each
+  other briefly every minute as presence:offline briefly fired on each
+  transient disconnect.
+
+### Smoke test performed before declaring done (per user directive)
+
+- `docker compose ps` — all 3 services `(healthy)`.
+- `curl / -I` — `HTTP/2 200`, `cache-control: no-store, must-revalidate`.
+- `curl /assets/index-*.js -I` — `HTTP/2 200`, `cache-control: public,
+  max-age=31536000, immutable`.
+- `curl /api/health` — `{"status":"ok","version":"1.0.2","timestamp":…}`.
+- `curl /api/auth/login` — 200 `{ok:true}`.
+- `curl /api/users?q=te` — 200 `{users:[tester]}`.
+- Direct E2E over WS inside the api container — admin connects, tester
+  connects, admin sends `message:send` → admin receives `ack`, tester
+  receives `message:new` (wrapped as `{payload: {message: …}}`). Verified
+  live.
+
+---
+
 *Last updated: 2026-04-12 during post-deploy hotfix session.*

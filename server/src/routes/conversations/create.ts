@@ -64,12 +64,16 @@ async function handleDirectConversation(
     return reply.code(400).send({ error: 'Cannot create a direct conversation with yourself' });
   }
 
-  // Use advisory lock for race-safe uniqueness (RESEARCH.md Pattern 8)
+  // Use advisory lock for race-safe uniqueness (RESEARCH.md Pattern 8).
+  // Take 15 hex chars = 60 bits so the BigInt always fits in PostgreSQL's
+  // signed BIGINT (max 2^63 - 1). Taking 16 hex chars = 64 bits overflows
+  // when the first hex char is ≥ 8 (observed on admin↔tester pair, which
+  // produced 9493293139307664153 > 2^63 - 1 and crashed advisory lock).
   const lockKey = BigInt(
     `0x${createHash('md5')
       .update([userId, targetUserId].sort().join(':'))
       .digest('hex')
-      .slice(0, 16)}`
+      .slice(0, 15)}`
   );
 
   const result = await db.transaction(async (tx) => {
