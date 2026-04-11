@@ -94,7 +94,14 @@ Plans:
   4. Online/offline status indicators are visible next to other users
   5. Messages sent while a user is offline are delivered when they reconnect
   6. Browser notification appears for new messages when the tab is not focused
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Schema extension (users.last_seen_at) + group admin REST endpoints (PATCH/POST/DELETE on /api/conversations/:id and participants, DELETE /api/conversations/:id/me) with conversation:updated broadcasts
+- [ ] 04-02-PLAN.md — WS presence infrastructure: on-connect/on-close handlers, 3-second debounce (PITFALLS #7), presence:update broadcasts scoped to shared conversations, GET /api/presence
+- [ ] 04-03-PLAN.md — Frontend plumbing: PresenceState type, ChatContext reducer additions (SET_PRESENCE, CONVERSATION_UPDATED), WebSocketProvider handlers, presence tokens, reconnect re-fetch
+- [ ] 04-04-PLAN.md — GroupSettingsModal component + ChatPane header click handler
+- [ ] 04-05-PLAN.md — ConversationItem real presence dot + NotificationBanner + browser notification fire logic
 
 ### Phase 5: File Sharing
 **Goal**: Users can share files and images in conversations with inline previews and reliable download
@@ -128,7 +135,7 @@ Plans:
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
-| 4. Groups & Presence | 0/? | Not started | - |
+| 4. Groups & Presence | 0/5 | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
 
@@ -184,3 +191,4 @@ Plans:
 *Updated: 2026-04-09 — Phase 3 plans defined (6 plans, 4 waves)*
 *Updated: 2026-04-11 — Phase 3 plan 03-03 complete (REST endpoints); 3/6 plans done*
 *Updated: 2026-04-11 — Phase 3 gap-closure plans 03-07..09 added (3 plans, 2 waves)*
+*Updated: 2026-04-11 — Phase 4 plans defined (5 plans, 3 waves)*
