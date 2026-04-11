@@ -5,6 +5,10 @@ import authPlugin from './plugins/auth.js';
 import rateLimitPlugin from './plugins/rate-limit.js';
 import authRoutes from './routes/auth/index.js';
 import wsRoutes from './routes/ws/index.js';
+import conversationsListRoutes from './routes/conversations/index.js';
+import conversationsMessagesRoutes from './routes/conversations/messages.js';
+import conversationsCreateRoutes from './routes/conversations/create.js';
+import usersRoutes from './routes/users/search.js';
 
 const app = Fastify({
   logger: {
@@ -21,6 +25,10 @@ app.register(fastifyWebsocket);
 // Route plugins
 app.register(authRoutes);
 app.register(wsRoutes);
+app.register(conversationsListRoutes);
+app.register(conversationsMessagesRoutes);
+app.register(conversationsCreateRoutes);
+app.register(usersRoutes);
 
 app.get('/health', async (_request, _reply) => {
   return { status: 'ok', timestamp: new Date().toISOString() };
