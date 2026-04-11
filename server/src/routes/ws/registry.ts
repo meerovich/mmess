@@ -26,3 +26,8 @@ export function broadcast(userIds: string[], data: unknown, excludeUserId?: stri
     if (uid !== excludeUserId) send(uid, data);
   }
 }
+
+export function isOnline(userId: string): boolean {
+  const sockets = registry.get(userId);
+  return sockets !== undefined && sockets.size > 0;
+}
