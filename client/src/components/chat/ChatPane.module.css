@@ -75,3 +75,17 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.headerInfoClickable {
+  cursor: pointer;
+}
+
+.headerInfoClickable:hover .headerName {
+  text-decoration: underline;
+}
+
+.headerSubtitle {
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+  display: block;
+}

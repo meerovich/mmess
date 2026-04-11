@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
+import { GroupSettingsModal } from './GroupSettingsModal';
 import styles from './ChatPane.module.css';
 import type { Conversation, Message } from '../../types/chat';
 
@@ -22,8 +24,10 @@ function getConversationName(conversation: Conversation, currentUserId: string):
 export function ChatPane({ onBack }: ChatPaneProps) {
   const { state } = useChat();
   const { activeConversationId, conversations, wsStatus } = state;
+  const { user } = useAuth();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   if (!activeConversationId) {
     return (
@@ -35,11 +39,8 @@ export function ChatPane({ onBack }: ChatPaneProps) {
 
   const conversation = conversations.find(c => c.id === activeConversationId);
 
-  // Find current user — derive from participants
-  // Since we don't have an easy way without useAuth here, use auth from participant list
-  // We'll pass the handlers through context or props — use simple prop drilling via MessageList
   const conversationName = conversation
-    ? getConversationName(conversation, '')
+    ? getConversationName(conversation, user?.id ?? '')
     : 'Chat';
 
   return (
@@ -61,8 +62,20 @@ export function ChatPane({ onBack }: ChatPaneProps) {
             {conversationName.charAt(0).toUpperCase()}
           </span>
         </div>
-        <div className={styles.headerInfo}>
+        <div
+          className={`${styles.headerInfo} ${conversation?.type === 'group' ? styles.headerInfoClickable : ''}`}
+          onClick={() => conversation?.type === 'group' && setShowSettings(true)}
+          role={conversation?.type === 'group' ? 'button' : undefined}
+          tabIndex={conversation?.type === 'group' ? 0 : undefined}
+          onKeyDown={e => conversation?.type === 'group' && e.key === 'Enter' && setShowSettings(true)}
+          aria-label={conversation?.type === 'group' ? `Open ${conversationName} settings` : undefined}
+        >
           <span className={styles.headerName}>{conversationName}</span>
+          {conversation?.type === 'group' && (
+            <span className={styles.headerSubtitle}>
+              {conversation.participants.length} members
+            </span>
+          )}
         </div>
       </header>
 
@@ -79,6 +92,12 @@ export function ChatPane({ onBack }: ChatPaneProps) {
         editMessage={editMessage}
         onClearEdit={() => setEditMessage(null)}
       />
+      {showSettings && conversation && conversation.type === 'group' && (
+        <GroupSettingsModal
+          conversation={conversation}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
