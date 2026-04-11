@@ -32,7 +32,30 @@ export interface Message {
   sender: MessageSender;
   reactions: MessageReaction[];
   status?: MessageStatus; // optimistic UI — undefined means confirmed
+  // File attachment (Phase 5 — FILE-01, FILE-02)
+  file_id?: string | null;
+  file_name?: string | null;
+  file_mime?: string | null;
+  file_size?: number | null;
+  is_image?: boolean | null;
+  thumbnail_url?: string | null;
 }
+
+export interface UploadedFile {
+  id: string;
+  name: string;
+  mime_type: string;
+  size: number;
+  is_image: boolean;
+  thumbnail_url: string | null;
+  download_url: string;
+}
+
+export type UploadState =
+  | { status: 'idle' }
+  | { status: 'uploading'; file: File; progress: number; abortController: AbortController }
+  | { status: 'ready'; file: File; fileId: string; thumbnailUrl?: string }
+  | { status: 'error'; file: File; message: string };
 
 export interface Participant {
   user_id: string;

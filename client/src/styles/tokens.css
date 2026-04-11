@@ -56,4 +56,8 @@
   /* Colors — presence indicators (Phase 4) */
   --color-presence-online: #22c55e;
   --color-presence-offline: #9ca3af;
+
+  /* Colors — file sharing (Phase 5) */
+  --color-file-card-bg: #f8f9fa;
+  --color-lightbox-backdrop: rgba(0, 0, 0, 0.85);
 }
