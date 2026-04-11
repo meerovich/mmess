@@ -1,0 +1,126 @@
+.strip {
+  background: var(--color-surface-secondary);
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.thumb {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+}
+
+.thumbImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.size {
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+}
+
+.cancelBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.cancelBtn:hover { color: var(--color-text-primary); }
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+
+.progressTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--color-accent-muted);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+.progressPct {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  min-width: 32px;
+  text-align: right;
+}
+
+.readyRow {
+  margin-top: var(--space-xs);
+  display: flex;
+  align-items: center;
+}
+
+.checkmark {
+  color: #34a853;  /* success green — consistent with Phase 3 read receipt */
+  font-weight: 600;
+}
+
+.errorRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.errorText {
+  font-size: var(--text-label);
+  color: var(--color-destructive);
+  flex: 1;
+}
+
+.retryBtn {
+  background: none;
+  border: none;
+  font-size: var(--text-label);
+  color: var(--color-accent);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
