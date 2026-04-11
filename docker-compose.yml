@@ -52,7 +52,6 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./client/dist:/srv/www:ro          # serve built React SPA (D-12)
-      - mmess_uploads:/data/uploads:ro     # serve files directly (D-16)
       - caddy_data:/data                   # TLS cert storage (persisted)
       - caddy_config:/config
     networks:

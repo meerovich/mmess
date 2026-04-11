@@ -12,18 +12,21 @@
         }
     }
 
+    # ── File API — explicit body size limit for uploads (D-18 revision) ──────
+    # Must be before /api/* block. Enforces 25MB Caddy-layer limit (defense-in-depth).
+    handle /api/files* {
+        request_body {
+            max_size 25MB
+        }
+        uri strip_prefix /api
+        reverse_proxy api:3000
+    }
+
     # ── API proxy ─────────────────────────────────────────────────────────────
     # Strip /api prefix before forwarding to backend (backend routes are at / not /api/)
     handle /api/* {
         uri strip_prefix /api
         reverse_proxy api:3000
-    }
-
-    # ── Uploaded files served directly by Caddy (not through Node.js) ────────
-    # Per D-16: Caddy serves files from the shared volume, bypassing Node.js
-    handle /uploads/* {
-        root * /data
-        file_server
     }
 
     # ── Frontend SPA (React + Vite) ───────────────────────────────────────────
