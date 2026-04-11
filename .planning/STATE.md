@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T15:43:17.671Z"
+last_updated: "2026-04-11T15:48:34.628Z"
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 27
-  completed_plans: 23
-  percent: 85
+  completed_plans: 24
+  percent: 89
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 1 of 6
 
 **Progress:**
 
-[█████████░] 85%
+[█████████░] 89%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -77,6 +77,7 @@ Plan: 1 of 6
 | Phase 04-groups-presence P05 | 15 | 2 tasks | 9 files |
 | Phase 05-file-sharing P01 | 3 | 2 tasks | 7 files |
 | Phase 05-file-sharing P02 | 10 | 2 tasks | 5 files |
+| Phase 05-file-sharing P03 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,9 @@ Plan: 1 of 6
 | Named mmess_node_modules volume in dev compose | Shadows host bind-mount; prevents sharp musl/glibc binary mismatch in Alpine container |
 | reply.code(N).send({ error }) for upload route HTTP errors | Consistent with existing routes; fastify.httpErrors requires @fastify/sensible which is not installed |
 | Scoped @fastify/multipart inside filesRoutes plugin | Registered inside plugin only — avoids global multipart conflicts with other routes |
+| checkFileAccess three-path check for file downloads | Uploader OR conversation participant (via message.file_id JOIN) OR avatar_url exact string match — covers all legitimate access scenarios |
+| db as unknown as DB cast in GET file routes | filesRoutes imports db with full schema type; checkFileAccess takes PostgresJsDatabase<Record<string,never>>; cast bridges generic mismatch |
+| files.conversation_id set atomically in message:send transaction | Anti-reuse lock — prevents same file being sent in multiple messages; set in same tx as message insert |
 
 ### Architecture Notes
 
@@ -166,8 +170,8 @@ Plan: 1 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 05-02 — POST /files multipart upload endpoint (magic-byte validation, date-sharded UUID storage, sharp thumbnails, rate-limit 5/min)
-**Next action:** Phase 05 Plan 03 — GET /api/files/:id download + thumbnail endpoint
+**Last action:** Completed 05-03 — GET /api/files/:id + /thumb download endpoints with JWT + 3-path access check; handleMessageSend extended with file_id validation and conversation_id locking
+**Next action:** Phase 05 Plan 04 — client-side file attachment UI
 
 ---
 *State initialized: 2026-04-08*

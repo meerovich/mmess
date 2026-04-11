@@ -118,7 +118,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — Schema migration (thumbnail_path, conversation_id, FK on messages.file_id) + install sharp/file-type + Caddyfile/Docker infra changes
 - [x] 05-02-PLAN.md — Backend POST /api/files: multipart streaming, magic-byte validation, date-sharded UUID storage, sharp thumbnail, rate limit
-- [ ] 05-03-PLAN.md — Backend GET /api/files/:id + /thumb with JWT + membership check; extend WS message:send to accept file_id
+- [x] 05-03-PLAN.md — Backend GET /api/files/:id + /thumb with JWT + membership check; extend WS message:send to accept file_id
 - [ ] 05-04-PLAN.md — Frontend foundations: extend Message type, uploadFile XHR helper, CSS tokens, FileIcon + FileCard + UploadStrip components
 - [ ] 05-05-PLAN.md — MessageInput paperclip + drag-drop + upload state; MessageItem image/file rendering; Lightbox component
 - [ ] 05-06-PLAN.md — Avatar component extension + GroupSettingsModal admin avatar upload; human verify checkpoint
@@ -144,7 +144,7 @@ Plans:
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 5/5 | Complete   | 2026-04-11 |
-| 5. File Sharing | 2/6 | In Progress|  |
+| 5. File Sharing | 3/6 | In Progress|  |
 | 6. UI & Deploy | 0/? | Not started | - |
 
 ---
