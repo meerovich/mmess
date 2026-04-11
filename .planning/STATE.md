@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-11T13:29:26.862Z"
+status: executing
+last_updated: "2026-04-11T14:29:02.411Z"
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 16
-  completed_plans: 16
-  percent: 100
+  total_plans: 21
+  completed_plans: 17
+  percent: 81
 ---
 
 # State: mmess
@@ -17,21 +17,21 @@ progress:
 ## Project Reference
 
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
-**Current Focus:** Phase 03 — messaging-core
+**Current Focus:** Phase 04 — groups-presence
 
 ---
 
 ## Current Position
 
-Phase: 03 (messaging-core) — COMPLETE
-Plan: 6 of 6
+Phase: 04 (groups-presence) — EXECUTING
+Plan: 1 of 5
 **Phase:** 4
 **Plan:** Not started
-**Status:** Ready to plan
+**Status:** Executing Phase 04
 
 **Progress:**
 
-[██████████] 100%
+[████████░░] 81%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -70,6 +70,7 @@ Plan: 6 of 6
 | Phase 03-messaging-core P07 | 10 | 2 tasks | 3 files |
 | Phase 03-messaging-core P08 | 8 | 3 tasks | 3 files |
 | Phase 03-messaging-core P09 | 10 | 2 tasks | 2 files |
+| Phase 04-groups-presence P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -149,8 +150,8 @@ Plan: 6 of 6
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 03-09 — Wire ReadReceipt (isAllRead from last_read_at) + ReplyPreview (canonical ReplyTo type, real sender username)
-**Next action:** Phase 03 complete — all gap-closure plans (03-07, 03-08, 03-09) done; ready for Phase 04 or end-to-end verification
+**Last action:** Completed 04-01 — users.last_seen_at schema extension + 5 group admin REST endpoints (rename, add/remove participants, update permissions, leave) with conversation:updated WS broadcasts
+**Next action:** Phase 04 Plan 02 (presence: last_seen_at updates on WS disconnect) and Plan 03 (group management UI)
 
 ---
 *State initialized: 2026-04-08*

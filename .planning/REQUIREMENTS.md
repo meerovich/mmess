@@ -31,9 +31,9 @@
 - [x] **CONV-01**: User can start a private (1-on-1) conversation with another user
 - [x] **CONV-02**: User can create a group conversation with multiple participants
 - [x] **CONV-03**: User sees a list of all conversations sorted by last activity
-- [ ] **CONV-04**: Group admin can add/remove participants
-- [ ] **CONV-05**: Group admin can change group name and avatar
-- [ ] **CONV-06**: User can leave a group conversation
+- [x] **CONV-04**: Group admin can add/remove participants
+- [x] **CONV-05**: Group admin can change group name and avatar
+- [x] **CONV-06**: User can leave a group conversation
 
 ### File Sharing
 
@@ -114,9 +114,9 @@
 | CONV-01 | Phase 3 | Complete |
 | CONV-02 | Phase 3 | Complete |
 | CONV-03 | Phase 3 | Complete |
-| CONV-04 | Phase 4 | Pending |
-| CONV-05 | Phase 4 | Pending |
-| CONV-06 | Phase 4 | Pending |
+| CONV-04 | Phase 4 | Complete |
+| CONV-05 | Phase 4 | Complete |
+| CONV-06 | Phase 4 | Complete |
 | PRES-01 | Phase 4 | Pending |
 | PRES-02 | Phase 4 | Pending |
 | PRES-03 | Phase 4 | Pending |
