@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { apiFetch } from '../../lib/api';
+import { apiFetch, uploadFile } from '../../lib/api';
 import { Avatar } from '../common/Avatar';
-import type { Conversation } from '../../types/chat';
+import { UploadStrip } from './UploadStrip';
+import type { Conversation, UploadState } from '../../types/chat';
 import styles from './GroupSettingsModal.module.css';
 
 interface UserResult {
@@ -52,6 +53,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
   const [isLeaving, setIsLeaving] = useState(false);
   const [leaveError, setLeaveError] = useState('');
 
+  // Avatar upload state
+  const [avatarUploadState, setAvatarUploadState] = useState<UploadState>({ status: 'idle' });
+  const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(conversation.avatar_url ?? null);
+  const avatarFileInputRef = useRef<HTMLInputElement>(null);
+
   // Focus rename input when editing starts
   useEffect(() => {
     if (isRenaming) {
@@ -82,6 +88,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       setRenameValue(conversation.name ?? '');
     }
   }, [conversation.name, isRenaming]);
+
+  // Sync localAvatarUrl when conversation updates from WS
+  useEffect(() => {
+    setLocalAvatarUrl(conversation.avatar_url ?? null);
+  }, [conversation.avatar_url]);
 
   // Debounced user search for add members
   useEffect(() => {
@@ -122,6 +133,43 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       if (document.activeElement === last) { e.preventDefault(); first.focus(); }
     }
   }
+
+  const handleAvatarFileSelect = (file: File) => {
+    if (file.size > 25 * 1024 * 1024) {
+      setAvatarUploadState({ status: 'error', file, message: 'file too large (25 MB max)' });
+      return;
+    }
+
+    const abortController = new AbortController();
+    setAvatarUploadState({ status: 'uploading', file, progress: 0, abortController });
+
+    uploadFile(
+      file,
+      (progress) => setAvatarUploadState(prev =>
+        prev.status === 'uploading' ? { ...prev, progress } : prev
+      ),
+      abortController.signal,
+    ).then(async (result) => {
+      const avatarUrl = `/api/files/${result.id}`;
+      // PATCH the conversation — endpoint already exists from Phase 4
+      const patchRes = await apiFetch(`/api/conversations/${conversation.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ avatar_url: avatarUrl }),
+      });
+      if (!patchRes.ok) throw new Error('Failed to update avatar');
+
+      // Optimistic update of local display
+      setLocalAvatarUrl(avatarUrl);
+      setAvatarUploadState({ status: 'idle' });
+      // WS conversation:updated broadcast will update ChatContext state
+    }).catch((err: Error) => {
+      if (err.name === 'AbortError') {
+        setAvatarUploadState({ status: 'idle' });
+        return;
+      }
+      setAvatarUploadState({ status: 'error', file, message: 'Avatar upload failed. Please try again.' });
+    });
+  };
 
   async function handleRenameSubmit() {
     const trimmed = renameValue.trim();
@@ -257,6 +305,56 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         {/* About section */}
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>About</h3>
+
+          {/* Avatar upload area */}
+          <div
+            className={styles.avatarWrapper}
+            onClick={isAdmin ? () => avatarFileInputRef.current?.click() : undefined}
+          >
+            <Avatar
+              name={groupDisplayName}
+              size="lg"
+              avatarUrl={localAvatarUrl}
+            />
+
+            {/* Hidden file input — images only */}
+            {isAdmin && (
+              <input
+                ref={avatarFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                aria-label="Change group avatar"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleAvatarFileSelect(file);
+                  e.target.value = '';
+                }}
+              />
+            )}
+
+            {/* Hover overlay for admin */}
+            {isAdmin && (
+              <div className={`${styles.avatarOverlay} ${!localAvatarUrl ? styles.avatarOverlayVisible : ''}`}>
+                Change
+              </div>
+            )}
+          </div>
+
+          {/* Avatar upload progress strip */}
+          {avatarUploadState.status !== 'idle' && (
+            <UploadStrip
+              uploadState={avatarUploadState as Exclude<UploadState, { status: 'idle' }>}
+              onCancel={() => {
+                if (avatarUploadState.status === 'uploading') avatarUploadState.abortController.abort();
+                setAvatarUploadState({ status: 'idle' });
+              }}
+              onRetry={() => {
+                if (avatarUploadState.status === 'error') handleAvatarFileSelect(avatarUploadState.file);
+              }}
+            />
+          )}
+
           <div className={styles.aboutRow}>
             {isAdmin && !isRenaming ? (
               <button
