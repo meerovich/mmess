@@ -69,7 +69,7 @@ Plans:
   6. User can react to messages with emoji; reactions are visible to all participants
   7. User can start a private conversation with another user and a group conversation with multiple users
   8. Conversation list is sorted by most recent activity
-**Plans**: 6 plans
+**Plans**: 9 plans (6 original + 3 gap-closure)
 **UI hint**: yes
 
 Plans:
@@ -79,6 +79,9 @@ Plans:
 - [x] 03-04-PLAN.md — Frontend foundations: TypeScript types, ChatContext+useReducer, WebSocketProvider, CSS tokens, route wiring
 - [x] 03-05-PLAN.md — Sidebar UI: Avatar, ChatLayout, ConversationList, ConversationItem, NewChatModal, NewGroupModal
 - [x] 03-06-PLAN.md — Chat pane UI: ChatPane, MessageList, MessageItem, ReactionBar, MessageInput, TypingIndicator
+- [ ] 03-07-PLAN.md — Gap closure: Fix 4 client payload shape bugs (typing:user, conversation:new, 2x user search)
+- [ ] 03-08-PLAN.md — Gap closure: Extend server responses with reply_to.sender + participant last_read_at; update TS types
+- [ ] 03-09-PLAN.md — Gap closure: Wire ReadReceipt isAllRead computation + ReplyPreview sender name; human verify
 
 ### Phase 4: Groups & Presence
 **Goal**: Group conversations are fully manageable by admins, and all users can see who is online with guaranteed delivery of messages sent while offline
@@ -124,7 +127,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
-| 3. Messaging Core | 5/6 | In Progress|  |
+| 3. Messaging Core | 5/9 | In Progress|  |
 | 4. Groups & Presence | 0/? | Not started | - |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
@@ -180,3 +183,4 @@ Plans:
 *Updated: 2026-04-09 — Phase 2 complete (4/4 plans, AUTH-01 through AUTH-05 + INFRA-03 done)*
 *Updated: 2026-04-09 — Phase 3 plans defined (6 plans, 4 waves)*
 *Updated: 2026-04-11 — Phase 3 plan 03-03 complete (REST endpoints); 3/6 plans done*
+*Updated: 2026-04-11 — Phase 3 gap-closure plans 03-07..09 added (3 plans, 2 waves)*
