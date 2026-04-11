@@ -136,7 +136,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 06-01-PLAN.md — Design system: dark theme tokens, CSS debt cleanup, index.html mobile meta + PWA manifest + safe-area insets
+- [x] 06-01-PLAN.md — Design system: dark theme tokens, CSS debt cleanup, index.html mobile meta + PWA manifest + safe-area insets
 - [ ] 06-02-PLAN.md — ThemeToggle component (3-state segmented control) + ConversationList search + sidebar footer
 - [ ] 06-03-PLAN.md — Docker healthchecks (api + caddy), .env.production.example, backup/restore scripts, README deploy guide
 - [ ] 06-04-PLAN.md — Human UAT: theme toggle, conversation search, mobile layout, regression check (blocking checkpoint)
@@ -152,7 +152,7 @@ Plans:
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 5/5 | Complete   | 2026-04-11 |
 | 5. File Sharing | 7/7 | Complete   | 2026-04-11 |
-| 6. UI & Deploy | 0/4 | Not started | - |
+| 6. UI & Deploy | 1/4 | In Progress|  |
 
 ---
 

@@ -50,8 +50,8 @@
 
 ### UI & Experience
 
-- [ ] **UI-01**: Responsive web interface that works on desktop and mobile browsers
-- [ ] **UI-02**: User can toggle between light and dark theme
+- [x] **UI-01**: Responsive web interface that works on desktop and mobile browsers
+- [x] **UI-02**: User can toggle between light and dark theme
 - [ ] **UI-03**: Conversation list with search/filter functionality
 
 ### Infrastructure
@@ -124,8 +124,8 @@
 | FILE-02 | Phase 5 | Complete |
 | FILE-03 | Phase 5 | Complete |
 | FILE-04 | Phase 5 | Complete |
-| UI-01 | Phase 6 | Pending |
-| UI-02 | Phase 6 | Pending |
+| UI-01 | Phase 6 | Complete |
+| UI-02 | Phase 6 | Complete |
 | UI-03 | Phase 6 | Pending |
 
 **Coverage:**

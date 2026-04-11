@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-last_updated: "2026-04-11T17:04:16.967Z"
+status: executing
+last_updated: "2026-04-11T19:12:17.143Z"
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 28
-  completed_plans: 28
-  percent: 100
+  total_plans: 32
+  completed_plans: 29
+  percent: 91
 ---
 
 # State: mmess
@@ -17,21 +17,21 @@ progress:
 ## Project Reference
 
 **Core Value:** Instant, reliable message delivery between users over a secure WebSocket connection
-**Current Focus:** Phase 05 — file-sharing
+**Current Focus:** Phase 06 — ui-deploy
 
 ---
 
 ## Current Position
 
-Phase: 05 (file-sharing) — EXECUTING
-Plan: 1 of 6
+Phase: 06 (ui-deploy) — EXECUTING
+Plan: 2 of 4
 **Phase:** 6
-**Plan:** Not started
-**Status:** Ready to plan
+**Plan:** 1 complete (06-01 dark theme tokens + PWA manifest)
+**Status:** Executing Phase 06
 
 **Progress:**
 
-[██████████] 100%
+[█████████░] 91%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -82,6 +82,7 @@ Plan: 1 of 6
 | Phase 05-file-sharing P06 | 8 | 2 tasks | 4 files |
 | Phase 05-file-sharing P05 | 15 | 2 tasks | 6 files |
 | Phase 05-file-sharing P07 | 5 | 2 tasks | 2 files |
+| Phase 06-ui-deploy P01 | 12 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -177,9 +178,9 @@ Plan: 1 of 6
 
 ## Session Continuity
 
-**Last updated:** 2026-04-11T17:05:00Z
-**Last action:** Completed 05-07 — Enriched WS ack/broadcast and history endpoint with file metadata (file_name, file_mime, file_size, is_image, thumbnail_url) via fileRecord reuse and LEFT JOIN on files table
-**Next action:** Phase 05 fully complete — proceed to Phase 06 (UI & Deploy) or run final integration verification
+**Last updated:** 2026-04-11T22:20:00Z
+**Last action:** Completed 06-01 — Dark theme token block (24 overrides), CSS debt eliminated (zero hardcoded literals), index.html PWA meta + pre-hydration script, manifest.json + icon PNGs, safe-area insets on ChatLayout
+**Next action:** Proceed to Plan 02 (ThemeToggle component + useTheme hook)
 
 ---
 *State initialized: 2026-04-08*
