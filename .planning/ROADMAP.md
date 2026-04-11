@@ -100,7 +100,7 @@ Plans:
 - [x] 04-01-PLAN.md — Schema extension (users.last_seen_at) + group admin REST endpoints (PATCH/POST/DELETE on /api/conversations/:id and participants, DELETE /api/conversations/:id/me) with conversation:updated broadcasts
 - [x] 04-02-PLAN.md — WS presence infrastructure: on-connect/on-close handlers, 3-second debounce (PITFALLS #7), presence:update broadcasts scoped to shared conversations, GET /api/presence
 - [x] 04-03-PLAN.md — Frontend plumbing: PresenceState type, ChatContext reducer additions (SET_PRESENCE, CONVERSATION_UPDATED), WebSocketProvider handlers, presence tokens, reconnect re-fetch
-- [ ] 04-04-PLAN.md — GroupSettingsModal component + ChatPane header click handler
+- [x] 04-04-PLAN.md — GroupSettingsModal component + ChatPane header click handler
 - [ ] 04-05-PLAN.md — ConversationItem real presence dot + NotificationBanner + browser notification fire logic
 
 ### Phase 5: File Sharing
@@ -135,7 +135,7 @@ Plans:
 | 1. Foundation | 3/3 | Complete   | 2026-04-09 |
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
-| 4. Groups & Presence | 3/5 | In Progress|  |
+| 4. Groups & Presence | 4/5 | In Progress|  |
 | 5. File Sharing | 0/? | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
 
