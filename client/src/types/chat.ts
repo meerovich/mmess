@@ -59,12 +59,18 @@ export interface MessagePaginationState {
   nextCursor: string | null;
 }
 
+export interface PresenceState {
+  online: boolean;
+  last_seen_at: string | null; // ISO timestamp or null if never seen
+}
+
 export interface ChatState {
   conversations: Conversation[];
   activeConversationId: string | null;
   messages: Record<string, Message[]>; // keyed by conversationId
   typingUsers: Record<string, { userId: string; username: string }[]>;
   wsStatus: 'connected' | 'disconnected' | 'reconnecting';
+  presenceByUser: Record<string, PresenceState>;
 }
 
 export type ChatAction =
@@ -83,4 +89,7 @@ export type ChatAction =
   | { type: 'SET_TYPING_USERS'; conversationId: string; typers: { userId: string; username: string }[] }
   | { type: 'MARK_READ'; conversationId: string; messageId: string }
   | { type: 'WS_STATUS'; status: 'connected' | 'disconnected' | 'reconnecting' }
-  | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null };
+  | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
+  | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }
+  | { type: 'SET_PRESENCE_BULK'; entries: Array<{ userId: string; presence: PresenceState }> }
+  | { type: 'CONVERSATION_UPDATED'; conversation: Conversation };
