@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
+import { NotificationBanner } from './NotificationBanner';
 import styles from './ChatLayout.module.css';
 
 interface ChatLayoutContextValue {
@@ -21,14 +22,17 @@ export function ChatLayout() {
 
   return (
     <ChatLayoutContext.Provider value={{ showChat, setShowChat }}>
-      <div className={styles.layout}>
-        <div className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}>
-          <ConversationList />
+      <>
+        <NotificationBanner />
+        <div className={styles.layout}>
+          <div className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}>
+            <ConversationList />
+          </div>
+          <div className={`${styles.pane} ${!showChat ? styles.hidden : ''}`}>
+            <ChatPane />
+          </div>
         </div>
-        <div className={`${styles.pane} ${!showChat ? styles.hidden : ''}`}>
-          <ChatPane />
-        </div>
-      </div>
+      </>
     </ChatLayoutContext.Provider>
   );
 }

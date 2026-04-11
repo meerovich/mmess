@@ -27,6 +27,7 @@
   /* Colors — accent */
   --color-accent: #0b57d0;
   --color-accent-muted: #e8f0fe;
+  --color-on-accent: #ffffff;
 
   /* Colors — semantic */
   --color-destructive: #c5221f;

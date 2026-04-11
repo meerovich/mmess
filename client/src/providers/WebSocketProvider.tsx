@@ -1,6 +1,12 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ChatAction, Message } from '../types/chat';
 import { useChat } from '../contexts/ChatContext';
+import { useAuth } from '../contexts/AuthContext';
+
+// Module-level references set by WebSocketProvider for use in handleIncoming
+let _currentUserId: string | null = null;
+let _navigate: ((to: string) => void) | null = null;
 
 // Server→Client message envelope
 interface ServerMessage {
@@ -33,6 +39,30 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           conversationId: newMsg.conversation_id,
           message: { ...newMsg, status: 'sent' },
         });
+
+        // Browser notification (D-30): fire only when tab is not focused + message is from another user
+        if (
+          'Notification' in window &&
+          Notification.permission === 'granted' &&
+          document.visibilityState !== 'visible' &&
+          newMsg.sender_id !== _currentUserId
+        ) {
+          const title = newMsg.sender?.username ?? 'New message';
+          const body = newMsg.content
+            ? newMsg.content.slice(0, 120)
+            : 'Sent a file';
+
+          const notif = new Notification(title, {
+            body,
+            icon: '/favicon.ico',
+            tag: newMsg.conversation_id, // dedup per conversation (D-31)
+          });
+
+          notif.onclick = () => {
+            window.focus();
+            _navigate?.(`/chat/${newMsg.conversation_id}`);
+          };
+        }
       }
       break;
     case 'message:edited':
@@ -136,6 +166,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { dispatch } = useChat();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Keep module-level refs in sync for use in handleIncoming (defined outside component)
+  useEffect(() => {
+    _currentUserId = user?.id ?? null;
+    _navigate = navigate;
+  }, [user, navigate]);
 
   const connect = useCallback(() => {
     // Prevent duplicate connections
