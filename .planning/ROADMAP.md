@@ -112,8 +112,16 @@ Plans:
   2. Images sent in a conversation display as inline previews without opening a new page
   3. User can drag and drop a file onto the chat input area to initiate upload
   4. Downloaded files arrive intact and with their original filenames
-**Plans**: TBD
+**Plans**: 6 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 05-01-PLAN.md — Schema migration (thumbnail_path, conversation_id, FK on messages.file_id) + install sharp/file-type + Caddyfile/Docker infra changes
+- [ ] 05-02-PLAN.md — Backend POST /api/files: multipart streaming, magic-byte validation, date-sharded UUID storage, sharp thumbnail, rate limit
+- [ ] 05-03-PLAN.md — Backend GET /api/files/:id + /thumb with JWT + membership check; extend WS message:send to accept file_id
+- [ ] 05-04-PLAN.md — Frontend foundations: extend Message type, uploadFile XHR helper, CSS tokens, FileIcon + FileCard + UploadStrip components
+- [ ] 05-05-PLAN.md — MessageInput paperclip + drag-drop + upload state; MessageItem image/file rendering; Lightbox component
+- [ ] 05-06-PLAN.md — Avatar component extension + GroupSettingsModal admin avatar upload; human verify checkpoint
 
 ### Phase 6: UI & Deploy
 **Goal**: The application has a polished, responsive interface with theme support and search, deployed to production via Docker Compose with full TLS
@@ -136,7 +144,7 @@ Plans:
 | 2. Authentication | 4/4 | Complete   | 2026-04-09 |
 | 3. Messaging Core | 9/9 | Complete   | 2026-04-11 |
 | 4. Groups & Presence | 5/5 | Complete   | 2026-04-11 |
-| 5. File Sharing | 0/? | Not started | - |
+| 5. File Sharing | 0/6 | Not started | - |
 | 6. UI & Deploy | 0/? | Not started | - |
 
 ---
@@ -192,3 +200,4 @@ Plans:
 *Updated: 2026-04-11 — Phase 3 plan 03-03 complete (REST endpoints); 3/6 plans done*
 *Updated: 2026-04-11 — Phase 3 gap-closure plans 03-07..09 added (3 plans, 2 waves)*
 *Updated: 2026-04-11 — Phase 4 plans defined (5 plans, 3 waves)*
+*Updated: 2026-04-11 — Phase 5 plans defined (6 plans, 4 waves)*
