@@ -45,7 +45,7 @@
 ### Presence & Notifications
 
 - [x] **PRES-01**: User can see online/offline status of other users
-- [ ] **PRES-02**: User receives browser notifications for new messages when tab is not focused
+- [x] **PRES-02**: User receives browser notifications for new messages when tab is not focused
 - [x] **PRES-03**: Messages sent while user is offline are delivered when they reconnect
 
 ### UI & Experience
@@ -118,7 +118,7 @@
 | CONV-05 | Phase 4 | Complete |
 | CONV-06 | Phase 4 | Complete |
 | PRES-01 | Phase 4 | Complete |
-| PRES-02 | Phase 4 | Pending |
+| PRES-02 | Phase 4 | Complete |
 | PRES-03 | Phase 4 | Complete |
 | FILE-01 | Phase 5 | Pending |
 | FILE-02 | Phase 5 | Pending |

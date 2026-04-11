@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-04-11T14:40:16.297Z"
+last_updated: "2026-04-11T14:41:32.805Z"
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 21
-  completed_plans: 20
-  percent: 95
+  completed_plans: 21
+  percent: 100
 ---
 
 # State: mmess
@@ -31,7 +31,7 @@ Plan: 1 of 5
 
 **Progress:**
 
-[██████████] 95%
+[██████████] 100%
 [██████████] 100% (3/3 plans in Phase 1)
 [Phase 1] [3/3] Foundation — COMPLETE
 [Phase 2] [ ] Authentication
@@ -74,6 +74,7 @@ Plan: 1 of 5
 | Phase 04-groups-presence P02 | 18 | 2 tasks | 4 files |
 | Phase 04-groups-presence P03 | 12 | 2 tasks | 4 files |
 | Phase 04-groups-presence P04 | 15 | 2 tasks | 4 files |
+| Phase 04-groups-presence P05 | 15 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -132,6 +133,9 @@ Plan: 1 of 5
 | prevWsStatus useRef detects reconnecting→connected transition | Avoids extra state; cleanly triggers conversation re-fetch on WS reconnect (D-26, PRES-03) |
 | CONVERSATION_UPDATED distinct from UPSERT_CONVERSATION | Semantically separate: UPSERT for live new convs (conversation:new), UPDATED for admin mutation broadcasts |
 | Presence color tokens distinct from --color-online | D-22 spec: --color-presence-online=#22c55e vs --color-online=#1e8e3e; different visual semantics |
+| Module-level _currentUserId + _navigate refs in WebSocketProvider | handleIncoming defined outside component; module-level refs avoid stale closure on message:new notification logic |
+| presenceTargetId null removes DM presence dot entirely for groups | DOM-absent (not hidden) for group ConversationItems — cleaner than invisible element |
+| Notification tag=conversation_id deduplicates browser notifications | One visible notification per conversation regardless of message burst rate |
 
 ### Architecture Notes
 
@@ -156,8 +160,8 @@ Plan: 1 of 5
 ## Session Continuity
 
 **Last updated:** 2026-04-11
-**Last action:** Completed 04-04 — GroupSettingsModal component (admin rename/add/remove/permissions, non-admin leave) + ChatPane header click wiring
-**Next action:** Phase 04 Plan 05 (PresenceDot component + ConversationItem presence display + browser notifications)
+**Last action:** Completed 04-05 — presence dots on ConversationItem (DM) + MessageItem (sender), NotificationBanner permission request, browser notification fire logic in WebSocketProvider
+**Next action:** Phase 04 complete — proceed to Phase 05 (File Sharing)
 
 ---
 *State initialized: 2026-04-08*
