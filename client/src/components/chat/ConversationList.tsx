@@ -33,7 +33,7 @@ export function ConversationList() {
     ? state.conversations
     : state.conversations.filter(conv => {
         const q = searchQuery.toLowerCase();
-        if (conv.name.toLowerCase().includes(q)) return true;
+        if (conv.name !== null && conv.name.toLowerCase().includes(q)) return true;
         return conv.participants.some(p => p.username.toLowerCase().includes(q));
       });
 

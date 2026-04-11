@@ -71,6 +71,7 @@ export interface Conversation {
   id: string;
   type: 'direct' | 'group';
   name: string | null;
+  avatar_url: string | null;
   last_message: { id: string; content: string | null; sender_id: string; created_at: string } | null;
   unread_count: number;
   participants: Participant[];
