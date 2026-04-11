@@ -16,14 +16,14 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - ✓ Docker Compose deployment — Phase 1
 - ✓ File storage on named Docker volume — Phase 1
 - ✓ User registration and authentication — Phase 2
+- ✓ Real-time text messaging via WebSocket — Phase 3
+- ✓ Private (1-on-1) chats — Phase 3
+- ✓ Group chats — Phase 3
+- ✓ Message history and persistence — Phase 3
 
 ### Active
 
-- [ ] Real-time text messaging via WebSocket
-- [ ] Private (1-on-1) chats
-- [ ] Group chats
 - [ ] File and image sharing
-- [ ] Message history and persistence
 - [ ] Online/offline status indicators
 - [ ] Responsive web UI
 
@@ -79,4 +79,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 2: Authentication*
+*Last updated: 2026-04-11 after Phase 3: Messaging Core*
