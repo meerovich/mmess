@@ -97,7 +97,7 @@
 
 .unreadBadge {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
   font-size: var(--text-label);
   font-weight: 600;
   min-width: 20px;

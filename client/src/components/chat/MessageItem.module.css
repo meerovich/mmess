@@ -249,7 +249,7 @@
   border: none;
   border-radius: 6px;
   background: var(--color-destructive);
-  color: white;
+  color: var(--color-on-accent);
   cursor: pointer;
   font-size: var(--text-label);
 }

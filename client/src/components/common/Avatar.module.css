@@ -5,7 +5,7 @@
   border-radius: 50%;
   font-size: var(--text-label);
   font-weight: 600;
-  color: white;
+  color: var(--color-on-accent);
   flex-shrink: 0;
   user-select: none;
   object-fit: cover;

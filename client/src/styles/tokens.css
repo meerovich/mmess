@@ -60,4 +60,33 @@
   /* Colors — file sharing (Phase 5) */
   --color-file-card-bg: #f8f9fa;
   --color-lightbox-backdrop: rgba(0, 0, 0, 0.85);
+
+  /* Colors — fixed-context (always light, used on elements with always-dark backgrounds) */
+  --color-on-dark-bg: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  --color-surface: #1a1a1a;
+  --color-surface-secondary: #242424;
+  --color-text-primary: #e8eaed;
+  --color-text-secondary: #9aa0a6;
+  --color-text-muted: #9aa0a6;
+  --color-text-placeholder: #5f6368;
+  --color-border: #3c4043;
+  --color-border-focus: #8ab4f8;
+  --color-accent: #8ab4f8;
+  --color-accent-muted: #1e3a5f;
+  --color-on-accent: #0a0a0a;
+  --color-destructive: #f28b82;
+  --color-success: #4ade80;
+  --color-online: #4ade80;
+  --color-bubble-own: #1e3a5f;
+  --color-bubble-own-border: #2a4a7f;
+  --color-bubble-other: #242424;
+  --color-reaction-bg: #2a2a2a;
+  --color-reaction-bg-active: #1e3a5f;
+  --color-presence-online: #4ade80;
+  --color-presence-offline: #6b7280;
+  --color-file-card-bg: #2a2a2a;
+  --color-lightbox-backdrop: rgba(0, 0, 0, 0.92);
 }
