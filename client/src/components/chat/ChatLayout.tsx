@@ -104,6 +104,9 @@ export function ChatLayout() {
         layoutRef.current.style.height = `${vv.height}px`;
         // Counteract iOS viewport offset (keyboard pushes page up)
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
+        // Remove bottom safe-area when keyboard is open (viewport shrank)
+        const keyboardOpen = vv.height < window.innerHeight * 0.85;
+        layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
 
       // Force window back to top
@@ -136,7 +139,7 @@ export function ChatLayout() {
         <div ref={layoutRef} className={styles.layout}>
           <div
             className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}
-            style={{ width: sidebarWidth }}
+            style={window.innerWidth >= 768 ? { width: sidebarWidth } : undefined}
           >
             <ConversationList />
           </div>
