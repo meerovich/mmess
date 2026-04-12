@@ -29,6 +29,17 @@
   overflow: hidden;
 }
 
+.versionBanner {
+  background: var(--color-accent);
+  color: white;
+  text-align: center;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 @media (max-width: 767px) {
   .sidebar {
     width: 100vw;

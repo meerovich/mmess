@@ -61,6 +61,20 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const unreadCount = conversation.unread_count;
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
+  // Read receipt status for the last outgoing message in conversation list.
+  // Show ✓ (sent) / ✓✓ (delivered/read) with color for read state.
+  const lastMsg = conversation.last_message;
+  const isOwnLastMessage = lastMsg && user && lastMsg.sender_id === user.id;
+  let outgoingStatus: 'sent' | 'read' | null = null;
+  if (isOwnLastMessage && unreadCount === 0) {
+    // Check if all other participants have read this message
+    const otherParticipants = conversation.participants.filter(p => p.user_id !== user!.id);
+    const allRead = otherParticipants.length > 0 && otherParticipants.every(p =>
+      p.last_read_at && lastMsg.created_at && p.last_read_at >= lastMsg.created_at
+    );
+    outgoingStatus = allRead ? 'read' : 'sent';
+  }
+
   function handleClick() {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
@@ -102,6 +116,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         </div>
         <div className={styles.bottomRow}>
           <span className={styles.preview}>
+            {isOwnLastMessage && outgoingStatus && (
+              <span className={outgoingStatus === 'read' ? styles.checkRead : styles.checkSent}>
+                {outgoingStatus === 'read' ? '✓✓ ' : '✓ '}
+              </span>
+            )}
             {lastPreview ?? <em className={styles.noPreview}>No messages yet</em>}
           </span>
           {unreadCount > 0 && (

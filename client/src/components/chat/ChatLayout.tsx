@@ -41,6 +41,26 @@ export function ChatLayout() {
     registerPushSubscription();
   }, []);
 
+  // VERSION CHECK: periodically poll /api/health to detect server version upgrades.
+  // If server version differs from the built-in client version, show a reload banner.
+  const [newVersionAvailable, setNewVersionAvailable] = useState(false);
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch('/api/health');
+        if (!res.ok) return;
+        const data = await res.json() as { version?: string };
+        if (data.version && data.version !== __APP_VERSION__) {
+          setNewVersionAvailable(true);
+        }
+      } catch { /* silent */ }
+    };
+    // Check on mount + every 60 seconds
+    checkVersion();
+    const interval = setInterval(checkVersion, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   // MOBILE KEYBOARD FIX: use visualViewport to resize layout when virtual
   // keyboard opens. CSS dvh doesn't update when the keyboard appears on many
   // mobile browsers. We set a CSS custom property --vh that the layout uses.
@@ -75,6 +95,11 @@ export function ChatLayout() {
     <ChatLayoutContext.Provider value={{ showChat, setShowChat }}>
       <>
         <NotificationBanner />
+        {newVersionAvailable && (
+          <div className={styles.versionBanner} onClick={() => window.location.reload()}>
+            Доступно обновление — нажмите для перезагрузки
+          </div>
+        )}
         <div ref={layoutRef} className={styles.layout}>
           <div className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}>
             <ConversationList />
