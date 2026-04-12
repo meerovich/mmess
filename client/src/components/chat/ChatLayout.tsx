@@ -81,33 +81,59 @@ export function ChatLayout() {
     return () => clearInterval(interval);
   }, []);
 
-  // MOBILE KEYBOARD FIX: use visualViewport to resize layout when virtual
-  // keyboard opens. CSS dvh doesn't update when the keyboard appears on many
-  // mobile browsers. We set a CSS custom property --vh that the layout uses.
-  // No position:fixed needed — just an accurate height.
+  // MOBILE KEYBOARD FIX (Telegram approach):
+  // iOS Safari doesn't resize the layout viewport when the keyboard opens.
+  // Instead it scrolls the page up, pushing fixed elements off-screen.
+  // Fix: set --vh CSS variable from visualViewport.height and use
+  // transform: translateY to counteract the viewport offset.
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    const onResize = () => {
+    const setVH = () => {
+      // Set --vh so CSS can use calc(var(--vh) * 100) instead of 100vh
+      document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
+
       if (layoutRef.current) {
-        // vv.height = distance from top of visible area to top of keyboard.
-        // vv.offsetTop = how much iOS Safari pushed the viewport down (scroll
-        // compensation when the focused input is near the bottom). We subtract
-        // offsetTop so the layout height exactly fills the visible area between
-        // the top of the screen and the top of the keyboard — no gap.
-        const h = vv.height - (vv.offsetTop ?? 0);
-        layoutRef.current.style.height = `${h}px`;
+        // Set explicit height from visualViewport
+        layoutRef.current.style.height = `${vv.height}px`;
+        // Counteract iOS viewport offset (keyboard pushes page up)
+        layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
       }
-      // Prevent iOS Safari from scrolling the page up when focusing input.
-      window.scrollTo(0, 0);
+
+      // Force window back to top
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
     };
 
-    vv.addEventListener('resize', onResize);
-    vv.addEventListener('scroll', onResize);
+    // Set initial
+    setVH();
+
+    vv.addEventListener('resize', setVH);
+    vv.addEventListener('scroll', setVH);
+
+    // Also handle touchmove on non-scrollable areas to prevent rubber-band
+    const preventBounce = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      // Allow scroll inside scrollable containers (message list, modals)
+      let el: HTMLElement | null = target;
+      while (el && el !== document.body) {
+        const style = getComputedStyle(el);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          return; // allow natural scroll
+        }
+        el = el.parentElement;
+      }
+      e.preventDefault();
+    };
+
+    document.addEventListener('touchmove', preventBounce, { passive: false });
+
     return () => {
-      vv.removeEventListener('resize', onResize);
-      vv.removeEventListener('scroll', onResize);
+      vv.removeEventListener('resize', setVH);
+      vv.removeEventListener('scroll', setVH);
+      document.removeEventListener('touchmove', preventBounce);
     };
   }, []);
 

@@ -7,6 +7,7 @@ import { NewChatModal } from './NewChatModal';
 import { NewGroupModal } from './NewGroupModal';
 import { UserMenu } from './UserMenu';
 import { ThemeToggle } from '../common/ThemeToggle';
+import { Spinner } from '../common/Spinner';
 import styles from './ConversationList.module.css';
 
 export function ConversationList() {
@@ -94,7 +95,9 @@ export function ConversationList() {
       </div>
 
       <div className={styles.list}>
-        {filtered.length === 0 && searchQuery.trim() !== '' ? (
+        {state.wsStatus === 'disconnected' && state.conversations.length === 0 ? (
+          <Spinner />
+        ) : filtered.length === 0 && searchQuery.trim() !== '' ? (
           <div className={styles.emptyState}>
             <p className={styles.emptyTitle}>{t('sidebar.noConversationsMatch')}</p>
             <p className={styles.emptySubtitle}>"{searchQuery}"</p>

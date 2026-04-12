@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { apiFetch } from '../../lib/api';
 import { MessageItem } from './MessageItem';
+import { Spinner } from '../common/Spinner';
 import { useTranslation } from '../../lib/i18n';
 import styles from './MessageList.module.css';
 import type { Message } from '../../types/chat';
@@ -322,11 +323,18 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     return { msg, isGrouped: sameUser && within5Min };
   });
 
+  if (isInitialLoading) {
+    return (
+      <div className={styles.list}>
+        <Spinner />
+      </div>
+    );
+  }
+
   return (
     <div
       ref={listRef}
       className={styles.list}
-      style={isInitialLoading ? { opacity: 0 } : undefined}
     >
       <div ref={sentinelRef} className={styles.sentinel} />
       {isLoadingMore && <div className={styles.loadingMore}>{t('chat.loadingOlder')}</div>}
