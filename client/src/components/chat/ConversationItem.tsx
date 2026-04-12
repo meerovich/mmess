@@ -58,6 +58,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
 
   const timeStr = conversation.updated_at ? formatTime(conversation.updated_at) : '';
 
+  // Check for draft text in localStorage
+  const draft = typeof window !== 'undefined'
+    ? localStorage.getItem(`draft:${conversation.id}`) ?? ''
+    : '';
+
   const unreadCount = conversation.unread_count;
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
@@ -78,9 +83,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   function handleClick() {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
-    // replace: true so browser swipe-back gesture goes to conversation list,
-    // not to the previously-viewed chat (which causes flicker-and-return).
-    navigate(`/chat/${conversation.id}`, { replace: true });
+    // Push (not replace) so browser swipe-back has a history entry to go back to.
+    // ChatLayout.useEffect on urlConversationId handles the state sync.
+    navigate(`/chat/${conversation.id}`);
   }
 
   return (
@@ -116,12 +121,18 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         </div>
         <div className={styles.bottomRow}>
           <span className={styles.preview}>
-            {isOwnLastMessage && outgoingStatus && (
-              <span className={outgoingStatus === 'read' ? styles.checkRead : styles.checkSent}>
-                {outgoingStatus === 'read' ? '✓✓ ' : '✓ '}
-              </span>
+            {draft ? (
+              <><span className={styles.draftLabel}>Черновик: </span>{draft.replace(/\n/g, ' ').slice(0, 40)}</>
+            ) : (
+              <>
+                {isOwnLastMessage && outgoingStatus && (
+                  <span className={outgoingStatus === 'read' ? styles.checkRead : styles.checkSent}>
+                    {outgoingStatus === 'read' ? '✓✓ ' : '✓ '}
+                  </span>
+                )}
+                {lastPreview ?? <em className={styles.noPreview}>No messages yet</em>}
+              </>
             )}
-            {lastPreview ?? <em className={styles.noPreview}>No messages yet</em>}
           </span>
           {unreadCount > 0 && (
             <span

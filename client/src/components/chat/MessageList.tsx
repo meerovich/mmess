@@ -266,15 +266,19 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     };
   }, [messages, conversationId, sendWs]);
 
-  // Find the index of the first unread message for the divider.
-  // "Unread" = any message AFTER the openReadCursor (by position in the sorted array).
-  // The divider is placed BEFORE the first unread message.
+  // Find the index of the first unread INCOMING message for the divider.
+  // "Unread" = any message AFTER the openReadCursor from ANOTHER user.
+  // Own sent messages are never marked as "unread" — the divider only appears
+  // before the first message from someone else that the current user hasn't read.
   const firstUnreadIdx = (() => {
-    if (!openReadCursor || !showDivider) return -1;
+    if (!openReadCursor || !showDivider || !user?.id) return -1;
     const cursorIdx = messages.findIndex(m => m.id === openReadCursor);
-    if (cursorIdx === -1) return -1; // cursor not in loaded messages
-    if (cursorIdx >= messages.length - 1) return -1; // everything is read
-    return cursorIdx + 1;
+    if (cursorIdx === -1) return -1;
+    // Find first message after cursor that is NOT from the current user
+    for (let i = cursorIdx + 1; i < messages.length; i++) {
+      if (messages[i].sender_id !== user.id) return i;
+    }
+    return -1; // all messages after cursor are from the current user — no divider
   })();
 
   // Hide the divider 3 seconds after it's been rendered (user has "seen" the unread section).

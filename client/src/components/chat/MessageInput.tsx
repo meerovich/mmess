@@ -33,9 +33,25 @@ export function MessageInput({
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
 
-  const [value, setValue] = useState('');
+  // Draft persistence: restore draft from localStorage on conversation switch.
+  const draftKey = `draft:${conversationId}`;
+  const [value, setValue] = useState(() => localStorage.getItem(draftKey) ?? '');
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
+
+  // Save draft to localStorage on every change (debounced implicitly by React batching)
+  useEffect(() => {
+    if (value) {
+      localStorage.setItem(draftKey, value);
+    } else {
+      localStorage.removeItem(draftKey);
+    }
+  }, [value, draftKey]);
+
+  // When switching conversations, restore draft for the new conversation
+  useEffect(() => {
+    setValue(localStorage.getItem(draftKey) ?? '');
+  }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Populate textarea when entering edit mode
   useEffect(() => {

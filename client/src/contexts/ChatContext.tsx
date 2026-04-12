@@ -67,17 +67,34 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
       };
     }
 
-    case 'OPTIMISTIC_MESSAGE_ADD':
+    case 'OPTIMISTIC_MESSAGE_ADD': {
+      const addedMsg = { ...action.message, status: action.message.status ?? 'sending' as const };
       return {
         ...state,
         messages: {
           ...state.messages,
           [action.conversationId]: [
             ...(state.messages[action.conversationId] ?? []),
-            { ...action.message, status: 'sending' },
+            addedMsg,
           ],
         },
+        // Update conversation's last_message so the sidebar shows the new message
+        conversations: state.conversations.map((c: Conversation) =>
+          c.id === action.conversationId
+            ? {
+                ...c,
+                last_message: {
+                  id: addedMsg.id,
+                  content: addedMsg.content,
+                  sender_id: addedMsg.sender_id,
+                  created_at: addedMsg.created_at,
+                },
+                updated_at: addedMsg.created_at,
+              }
+            : c
+        ),
       };
+    }
 
     case 'OPTIMISTIC_MESSAGE_CONFIRM':
       return {
