@@ -210,8 +210,9 @@ export async function handleMessageSend(
     const sender = enrichedMessage.sender as { username?: string } | null;
     const senderName = sender?.username ?? 'Someone';
     const content = enrichedMessage.content as string | null;
+    // Strip markdown syntax so push notifications show clean plain text
     const body = content
-      ? content.slice(0, 120)
+      ? content.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120)
       : 'Sent a file';
 
     for (const recipientId of recipientIds) {

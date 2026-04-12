@@ -95,7 +95,7 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
         if (pid !== botUser.id && !isOnline(pid)) {
           sendPushToUser(db as any, pid, {
             title: botUser.username,
-            body: text.slice(0, 120),
+            body: text.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120),
             tag: convId,
             url: `/chat/${convId}`,
           }).catch(() => {});
