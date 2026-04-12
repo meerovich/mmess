@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 import { ConversationItem } from './ConversationItem';
 import { NewChatModal } from './NewChatModal';
 import { NewGroupModal } from './NewGroupModal';
@@ -11,6 +12,7 @@ import styles from './ConversationList.module.css';
 export function ConversationList() {
   const { state } = useChat();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [showNewChat, setShowNewChat] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,16 +47,16 @@ export function ConversationList() {
           <button
             className={styles.actionButton}
             onClick={() => setShowNewChat(true)}
-            aria-label="New chat"
+            aria-label={t('sidebar.newChat')}
           >
-            New chat
+            {t('sidebar.newChat')}
           </button>
           <button
             className={styles.actionButton}
             onClick={() => setShowNewGroup(true)}
-            aria-label="New group"
+            aria-label={t('sidebar.newGroup')}
           >
-            New group
+            {t('sidebar.newGroup')}
           </button>
         </div>
       </div>
@@ -70,17 +72,17 @@ export function ConversationList() {
             ref={searchRef}
             className={styles.searchInput}
             type="text"
-            placeholder="Search conversations\u2026"
+            placeholder={t('sidebar.search')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            aria-label="Search conversations"
+            aria-label={t('sidebar.search')}
           />
           {searchQuery.length > 0 && (
             <button
               type="button"
               className={styles.clearBtn}
               onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
+              aria-label={t('sidebar.clearSearch')}
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
                 <line x1="4" y1="4" x2="12" y2="12"/>
@@ -94,13 +96,13 @@ export function ConversationList() {
       <div className={styles.list}>
         {filtered.length === 0 && searchQuery.trim() !== '' ? (
           <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No conversations match</p>
+            <p className={styles.emptyTitle}>{t('sidebar.noConversationsMatch')}</p>
             <p className={styles.emptySubtitle}>"{searchQuery}"</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No conversations yet</p>
-            <p className={styles.emptySubtitle}>Start a chat with a friend to get started.</p>
+            <p className={styles.emptyTitle}>{t('sidebar.noConversationsYet')}</p>
+            <p className={styles.emptySubtitle}>{t('sidebar.startChatHint')}</p>
           </div>
         ) : (
           filtered.map(conv => (
@@ -109,7 +111,7 @@ export function ConversationList() {
         )}
       </div>
 
-      {/* Footer: user menu (avatar click → logout/language) + theme + version */}
+      {/* Footer: user menu (avatar click -> logout/language) + theme + version */}
       {user && (
         <div className={styles.footer}>
           <UserMenu />

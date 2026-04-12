@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
+import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { uploadFile } from '../../lib/api';
 import { UploadStrip } from './UploadStrip';
@@ -27,6 +28,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const { user } = useAuth();
   const { dispatch } = useChat();
+  const { t } = useTranslation();
   const sendWs = useSendMessage();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,7 +79,7 @@ export function MessageInput({
   const handleFileSelect = useCallback((file: File) => {
     // Client-side size check (D-01): 25 MB max
     if (file.size > 25 * 1024 * 1024) {
-      setUploadState({ status: 'error', file, message: 'file too large (25 MB max)' });
+      setUploadState({ status: 'error', file, message: t('file.tooLarge') });
       return;
     }
 
@@ -102,9 +104,9 @@ export function MessageInput({
         setUploadState({ status: 'idle' });
         return;
       }
-      setUploadState({ status: 'error', file, message: err.message || 'Please try again.' });
+      setUploadState({ status: 'error', file, message: err.message || t('file.retry') });
     });
-  }, []);
+  }, [t]);
 
   const handleCancelUpload = useCallback(() => {
     if (uploadState.status === 'uploading') {
@@ -281,6 +283,8 @@ export function MessageInput({
     }
 
     textareaRef.current?.focus();
+    // Scroll chat to bottom after sending
+    window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
   };
 
   // Send is disabled when: no text AND no ready file; OR upload in progress; OR upload error
@@ -288,8 +292,6 @@ export function MessageInput({
     (value.trim().length === 0 && uploadState.status !== 'ready') ||
     uploadState.status === 'uploading' ||
     uploadState.status === 'error';
-
-  const conversationName = conversationId; // used for aria-label
 
   return (
     <div
@@ -299,14 +301,14 @@ export function MessageInput({
       {/* Reply strip */}
       {replyTo && (
         <div className={styles.replyStrip}>
-          <span>↩ Replying to {replyTo.sender.username}:</span>
+          <span>{t('chat.replyingTo', { name: replyTo.sender.username })}</span>
           <span className={styles.replyPreviewText}>
             {(replyTo.content ?? '').slice(0, 80)}
           </span>
           <button
             className={styles.stripCancelBtn}
             onClick={onClearReply}
-            aria-label="Cancel reply"
+            aria-label={t('chat.cancelReply')}
           >
             ×
           </button>
@@ -316,14 +318,14 @@ export function MessageInput({
       {/* Edit strip */}
       {editMessage && (
         <div className={styles.replyStrip}>
-          <span>✏ Editing message</span>
+          <span>{t('chat.editingMessage')}</span>
           <button
             className={styles.stripCancelBtn}
             onClick={() => {
               onClearEdit?.();
               setValue('');
             }}
-            aria-label="Cancel edit"
+            aria-label={t('chat.cancelEdit')}
           >
             ×
           </button>
@@ -345,7 +347,7 @@ export function MessageInput({
           ref={fileInputRef}
           type="file"
           style={{ display: 'none' }}
-          aria-label="Attach file"
+          aria-label={t('chat.attachFile')}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) handleFileSelect(file);
@@ -358,7 +360,7 @@ export function MessageInput({
           className={styles.attachBtn}
           onClick={() => fileInputRef.current?.click()}
           disabled={uploadState.status === 'uploading'}
-          aria-label="Attach file"
+          aria-label={t('chat.attachFile')}
           aria-disabled={uploadState.status === 'uploading'}
           type="button"
         >
@@ -379,15 +381,16 @@ export function MessageInput({
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Message"
-          aria-label={`Message ${conversationName}`}
+          onFocus={() => window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'))}
+          placeholder={t('chat.message')}
+          aria-label={t('chat.message')}
           rows={1}
         />
         <button
           className={styles.sendBtn}
           onClick={handleSend}
           disabled={isDisabled}
-          aria-label="Send message"
+          aria-label={t('chat.sendMessage')}
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path

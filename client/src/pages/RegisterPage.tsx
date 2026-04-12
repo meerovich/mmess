@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from '../lib/i18n';
 import { apiFetch } from '../lib/api';
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -26,12 +28,12 @@ export function RegisterPage() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error((err as { error?: string; message?: string }).error ?? (err as { message?: string }).message ?? 'Registration failed');
+        throw new Error((err as { error?: string; message?: string }).error ?? (err as { message?: string }).message ?? t('auth.registerFailed'));
       }
       // Registration successful — redirect to login with success message
-      navigate('/login', { state: { message: 'Registration successful! Please log in.' } });
+      navigate('/login', { state: { message: t('auth.registerSuccess') } });
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : t('auth.registerFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -39,11 +41,11 @@ export function RegisterPage() {
 
   return (
     <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1>mmess — Register</h1>
+      <h1>{t('auth.registerTitle')}</h1>
       <form onSubmit={handleSubmit}>
         <div>
           <label>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               value={email}
@@ -55,7 +57,7 @@ export function RegisterPage() {
         </div>
         <div style={{ marginTop: 12 }}>
           <label>
-            Username
+            {t('auth.username')}
             <input
               type="text"
               value={username}
@@ -67,7 +69,7 @@ export function RegisterPage() {
         </div>
         <div style={{ marginTop: 12 }}>
           <label>
-            Password
+            {t('auth.password')}
             <input
               type="password"
               value={password}
@@ -80,26 +82,26 @@ export function RegisterPage() {
         </div>
         <div style={{ marginTop: 12 }}>
           <label>
-            Invite Token
+            {t('auth.inviteToken')}
             <input
               type="text"
               value={inviteToken}
               onChange={e => setInviteToken(e.target.value)}
-              placeholder="Leave blank if you are the first user"
+              placeholder={t('auth.invitePlaceholder')}
               style={{ display: 'block', marginTop: 4, width: '100%' }}
             />
           </label>
           <small style={{ color: '#666' }}>
-            Leave blank if you are the first user. Otherwise paste the invite token from an admin.
+            {t('auth.inviteHint')}
           </small>
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button type="submit" disabled={submitting} style={{ marginTop: 16 }}>
-          {submitting ? 'Registering...' : 'Register'}
+          {submitting ? t('auth.registering') : t('auth.register')}
         </button>
       </form>
       <p>
-        <Link to="/login">Already have an account? Log in</Link>
+        <Link to="/login">{t('auth.alreadyHaveAccount')}</Link>
       </p>
     </div>
   );

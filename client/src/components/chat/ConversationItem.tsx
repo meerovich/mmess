@@ -2,6 +2,7 @@ import { formatDistanceToNow, format, isThisYear } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 import { useChatLayout } from './ChatLayout';
 import { Avatar } from '../common/Avatar';
 import type { Conversation } from '../../types/chat';
@@ -28,6 +29,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const isActive = conversation.id === state.activeConversationId;
 
@@ -43,8 +45,8 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   // For DMs: display the other participant's name
   const displayName =
     conversation.type === 'direct' && user
-      ? (conversation.participants.find(p => p.user_id !== user.id)?.username ?? conversation.name ?? 'Unknown')
-      : (conversation.name ?? 'Group');
+      ? (conversation.participants.find(p => p.user_id !== user.id)?.username ?? conversation.name ?? t('chat.unknown'))
+      : (conversation.name ?? t('sidebar.newGroup'));
 
   // Strip markdown syntax for sidebar preview: remove **bold**, *italic*,
   // `code`, [links](url), # headers, etc. — show clean plain text.
@@ -67,7 +69,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
 
   // Read receipt status for the last outgoing message in conversation list.
-  // Show ✓ (sent) / ✓✓ (delivered/read) with color for read state.
+  // Show check (sent) / double-check (delivered/read) with color for read state.
   const lastMsg = conversation.last_message;
   const isOwnLastMessage = lastMsg && user && lastMsg.sender_id === user.id;
   let outgoingStatus: 'sent' | 'read' | null = null;
@@ -95,7 +97,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && handleClick()}
-      aria-label={unreadCount > 0 ? `${displayName}, ${unreadCount} unread messages` : displayName}
+      aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
     >
       <div className={styles.avatarWrapper}>
         <Avatar name={displayName} size="sm" />
@@ -104,12 +106,12 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
             className={`${styles.onlineDot} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
             title={
               isOnline
-                ? 'Online'
+                ? t('time.online')
                 : presence?.last_seen_at
-                ? `Last seen ${formatDistanceToNow(new Date(presence.last_seen_at), { addSuffix: true })}`
-                : 'Last seen unknown'
+                ? t('time.lastSeen', { time: formatDistanceToNow(new Date(presence.last_seen_at), { addSuffix: true }) })
+                : t('time.lastSeenUnknown')
             }
-            aria-label={isOnline ? 'Online' : 'Offline'}
+            aria-label={isOnline ? t('time.online') : t('time.offline')}
           />
         )}
       </div>
@@ -122,22 +124,22 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         <div className={styles.bottomRow}>
           <span className={styles.preview}>
             {draft ? (
-              <><span className={styles.draftLabel}>Черновик: </span>{draft.replace(/\n/g, ' ').slice(0, 40)}</>
+              <><span className={styles.draftLabel}>{t('sidebar.draft')}</span>{draft.replace(/\n/g, ' ').slice(0, 40)}</>
             ) : (
               <>
                 {isOwnLastMessage && outgoingStatus && (
                   <span className={outgoingStatus === 'read' ? styles.checkRead : styles.checkSent}>
-                    {outgoingStatus === 'read' ? '✓✓ ' : '✓ '}
+                    {outgoingStatus === 'read' ? '\u2713\u2713 ' : '\u2713 '}
                   </span>
                 )}
-                {lastPreview ?? <em className={styles.noPreview}>No messages yet</em>}
+                {lastPreview ?? <em className={styles.noPreview}>{t('sidebar.noMessages')}</em>}
               </>
             )}
           </span>
           {unreadCount > 0 && (
             <span
               className={styles.unreadBadge}
-              aria-label={`${unreadCount} unread messages`}
+              aria-label={t('unread.messages', { count: String(unreadCount) })}
             >
               {unreadLabel}
             </span>

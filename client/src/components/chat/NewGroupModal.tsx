@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
+import { useTranslation } from '../../lib/i18n';
 import { apiFetch } from '../../lib/api';
 import { Avatar } from '../common/Avatar';
 import styles from './NewGroupModal.module.css';
@@ -22,6 +23,7 @@ interface NewGroupModalProps {
 
 export function NewGroupModal({ onClose }: NewGroupModalProps) {
   const { dispatch } = useChat();
+  const { t } = useTranslation();
   const [groupName, setGroupName] = useState('');
   const [selectedUsers, setSelectedUsers] = useState<SelectedUser[]>([]);
   const [query, setQuery] = useState('');
@@ -129,17 +131,17 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
         aria-labelledby="new-group-title"
         onKeyDown={handleKeyDown}
       >
-        <h2 id="new-group-title" className={styles.title}>New group</h2>
+        <h2 id="new-group-title" className={styles.title}>{t('newGroup.title')}</h2>
 
         <input
           ref={nameInputRef}
           className={styles.input}
           type="text"
-          placeholder="Group name"
+          placeholder={t('newGroup.namePlaceholder')}
           value={groupName}
           onChange={e => setGroupName(e.target.value.slice(0, 100))}
           maxLength={100}
-          aria-label="Group name"
+          aria-label={t('newGroup.namePlaceholder')}
         />
 
         {selectedUsers.length > 0 && (
@@ -150,7 +152,7 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
                 <button
                   className={styles.chipRemove}
                   onClick={() => removeUser(user.id)}
-                  aria-label={`Remove ${user.username}`}
+                  aria-label={t('newGroup.removeMember', { name: user.username })}
                 >
                   ×
                 </button>
@@ -162,18 +164,18 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
         <input
           className={styles.input}
           type="text"
-          placeholder="Add members by name or email..."
+          placeholder={t('newGroup.addMembersPlaceholder')}
           value={query}
           onChange={e => setQuery(e.target.value)}
-          aria-label="Search users to add"
+          aria-label={t('newGroup.searchUsers')}
         />
 
-        {isSearching && <p className={styles.statusText}>Searching...</p>}
+        {isSearching && <p className={styles.statusText}>{t('newGroup.searching')}</p>}
 
         {!isSearching && query.length >= 2 && results.length === 0 && (
           <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No users found</p>
-            <p className={styles.emptySubtitle}>Try a different name or email.</p>
+            <p className={styles.emptyTitle}>{t('newGroup.noUsersFound')}</p>
+            <p className={styles.emptySubtitle}>{t('newGroup.tryDifferent')}</p>
           </div>
         )}
 
@@ -195,14 +197,14 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
 
         <div className={styles.footer}>
           <button className={styles.cancelButton} onClick={onClose}>
-            Cancel
+            {t('newGroup.cancel')}
           </button>
           <button
             className={styles.createButton}
             onClick={handleCreate}
             disabled={!canCreate || isCreating}
           >
-            Create group
+            {t('newGroup.create')}
           </button>
         </div>
       </div>

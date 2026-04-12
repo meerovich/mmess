@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../lib/i18n';
 import type { UploadState } from '../../types/chat';
 import { FileIcon } from '../common/FileIcon';
 import styles from './UploadStrip.module.css';
@@ -10,6 +11,7 @@ interface UploadStripProps {
 }
 
 export function UploadStrip({ uploadState, onCancel, onRetry }: UploadStripProps) {
+  const { t } = useTranslation();
   const { file } = uploadState;
   const isImage = file.type.startsWith('image/');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export function UploadStrip({ uploadState, onCancel, onRetry }: UploadStripProps
         <button
           className={styles.cancelBtn}
           onClick={onCancel}
-          aria-label={uploadState.status === 'uploading' ? 'Cancel upload' : 'Remove attachment'}
+          aria-label={uploadState.status === 'uploading' ? t('file.cancelUpload') : t('file.removeAttachment')}
         >
           &#215;
         </button>
@@ -68,15 +70,15 @@ export function UploadStrip({ uploadState, onCancel, onRetry }: UploadStripProps
       {/* Ready state — green checkmark */}
       {uploadState.status === 'ready' && (
         <div className={styles.readyRow}>
-          <span className={styles.checkmark} aria-label="Upload complete">&#10003;</span>
+          <span className={styles.checkmark} aria-label={t('file.uploadComplete')}>&#10003;</span>
         </div>
       )}
 
       {/* Error state */}
       {uploadState.status === 'error' && (
         <div className={styles.errorRow}>
-          <span className={styles.errorText}>Upload failed: {uploadState.message}</span>
-          <button className={styles.retryBtn} onClick={onRetry}>Retry</button>
+          <span className={styles.errorText}>{t('file.uploadFailed', { message: uploadState.message })}</span>
+          <button className={styles.retryBtn} onClick={onRetry}>{t('file.retry')}</button>
         </div>
       )}
     </div>

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from '../lib/i18n';
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +20,7 @@ export function LoginPage() {
       await login(email, password);
       navigate('/');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : t('auth.loginFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -30,7 +32,7 @@ export function LoginPage() {
       <form onSubmit={handleSubmit}>
         <div>
           <label>
-            Email
+            {t('auth.email')}
             <input
               type="email"
               value={email}
@@ -42,7 +44,7 @@ export function LoginPage() {
         </div>
         <div style={{ marginTop: 12 }}>
           <label>
-            Password
+            {t('auth.password')}
             <input
               type="password"
               value={password}
@@ -54,11 +56,11 @@ export function LoginPage() {
         </div>
         {error && <p style={{ color: 'red' }}>{error}</p>}
         <button type="submit" disabled={submitting} style={{ marginTop: 16 }}>
-          {submitting ? 'Logging in...' : 'Log in'}
+          {submitting ? t('auth.loggingIn') : t('auth.login')}
         </button>
       </form>
       <p>
-        <Link to="/register">Register with invite</Link>
+        <Link to="/register">{t('auth.registerWithInvite')}</Link>
       </p>
     </div>
   );

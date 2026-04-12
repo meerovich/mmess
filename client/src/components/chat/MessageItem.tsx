@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
+import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar, AddReactionButton } from './ReactionBar';
@@ -37,17 +38,19 @@ function ReadReceipt({
   message,
   currentUserId,
   participants,
+  t,
 }: {
   message: Message;
   currentUserId: string;
   participants: Participant[];
+  t: (key: string, params?: Record<string, string>) => string;
 }) {
   if (message.sender_id !== currentUserId) return null;
 
   // D-06: No separate spinner — optimistic insert shows single check immediately
   if (message.status === 'sending') {
     return (
-      <span className={`${styles.receipt} ${styles.sent}`} title="Sending">
+      <span className={`${styles.receipt} ${styles.sent}`} title={t('time.sending')}>
         &#10003;
       </span>
     );
@@ -70,10 +73,10 @@ function ReadReceipt({
     .filter(p => p.last_read_at != null && p.last_read_at >= message.created_at)
     .map(p => p.username);
   const tooltipText = readNames.length > 0
-    ? `Read by: ${readNames.join(', ')}`
+    ? t('time.readBy', { names: readNames.join(', ') })
     : isDelivered
-      ? 'Delivered'
-      : 'Sent';
+      ? t('time.delivered')
+      : t('time.sent');
 
   // D-05: WhatsApp-style — single gray check (sent), double gray check (delivered), double blue check (read)
   if (isAllRead) {
@@ -103,6 +106,7 @@ function ReadReceipt({
 export function MessageItem({ message, isGrouped = false, onReply, onEdit }: MessageItemProps) {
   const { user } = useAuth();
   const { state } = useChat();
+  const { t } = useTranslation();
   const sendWs = useSendMessage();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -164,7 +168,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           {!isGrouped && (
             <span
               className={`${styles.onlineDot} ${senderOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
-              aria-label={senderOnline ? 'Online' : 'Offline'}
+              aria-label={senderOnline ? t('time.online') : t('time.offline')}
             />
           )}
         </div>
@@ -183,7 +187,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
         {/* Message content */}
         {message.is_deleted ? (
-          <div className={`${styles.content} ${styles.deleted}`}>Message deleted</div>
+          <div className={`${styles.content} ${styles.deleted}`}>{t('chat.deleted')}</div>
         ) : (
           <>
             {/* Image attachment — inline thumbnail with click-to-lightbox (D-29, D-30) */}
@@ -242,13 +246,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         <div className={styles.timestamp}>
           {timestamp}
           {message.edited_at && !message.is_deleted && (
-            <span className={styles.edited}>(edited)</span>
+            <span className={styles.edited}>{t('chat.edited')}</span>
           )}
           {isOwn && (
             <ReadReceipt
               message={message}
               currentUserId={currentUserId}
               participants={conversation?.participants ?? []}
+              t={t}
             />
           )}
           {!message.is_deleted && (
@@ -257,7 +262,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               <button
                 className={styles.inlineReplyBtn}
                 onClick={handleReply}
-                aria-label="Reply"
+                aria-label={t('chat.reply')}
               >
                 ↩
               </button>
@@ -268,19 +273,19 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         {/* Inline delete confirmation */}
         {showDeleteConfirm && (
           <div className={styles.deleteConfirm}>
-            <span className={styles.deleteConfirmText}>Delete this message?</span>
+            <span className={styles.deleteConfirmText}>{t('chat.deleteConfirm')}</span>
             <div className={styles.deleteConfirmButtons}>
               <button
                 className={styles.keepBtn}
                 onClick={() => setShowDeleteConfirm(false)}
               >
-                Keep message
+                {t('chat.keepMessage')}
               </button>
               <button
                 className={styles.deleteBtn}
                 onClick={handleDeleteConfirm}
               >
-                Delete message
+                {t('chat.deleteMessage')}
               </button>
             </div>
           </div>
@@ -302,7 +307,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           <button
             className={styles.menuBtn}
             onClick={handleReply}
-            aria-label="Reply"
+            aria-label={t('chat.reply')}
           >
             ↩
           </button>
@@ -312,14 +317,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               <button
                 className={styles.menuBtn}
                 onClick={() => setShowMenu(prev => !prev)}
-                aria-label="Message options"
+                aria-label={t('chat.messageOptions')}
               >
                 ···
               </button>
               {showMenu && (
                 <div className={styles.dropdown}>
                   <button className={styles.dropdownItem} onClick={handleEdit}>
-                    Edit
+                    {t('chat.edit')}
                   </button>
                   <button
                     className={`${styles.dropdownItem} ${styles.dropdownItemDestructive}`}
@@ -328,7 +333,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                       setShowDeleteConfirm(true);
                     }}
                   >
-                    Delete message
+                    {t('chat.deleteMessage')}
                   </button>
                 </div>
               )}

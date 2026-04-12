@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../lib/i18n';
 import styles from './NotificationBanner.module.css';
 
 const STORAGE_KEY = 'notif-banner-dismissed';
 
 export function NotificationBanner() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -35,14 +37,14 @@ export function NotificationBanner() {
   return (
     <div className={styles.banner} role="status" aria-live="polite">
       <span className={styles.message}>
-        Enable notifications to be alerted when tabs are in the background.
+        {t('notification.bannerText')}
       </span>
       <div className={styles.actions}>
         <button className={styles.enableBtn} onClick={handleEnable}>
-          Enable notifications
+          {t('notification.enable')}
         </button>
-        <button className={styles.dismissBtn} onClick={handleDismiss} aria-label="Dismiss notification banner">
-          ✕
+        <button className={styles.dismissBtn} onClick={handleDismiss} aria-label={t('notification.dismiss')}>
+          &#10005;
         </button>
       </div>
     </div>

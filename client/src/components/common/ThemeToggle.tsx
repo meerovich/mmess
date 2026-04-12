@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../../lib/i18n';
 import styles from './ThemeToggle.module.css';
 
 type Theme = 'light' | 'dark' | 'system';
@@ -17,6 +18,7 @@ function applyTheme(t: Theme): void {
 }
 
 export function ThemeToggle() {
+  const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(STORAGE_KEY) as Theme) ?? 'system'
   );
@@ -30,16 +32,16 @@ export function ThemeToggle() {
     return () => mq.removeEventListener('change', handler);
   }, [theme]);
 
-  function select(t: Theme) {
-    setTheme(t);
-    localStorage.setItem(STORAGE_KEY, t);
-    applyTheme(t);
+  function select(newTheme: Theme) {
+    setTheme(newTheme);
+    localStorage.setItem(STORAGE_KEY, newTheme);
+    applyTheme(newTheme);
   }
 
-  const buttons: { value: Theme; label: string; icon: React.ReactNode }[] = [
+  const buttons: { value: Theme; labelKey: string; icon: React.ReactNode }[] = [
     {
       value: 'light',
-      label: 'Light theme',
+      labelKey: 'theme.light',
       icon: (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
           <circle cx="8" cy="8" r="3"/>
@@ -56,7 +58,7 @@ export function ThemeToggle() {
     },
     {
       value: 'dark',
-      label: 'Dark theme',
+      labelKey: 'theme.dark',
       icon: (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z"/>
@@ -65,7 +67,7 @@ export function ThemeToggle() {
     },
     {
       value: 'system',
-      label: 'System theme',
+      labelKey: 'theme.system',
       icon: (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <rect x="1" y="2" width="14" height="10" rx="1.5"/>
@@ -77,13 +79,13 @@ export function ThemeToggle() {
   ];
 
   return (
-    <div className={styles.group} role="group" aria-label="Color theme">
-      {buttons.map(({ value, label, icon }) => (
+    <div className={styles.group} role="group" aria-label={t('theme.group')}>
+      {buttons.map(({ value, labelKey, icon }) => (
         <button
           key={value}
           type="button"
           className={`${styles.btn} ${theme === value ? styles.active : ''}`}
-          aria-label={label}
+          aria-label={t(labelKey)}
           aria-pressed={theme === value}
           onClick={() => select(value)}
         >

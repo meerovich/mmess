@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
+import { useTranslation } from '../../lib/i18n';
 import { apiFetch } from '../../lib/api';
 import { Avatar } from '../common/Avatar';
 import styles from './NewChatModal.module.css';
@@ -17,6 +18,7 @@ interface NewChatModalProps {
 
 export function NewChatModal({ onClose }: NewChatModalProps) {
   const { dispatch } = useChat();
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -102,23 +104,23 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
         aria-labelledby="new-chat-title"
         onKeyDown={handleKeyDown}
       >
-        <h2 id="new-chat-title" className={styles.title}>New chat</h2>
+        <h2 id="new-chat-title" className={styles.title}>{t('newChat.title')}</h2>
         <input
           ref={inputRef}
           className={styles.searchInput}
           type="text"
-          placeholder="Search by name or email..."
+          placeholder={t('newChat.searchPlaceholder')}
           value={query}
           onChange={e => setQuery(e.target.value)}
-          aria-label="Search users"
+          aria-label={t('newChat.searchUsers')}
         />
 
-        {isSearching && <p className={styles.statusText}>Searching...</p>}
+        {isSearching && <p className={styles.statusText}>{t('newChat.searching')}</p>}
 
         {!isSearching && query.length >= 2 && results.length === 0 && (
           <div className={styles.emptyState}>
-            <p className={styles.emptyTitle}>No users found</p>
-            <p className={styles.emptySubtitle}>Try a different name or email.</p>
+            <p className={styles.emptyTitle}>{t('newChat.noUsersFound')}</p>
+            <p className={styles.emptySubtitle}>{t('newChat.tryDifferent')}</p>
           </div>
         )}
 
@@ -133,7 +135,7 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
                 >
                   <Avatar name={user.username} size="sm" />
                   <span className={styles.username}>{user.username}</span>
-                  <span className={styles.openChat}>Open chat</span>
+                  <span className={styles.openChat}>{t('newChat.openChat')}</span>
                 </button>
               </li>
             ))}
@@ -141,7 +143,7 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
         )}
 
         <button className={styles.cancelButton} onClick={onClose}>
-          Cancel
+          {t('newChat.cancel')}
         </button>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from '../../lib/i18n';
 import styles from './FileCard.module.css';
 import { FileIcon } from '../common/FileIcon';
 
@@ -15,6 +16,8 @@ function formatSize(bytes: number): string {
 }
 
 export function FileCard({ fileId, fileName, fileSize, mimeType }: FileCardProps) {
+  const { t } = useTranslation();
+
   const handleDownload = () => {
     window.location.href = `/api/files/${fileId}`;
   };
@@ -30,14 +33,14 @@ export function FileCard({ fileId, fileName, fileSize, mimeType }: FileCardProps
       <FileIcon mimeType={mimeType} />
       <div className={styles.info}>
         <span className={styles.name} title={fileName}>
-          {fileName || 'Unnamed file'}
+          {fileName || t('file.unnamedFile')}
         </span>
         <span className={styles.size}>{formatSize(fileSize)}</span>
       </div>
       <button
         className={styles.downloadBtn}
         onClick={(e) => { e.stopPropagation(); handleDownload(); }}
-        aria-label={`Download ${fileName || 'file'}`}
+        aria-label={t('file.download', { name: fileName || t('file.unnamedFile') })}
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
           <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

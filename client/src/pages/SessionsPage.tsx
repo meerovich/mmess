@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from '../lib/i18n';
 import { apiFetch } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -19,6 +20,7 @@ function formatDate(iso: string): string {
 export function SessionsPage() {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,10 +29,10 @@ export function SessionsPage() {
   const fetchSessions = async () => {
     try {
       const res = await apiFetch('/api/auth/sessions');
-      if (!res.ok) throw new Error('Failed to load sessions');
+      if (!res.ok) throw new Error(t('sessions.failedToLoad'));
       setSessions(await res.json());
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+      setError(err instanceof Error ? err.message : t('sessions.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -44,10 +46,10 @@ export function SessionsPage() {
     setTerminating(sessionId);
     try {
       const res = await apiFetch(`/api/auth/sessions/${sessionId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to terminate session');
+      if (!res.ok) throw new Error(t('sessions.failedToTerminate'));
       await fetchSessions();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to terminate session');
+      setError(err instanceof Error ? err.message : t('sessions.failedToTerminate'));
     } finally {
       setTerminating(null);
     }
@@ -60,15 +62,15 @@ export function SessionsPage() {
 
   return (
     <div style={{ maxWidth: 700, margin: '40px auto', padding: '0 16px' }}>
-      <h1>Active Sessions</h1>
+      <h1>{t('sessions.title')}</h1>
       <button onClick={handleLogout} style={{ marginBottom: 24 }}>
-        Log out
+        {t('sessions.logout')}
       </button>
 
-      {loading && <p>Loading sessions...</p>}
+      {loading && <p>{t('sessions.loading')}</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
 
-      {!loading && sessions.length === 0 && <p>No active sessions found.</p>}
+      {!loading && sessions.length === 0 && <p>{t('sessions.noSessions')}</p>}
 
       {sessions.map(session => (
         <div
@@ -95,17 +97,17 @@ export function SessionsPage() {
                     fontSize: 12,
                   }}
                 >
-                  This device
+                  {t('sessions.thisDevice')}
                 </span>
               )}
               <div style={{ color: '#555', fontSize: 14, marginTop: 4 }}>
                 IP: {session.ip_address}
               </div>
               <div style={{ color: '#555', fontSize: 14 }}>
-                Created: {formatDate(session.created_at)}
+                {t('sessions.created', { date: formatDate(session.created_at) })}
               </div>
               <div style={{ color: '#555', fontSize: 14 }}>
-                Last seen: {formatDate(session.last_seen_at)}
+                {t('sessions.lastSeen', { date: formatDate(session.last_seen_at) })}
               </div>
             </div>
             {!session.isCurrentDevice && (
@@ -114,7 +116,7 @@ export function SessionsPage() {
                 disabled={terminating === session.id}
                 style={{ color: 'red', marginLeft: 16 }}
               >
-                {terminating === session.id ? 'Terminating...' : 'Terminate'}
+                {terminating === session.id ? t('sessions.terminating') : t('sessions.terminate')}
               </button>
             )}
           </div>
@@ -122,7 +124,7 @@ export function SessionsPage() {
       ))}
 
       <p>
-        <a href="/">Back to chat</a>
+        <a href="/">{t('sessions.backToChat')}</a>
       </p>
     </div>
   );

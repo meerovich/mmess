@@ -11,13 +11,13 @@ import { GroupSettingsModal } from './GroupSettingsModal';
 import styles from './ChatPane.module.css';
 import type { Conversation, Message } from '../../types/chat';
 
-function getConversationName(conversation: Conversation, currentUserId: string): string {
+function getConversationName(conversation: Conversation, currentUserId: string, t: (key: string) => string): string {
   if (conversation.type === 'group') {
-    return conversation.name ?? 'Group chat';
+    return conversation.name ?? t('chat.groupChat');
   }
   // DM: show the other participant's username
   const other = conversation.participants.find(p => p.user_id !== currentUserId);
-  return other?.username ?? conversation.name ?? 'Chat';
+  return other?.username ?? conversation.name ?? t('chat.chat');
 }
 
 export function ChatPane() {
@@ -50,8 +50,8 @@ export function ChatPane() {
   const conversation = conversations.find(c => c.id === activeConversationId);
 
   const conversationName = conversation
-    ? getConversationName(conversation, user?.id ?? '')
-    : 'Chat';
+    ? getConversationName(conversation, user?.id ?? '', t)
+    : t('chat.chat');
 
   return (
     <div className={styles.pane}>
@@ -65,7 +65,7 @@ export function ChatPane() {
         <button
           className={styles.backButton}
           onClick={handleBack}
-          aria-label="Back to conversations"
+          aria-label={t('chat.backToConversations')}
         >
           {t('chat.back')}
         </button>
@@ -80,12 +80,12 @@ export function ChatPane() {
           role={conversation?.type === 'group' ? 'button' : undefined}
           tabIndex={conversation?.type === 'group' ? 0 : undefined}
           onKeyDown={e => conversation?.type === 'group' && e.key === 'Enter' && setShowSettings(true)}
-          aria-label={conversation?.type === 'group' ? `Open ${conversationName} settings` : undefined}
+          aria-label={conversation?.type === 'group' ? t('chat.openSettings', { name: conversationName }) : undefined}
         >
           <span className={styles.headerName}>{conversationName}</span>
           {conversation?.type === 'group' && (
             <span className={styles.headerSubtitle}>
-              {conversation.participants.length} members
+              {t('chat.membersCount', { count: String(conversation.participants.length) })}
             </span>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 import { apiFetch, uploadFile } from '../../lib/api';
 import { Avatar } from '../common/Avatar';
 import { UploadStrip } from './UploadStrip';
@@ -22,6 +23,7 @@ interface GroupSettingsModalProps {
 export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModalProps) {
   const { dispatch } = useChat();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const currentUserId = user?.id ?? '';
 
   const currentUserParticipant = conversation.participants.find(p => p.user_id === currentUserId);
@@ -136,7 +138,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
 
   const handleAvatarFileSelect = (file: File) => {
     if (file.size > 25 * 1024 * 1024) {
-      setAvatarUploadState({ status: 'error', file, message: 'file too large (25 MB max)' });
+      setAvatarUploadState({ status: 'error', file, message: t('file.tooLarge') });
       return;
     }
 
@@ -167,7 +169,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         setAvatarUploadState({ status: 'idle' });
         return;
       }
-      setAvatarUploadState({ status: 'error', file, message: 'Avatar upload failed. Please try again.' });
+      setAvatarUploadState({ status: 'error', file, message: t('file.avatarUploadFailed') });
     });
   };
 
@@ -189,10 +191,10 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         // CONVERSATION_UPDATED WS event will refresh the modal automatically
       } else {
         const err = await res.json().catch(() => ({}));
-        setRenameError((err as { error?: string }).error ?? 'Failed to rename');
+        setRenameError((err as { error?: string }).error ?? t('group.failedToRename'));
       }
     } catch {
-      setRenameError('Network error');
+      setRenameError(t('group.networkError'));
     } finally {
       setIsSavingRename(false);
     }
@@ -219,10 +221,10 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         // CONVERSATION_UPDATED WS event will refresh state
       } else {
         const err = await res.json().catch(() => ({}));
-        setAddError((err as { error?: string }).error ?? 'Failed to add member');
+        setAddError((err as { error?: string }).error ?? t('group.failedToAdd'));
       }
     } catch {
-      setAddError('Network error');
+      setAddError(t('group.networkError'));
     }
   }
 
@@ -235,11 +237,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setRemoveErrors(prev => ({ ...prev, [userId]: (err as { error?: string }).error ?? 'Failed to remove' }));
+        setRemoveErrors(prev => ({ ...prev, [userId]: (err as { error?: string }).error ?? t('group.failedToRemove') }));
       }
       // On success, CONVERSATION_UPDATED WS event refreshes the list
     } catch {
-      setRemoveErrors(prev => ({ ...prev, [userId]: 'Network error' }));
+      setRemoveErrors(prev => ({ ...prev, [userId]: t('group.networkError') }));
     } finally {
       setRemovingUserId(null);
     }
@@ -254,11 +256,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setPermErrors(prev => ({ ...prev, [userId]: (err as { error?: string }).error ?? 'Failed to update' }));
+        setPermErrors(prev => ({ ...prev, [userId]: (err as { error?: string }).error ?? t('group.failedToUpdate') }));
       }
       // On success, CONVERSATION_UPDATED WS event refreshes the member list
     } catch {
-      setPermErrors(prev => ({ ...prev, [userId]: 'Network error' }));
+      setPermErrors(prev => ({ ...prev, [userId]: t('group.networkError') }));
     }
   }
 
@@ -274,16 +276,16 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         onClose();
       } else {
         const err = await res.json().catch(() => ({}));
-        setLeaveError((err as { error?: string }).error ?? 'Failed to leave group');
+        setLeaveError((err as { error?: string }).error ?? t('group.failedToLeave'));
       }
     } catch {
-      setLeaveError('Network error');
+      setLeaveError(t('group.networkError'));
     } finally {
       setIsLeaving(false);
     }
   }
 
-  const groupDisplayName = conversation.name ?? 'Group chat';
+  const groupDisplayName = conversation.name ?? t('chat.groupChat');
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -296,15 +298,15 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       >
         {/* Header */}
         <div className={styles.modalHeader}>
-          <h2 id="group-settings-title" className={styles.title}>Group settings</h2>
-          <button className={styles.closeButton} onClick={onClose} aria-label="Close settings">
+          <h2 id="group-settings-title" className={styles.title}>{t('group.settings')}</h2>
+          <button className={styles.closeButton} onClick={onClose} aria-label={t('group.closeSettings')}>
             ×
           </button>
         </div>
 
         {/* About section */}
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>About</h3>
+          <h3 className={styles.sectionTitle}>{t('group.about')}</h3>
 
           {/* Avatar upload area */}
           <div
@@ -324,7 +326,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                 type="file"
                 accept="image/*"
                 style={{ display: 'none' }}
-                aria-label="Change group avatar"
+                aria-label={t('group.changeAvatar')}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleAvatarFileSelect(file);
@@ -336,7 +338,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
             {/* Hover overlay for admin */}
             {isAdmin && (
               <div className={`${styles.avatarOverlay} ${!localAvatarUrl ? styles.avatarOverlayVisible : ''}`}>
-                Change
+                {t('group.change')}
               </div>
             )}
           </div>
@@ -360,11 +362,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
               <button
                 className={styles.groupNameButton}
                 onClick={() => { setIsRenaming(true); setRenameValue(conversation.name ?? ''); }}
-                aria-label="Rename group"
-                title="Click to rename"
+                aria-label={t('group.renameGroup')}
+                title={t('group.clickToRename')}
               >
                 {groupDisplayName}
-                <span className={styles.editHint}>Edit</span>
+                <span className={styles.editHint}>{t('chat.edit')}</span>
               </button>
             ) : isAdmin && isRenaming ? (
               <div className={styles.renameRow}>
@@ -377,21 +379,21 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                   onKeyDown={handleRenameKeyDown}
                   disabled={isSavingRename}
                   maxLength={100}
-                  aria-label="Group name"
+                  aria-label={t('group.groupName')}
                 />
                 <button
                   className={styles.saveButton}
                   onClick={handleRenameSubmit}
                   disabled={isSavingRename || !renameValue.trim()}
                 >
-                  Save
+                  {t('group.save')}
                 </button>
                 <button
                   className={styles.cancelRenameButton}
                   onClick={() => { setIsRenaming(false); setRenameValue(conversation.name ?? ''); setRenameError(''); }}
                   disabled={isSavingRename}
                 >
-                  Cancel
+                  {t('group.cancel')}
                 </button>
               </div>
             ) : (
@@ -400,31 +402,31 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
           </div>
           {renameError && <p className={styles.errorText}>{renameError}</p>}
           <p className={styles.participantCount}>
-            {conversation.participants.length} member{conversation.participants.length !== 1 ? 's' : ''}
+            {t('group.membersCount', { count: String(conversation.participants.length) })}
           </p>
         </section>
 
         {/* Members section */}
         <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Members</h3>
+          <h3 className={styles.sectionTitle}>{t('group.members')}</h3>
           <ul className={styles.memberList} role="list">
             {conversation.participants.map(participant => (
               <li key={participant.user_id} className={styles.memberRow}>
                 <Avatar name={participant.username} size="sm" />
                 <span className={styles.memberUsername}>{participant.username}</span>
                 {participant.is_admin && (
-                  <span className={styles.adminBadge}>admin</span>
+                  <span className={styles.adminBadge}>{t('group.admin')}</span>
                 )}
                 {isAdmin && (
-                  <label className={styles.checkboxLabel} title="Can edit messages">
+                  <label className={styles.checkboxLabel} title={t('group.canEditMessages')}>
                     <input
                       type="checkbox"
                       checked={participant.can_edit_messages}
                       disabled={participant.user_id === currentUserId}
                       onChange={() => handleToggleCanEdit(participant.user_id, participant.can_edit_messages)}
-                      aria-label={`Allow ${participant.username} to edit messages`}
+                      aria-label={t('group.allowEditMessages', { name: participant.username })}
                     />
-                    <span className={styles.checkboxLabelText}>Edit</span>
+                    <span className={styles.checkboxLabelText}>{t('group.editPermission')}</span>
                   </label>
                 )}
                 {isAdmin && participant.user_id !== currentUserId && (
@@ -432,9 +434,9 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                     className={styles.removeButton}
                     onClick={() => handleRemoveMember(participant.user_id)}
                     disabled={removingUserId === participant.user_id}
-                    aria-label={`Remove ${participant.username}`}
+                    aria-label={t('group.removeMember', { name: participant.username })}
                   >
-                    Remove
+                    {t('group.remove')}
                   </button>
                 )}
                 {removeErrors[participant.user_id] && (
@@ -456,22 +458,22 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                 className={styles.addMembersButton}
                 onClick={() => { setShowAddMembers(true); setAddQuery(''); setAddResults([]); setAddError(''); }}
               >
-                + Add members
+                {t('group.addMembers')}
               </button>
             ) : (
               <div className={styles.addMembersPanel}>
                 <input
                   className={styles.searchInput}
                   type="text"
-                  placeholder="Search users to add..."
+                  placeholder={t('group.searchUsersToAdd')}
                   value={addQuery}
                   onChange={e => setAddQuery(e.target.value)}
                   autoFocus
-                  aria-label="Search users to add"
+                  aria-label={t('group.searchUsersToAdd')}
                 />
-                {isSearching && <p className={styles.statusText}>Searching...</p>}
+                {isSearching && <p className={styles.statusText}>{t('group.searching')}</p>}
                 {!isSearching && addQuery.length >= 2 && addResults.length === 0 && (
-                  <p className={styles.statusText}>No users found</p>
+                  <p className={styles.statusText}>{t('group.noUsersFound')}</p>
                 )}
                 {addResults.length > 0 && (
                   <ul className={styles.searchResults} role="listbox">
@@ -493,7 +495,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                   className={styles.cancelRenameButton}
                   onClick={() => { setShowAddMembers(false); setAddQuery(''); setAddResults([]); setAddError(''); }}
                 >
-                  Cancel
+                  {t('group.cancel')}
                 </button>
               </div>
             )}
@@ -508,25 +510,25 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                 className={styles.leaveButton}
                 onClick={() => setShowLeaveConfirm(true)}
               >
-                Leave group
+                {t('group.leaveGroup')}
               </button>
             ) : (
               <div className={styles.leaveConfirm}>
-                <p className={styles.leaveConfirmText}>Are you sure you want to leave this group?</p>
+                <p className={styles.leaveConfirmText}>{t('group.leaveConfirm')}</p>
                 <div className={styles.leaveConfirmActions}>
                   <button
                     className={styles.cancelRenameButton}
                     onClick={() => { setShowLeaveConfirm(false); setLeaveError(''); }}
                     disabled={isLeaving}
                   >
-                    Cancel
+                    {t('group.cancel')}
                   </button>
                   <button
                     className={styles.leaveButton}
                     onClick={handleLeaveGroup}
                     disabled={isLeaving}
                   >
-                    {isLeaving ? 'Leaving…' : 'Confirm leave'}
+                    {isLeaving ? t('group.leaving') : t('group.confirmLeave')}
                   </button>
                 </div>
                 {leaveError && <p className={styles.errorText}>{leaveError}</p>}

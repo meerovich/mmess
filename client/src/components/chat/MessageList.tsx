@@ -64,6 +64,16 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // Scroll to bottom on custom events (input focus, message sent, reaction on last)
+  useEffect(() => {
+    const handler = () => {
+      requestAnimationFrame(() => scrollToBottom());
+      isAtBottomRef.current = true;
+    };
+    window.addEventListener('mmess-scroll-bottom', handler);
+    return () => window.removeEventListener('mmess-scroll-bottom', handler);
+  }, [scrollToBottom]);
+
   // MOBILE KEYBOARD FIX: when the virtual keyboard opens, the visual viewport
   // shrinks. If the user was at the bottom, scroll down so the last messages
   // remain visible above the keyboard instead of being covered.
