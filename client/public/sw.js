@@ -12,12 +12,12 @@ self.addEventListener('push', (event) => {
     payload = { title: 'New message', body: event.data.text() };
   }
 
-  const { title = 'mmess', body = '', tag, url } = payload;
+  const { title = 'mmess', body = '', tag, url, icon } = payload;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: '/favicon.ico',
+      icon: icon || '/favicon.ico',
       badge: '/favicon.ico',
       tag: tag || undefined, // dedup per conversation
       data: { url: url || '/' },

@@ -28,7 +28,7 @@ export function getVapidPublicKey(): string {
 export async function sendPushToUser(
   db: DB,
   userId: string,
-  payload: { title: string; body: string; tag?: string; url?: string }
+  payload: { title: string; body: string; tag?: string; url?: string; icon?: string }
 ): Promise<void> {
   if (!isPushConfigured()) return;
 

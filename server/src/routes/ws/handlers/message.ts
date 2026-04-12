@@ -222,6 +222,7 @@ export async function handleMessageSend(
           body,
           tag: payload.conversation_id,
           url: `/chat/${payload.conversation_id}`,
+          icon: `/api/avatar/${encodeURIComponent(senderName)}.svg`,
         }).catch(() => { /* push failures are non-fatal */ });
       }
     }
