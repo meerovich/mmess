@@ -38,7 +38,7 @@ app.register(usersRoutes);
 app.register(presenceRoutes);
 app.register(filesRoutes, { prefix: '/files' });
 app.register(pushRoutes);
-app.register(botRoutes, { prefix: '/bot' });
+app.register(botRoutes);
 
 // APP_VERSION is injected at container startup via docker-compose.yml
 // environment (set by scripts/deploy.sh on the VPS). Falls back to 'dev'
