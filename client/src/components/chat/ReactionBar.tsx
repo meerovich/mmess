@@ -3,7 +3,11 @@ import { useSendMessage } from '../../providers/WebSocketProvider';
 import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
+const QUICK_EMOJIS = [
+  '👍', '❤️', '😂', '😮', '😢', '🔥',
+  '👏', '🎉', '🤔', '👎', '😡', '🥰',
+  '😎', '🙏', '💯', '✅', '❌', '⭐',
+];
 
 interface ReactionBarProps {
   reactions: MessageReaction[];
@@ -13,8 +17,12 @@ interface ReactionBarProps {
 }
 
 // Exported separately for use in timestamp row (MessageItem).
-// Compact quick-reaction panel instead of full emoji-mart picker.
-export function AddReactionButton({ messageId, conversationId }: { messageId: string; conversationId: string }) {
+// Shows the user's current reaction (or + if none). Tap opens a scrollable picker to add/replace.
+export function AddReactionButton({ messageId, conversationId, myEmoji }: {
+  messageId: string;
+  conversationId: string;
+  myEmoji?: string;
+}) {
   const sendWs = useSendMessage();
   const [showPicker, setShowPicker] = useState(false);
 
@@ -31,10 +39,10 @@ export function AddReactionButton({ messageId, conversationId }: { messageId: st
       <button
         className={`${styles.addReactionBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
         onClick={() => setShowPicker(prev => !prev)}
-        aria-label="Add reaction"
-        style={{ opacity: 1, width: 18, height: 18, fontSize: '11px' }}
+        aria-label={myEmoji ? 'Change reaction' : 'Add reaction'}
+        style={{ opacity: 1, width: 18, height: 18, fontSize: myEmoji ? '14px' : '11px' }}
       >
-        +
+        {myEmoji ?? '+'}
       </button>
       {showPicker && (
         <>
