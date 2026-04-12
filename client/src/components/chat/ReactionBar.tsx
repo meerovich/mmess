@@ -32,12 +32,17 @@ export function AddReactionButton({ messageId, conversationId }: {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  // Close picker when viewport resizes (keyboard open/close) to avoid stale positioning
+  // Recalculate picker position when viewport resizes (keyboard open/close)
   React.useEffect(() => {
-    if (!showPicker) return;
+    if (!showPicker || !btnRef.current) return;
     const vv = window.visualViewport;
     if (!vv) return;
-    const onResize = () => { setShowPicker(false); setExpanded(false); };
+    const onResize = () => {
+      if (!btnRef.current) return;
+      const r = btnRef.current.getBoundingClientRect();
+      const left = Math.max(8, Math.min(r.right - 316, window.innerWidth - 324));
+      setPickerPos({ top: r.top - 8, left });
+    };
     vv.addEventListener('resize', onResize);
     return () => vv.removeEventListener('resize', onResize);
   }, [showPicker]);

@@ -13,12 +13,16 @@ self.addEventListener('push', (event) => {
   }
 
   const { title = 'mmess', body = '', tag, url, icon } = payload;
+  // Resolve icon to absolute URL — relative paths don't work in push notifications
+  const iconUrl = icon
+    ? new URL(icon, self.location.origin).href
+    : new URL('/favicon.ico', self.location.origin).href;
 
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: icon || '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: iconUrl,
+      badge: new URL('/favicon.ico', self.location.origin).href,
       tag: tag || undefined, // dedup per conversation
       data: { url: url || '/' },
       // Require interaction on mobile so the notification stays visible
