@@ -391,7 +391,7 @@ export function MessageInput({
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <path
-              d="M3 10l14-8-5 8 5 8-14-8z"
+              d="M17 10L3 2l5 8-5 8 14-8z"
               fill="white"
               strokeLinejoin="round"
             />

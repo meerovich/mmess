@@ -41,10 +41,9 @@ export function AddReactionButton({ messageId, conversationId }: {
   return (
     <div className={styles.addReactionWrapper} style={{ display: 'inline-flex' }}>
       <button
-        className={`${styles.addReactionBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
-        onClick={() => { setShowPicker(prev => !prev); setExpanded(false); }}
+        className={`${styles.inlineAddBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
+        onClick={(e) => { e.stopPropagation(); setShowPicker(prev => !prev); setExpanded(false); }}
         aria-label="Add reaction"
-        style={{ opacity: 1, width: 18, height: 18, fontSize: '11px' }}
       >
         +
       </button>

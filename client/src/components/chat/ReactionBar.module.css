@@ -120,6 +120,29 @@
   }
 }
 
+/* Inline + button used in timestamp row — always visible, bigger tap target */
+.inlineAddBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.6;
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+}
+.inlineAddBtn:hover,
+.inlineAddBtn:active {
+  opacity: 1;
+  color: var(--color-accent);
+}
+
 .pickerLoading {
   padding: var(--space-md);
   color: var(--color-text-muted);
