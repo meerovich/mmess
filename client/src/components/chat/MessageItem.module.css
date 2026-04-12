@@ -213,15 +213,20 @@
   text-overflow: ellipsis;
 }
 
-/* Hover menu */
+/* Hover menu — positioned absolutely so it doesn't cause layout shift */
 .menuWrapper {
+  position: absolute;
+  top: 0;
+  right: -36px;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  flex-shrink: 0;
+  z-index: 10;
 }
 
 .menuWrapperOwn {
+  right: auto;
+  left: -36px;
   flex-direction: row-reverse;
 }
 

@@ -284,7 +284,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Hover menu */}
+      {/* Action menu — inside .item but positioned absolutely so no layout shift */}
       {isHovered && !message.is_deleted && (
         <div className={`${styles.menuWrapper} ${isOwn ? styles.menuWrapperOwn : ''}`}>
           <button
