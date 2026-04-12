@@ -139,6 +139,16 @@ export function MessageInput({
     }
   };
 
+  // Auto-resize textarea to fit content (up to ~6 lines).
+  // Runs on every value change including after send (setValue('')) so the
+  // textarea shrinks back to 1 row.
+  useEffect(() => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 150)}px`;
+  }, [value]);
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setValue(newValue);

@@ -64,7 +64,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   function handleClick() {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
-    navigate(`/chat/${conversation.id}`);
+    // replace: true so browser swipe-back gesture goes to conversation list,
+    // not to the previously-viewed chat (which causes flicker-and-return).
+    navigate(`/chat/${conversation.id}`, { replace: true });
   }
 
   return (
