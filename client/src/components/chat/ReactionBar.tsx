@@ -3,13 +3,13 @@ import { useSendMessage } from '../../providers/WebSocketProvider';
 import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
 
-// Row 1: 7 most frequent reactions (always visible when picker open)
+// Row 1: 7 most frequent reactions + ▼ expand button (8 cells)
 const TOP_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
-// Rows 2-4: expanded set (visible after tapping ▼)
+// Rows 2-4: 8 emojis each (fills all cells below including the ▼ column)
 const MORE_EMOJIS = [
-  ['🎉', '🤔', '👎', '😡', '🥰', '😎', '🙏'],
-  ['💯', '✅', '❌', '⭐', '🤝', '💪', '😏'],
-  ['🙄', '😍', '🤣', '😤', '🥺', '💀', '🫡'],
+  ['🎉', '🤔', '👎', '😡', '🥰', '😎', '🙏', '💯'],
+  ['✅', '❌', '⭐', '🤝', '💪', '😏', '🙄', '😍'],
+  ['🤣', '😤', '🥺', '💀', '🫡', '🤗', '😘', '🤩'],
 ];
 
 interface ReactionBarProps {

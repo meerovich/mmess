@@ -149,6 +149,26 @@
   margin-bottom: 4px;
 }
 
+/* Mobile: full-width picker pinned to bottom of message area */
+@media (max-width: 767px) {
+  .quickPicker {
+    position: fixed;
+    bottom: auto;
+    right: 8px;
+    left: 8px;
+    border-radius: 12px;
+  }
+  .quickPickerRow {
+    justify-content: space-around;
+  }
+  .quickEmojiBtn {
+    flex: 1;
+  }
+  .quickExpandBtn {
+    flex: 0 0 36px;
+  }
+}
+
 .quickPickerRow {
   display: flex;
   gap: 2px;
