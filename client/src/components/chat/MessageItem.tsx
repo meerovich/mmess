@@ -253,11 +253,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           )}
           {!message.is_deleted && (
             <>
-              <AddReactionButton
-                messageId={message.id}
-                conversationId={message.conversation_id}
-                myEmoji={message.reactions.find(r => r.user_id === currentUserId)?.emoji}
-              />
+              <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
               <button
                 className={styles.inlineReplyBtn}
                 onClick={handleReply}

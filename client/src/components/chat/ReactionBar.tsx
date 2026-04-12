@@ -3,10 +3,13 @@ import { useSendMessage } from '../../providers/WebSocketProvider';
 import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
 
-const QUICK_EMOJIS = [
-  '👍', '❤️', '😂', '😮', '😢', '🔥',
-  '👏', '🎉', '🤔', '👎', '😡', '🥰',
-  '😎', '🙏', '💯', '✅', '❌', '⭐',
+// Row 1: 7 most frequent reactions (always visible when picker open)
+const TOP_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
+// Rows 2-4: expanded set (visible after tapping ▼)
+const MORE_EMOJIS = [
+  ['🎉', '🤔', '👎', '😡', '🥰', '😎', '🙏'],
+  ['💯', '✅', '❌', '⭐', '🤝', '💪', '😏'],
+  ['🙄', '😍', '🤣', '😤', '🥺', '💀', '🫡'],
 ];
 
 interface ReactionBarProps {
@@ -17,14 +20,14 @@ interface ReactionBarProps {
 }
 
 // Exported separately for use in timestamp row (MessageItem).
-// Shows the user's current reaction (or + if none). Tap opens a scrollable picker to add/replace.
-export function AddReactionButton({ messageId, conversationId, myEmoji }: {
+// Telegram-style: + button → 7 frequent emojis + ▼ expand → 3 more rows.
+export function AddReactionButton({ messageId, conversationId }: {
   messageId: string;
   conversationId: string;
-  myEmoji?: string;
 }) {
   const sendWs = useSendMessage();
   const [showPicker, setShowPicker] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleEmojiClick = (emoji: string) => {
     sendWs({
@@ -32,30 +35,45 @@ export function AddReactionButton({ messageId, conversationId, myEmoji }: {
       payload: { message_id: messageId, emoji, conversation_id: conversationId },
     });
     setShowPicker(false);
+    setExpanded(false);
   };
 
   return (
     <div className={styles.addReactionWrapper} style={{ display: 'inline-flex' }}>
       <button
         className={`${styles.addReactionBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
-        onClick={() => setShowPicker(prev => !prev)}
-        aria-label={myEmoji ? 'Change reaction' : 'Add reaction'}
-        style={{ opacity: 1, width: 18, height: 18, fontSize: myEmoji ? '14px' : '11px' }}
+        onClick={() => { setShowPicker(prev => !prev); setExpanded(false); }}
+        aria-label="Add reaction"
+        style={{ opacity: 1, width: 18, height: 18, fontSize: '11px' }}
       >
-        {myEmoji ?? '+'}
+        +
       </button>
       {showPicker && (
         <>
-          <div className={styles.pickerBackdrop} onClick={() => setShowPicker(false)} />
+          <div className={styles.pickerBackdrop} onClick={() => { setShowPicker(false); setExpanded(false); }} />
           <div className={styles.quickPicker}>
-            {QUICK_EMOJIS.map(emoji => (
+            <div className={styles.quickPickerRow}>
+              {TOP_EMOJIS.map(emoji => (
+                <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
+                  {emoji}
+                </button>
+              ))}
               <button
-                key={emoji}
-                className={styles.quickEmojiBtn}
-                onClick={() => handleEmojiClick(emoji)}
+                className={styles.quickExpandBtn}
+                onClick={() => setExpanded(prev => !prev)}
+                aria-label={expanded ? 'Collapse' : 'More emojis'}
               >
-                {emoji}
+                {expanded ? '▲' : '▼'}
               </button>
+            </div>
+            {expanded && MORE_EMOJIS.map((row, i) => (
+              <div key={i} className={styles.quickPickerRow}>
+                {row.map(emoji => (
+                  <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
         </>
