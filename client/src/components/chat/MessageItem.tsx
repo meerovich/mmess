@@ -242,22 +242,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           />
         )}
 
-        {/* Timestamp row — includes time, edited badge, read receipt, reply button */}
+        {/* Timestamp row: actions left | spacer | time+receipt right */}
         <div className={styles.timestamp}>
-          {timestamp}
-          {message.edited_at && !message.is_deleted && (
-            <span className={styles.edited}>{t('chat.edited')}</span>
-          )}
-          {isOwn && (
-            <ReadReceipt
-              message={message}
-              currentUserId={currentUserId}
-              participants={conversation?.participants ?? []}
-              t={t}
-            />
-          )}
           {!message.is_deleted && (
-            <>
+            <span className={styles.timestampActions}>
               <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
               <button
                 className={styles.inlineReplyBtn}
@@ -266,8 +254,23 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               >
                 ↩
               </button>
-            </>
+            </span>
           )}
+          <span className={styles.timestampSpacer} />
+          <span className={styles.timestampTime}>
+            {timestamp}
+            {message.edited_at && !message.is_deleted && (
+              <span className={styles.edited}>{t('chat.edited')}</span>
+            )}
+            {isOwn && (
+              <ReadReceipt
+                message={message}
+                currentUserId={currentUserId}
+                participants={conversation?.participants ?? []}
+                t={t}
+              />
+            )}
+          </span>
         </div>
 
         {/* Inline delete confirmation */}

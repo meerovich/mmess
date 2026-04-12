@@ -154,11 +154,25 @@
 .timestamp {
   font-size: var(--text-label);
   color: var(--color-text-secondary);
-  text-align: right;
   margin-top: var(--space-xs);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.timestampActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.timestampSpacer {
+  flex: 1;
+}
+
+.timestampTime {
+  display: flex;
+  align-items: center;
   gap: var(--space-xs);
 }
 
