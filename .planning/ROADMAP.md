@@ -55,7 +55,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 Plans:
 - [x] 07-01-PLAN.md — Fix read receipt pipeline + 3-state WhatsApp-style display
 - [x] 07-02-PLAN.md — Extend E2E WS regression test script
-- [ ] 07-03-PLAN.md — Production deploy, E2E run, manual regression sweep
+- [x] 07-03-PLAN.md — Production deploy, E2E run, manual regression sweep
 **UI hint**: yes
 
 ### Phase 8: Account self-service & session control
