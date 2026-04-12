@@ -127,16 +127,20 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           nextCursor: data.nextCursor ?? null,
         });
         // Scroll to correct position THEN reveal — prevents jitter.
+        // Triple rAF + microtask ensures ALL layout (including reply previews,
+        // images, etc.) has completed before we scroll and reveal.
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            if (unreadDividerRef.current) {
-              unreadDividerRef.current.scrollIntoView({ block: 'center' });
-              isAtBottomRef.current = false;
-            } else {
-              scrollToBottom();
-              isAtBottomRef.current = true;
-            }
-            setIsInitialLoading(false);
+            requestAnimationFrame(() => {
+              if (unreadDividerRef.current) {
+                unreadDividerRef.current.scrollIntoView({ block: 'center' });
+                isAtBottomRef.current = false;
+              } else {
+                scrollToBottom();
+                isAtBottomRef.current = true;
+              }
+              setIsInitialLoading(false);
+            });
           });
         });
       })

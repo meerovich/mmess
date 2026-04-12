@@ -36,6 +36,10 @@ export function ChatLayout() {
     if (urlConversationId) {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
       setShowChat(true);
+      // Immediately zero unread count in the sidebar — the user is looking at
+      // this conversation now. The server-side read:mark is handled separately
+      // by the IntersectionObserver in MessageList (500ms debounce).
+      dispatch({ type: 'MARK_READ', conversationId: urlConversationId, messageId: '' });
       // Close any push notifications for this conversation — user is reading it now.
       if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
         navigator.serviceWorker.ready.then(reg => {
