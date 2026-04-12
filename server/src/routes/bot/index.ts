@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { eq, and, gt, desc } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { messages, users, files } from '../../db/schema.js';
+import { messages, users, files, conversations } from '../../db/schema.js';
 import { broadcastExcludeSocket } from '../ws/registry.js';
 
 // Bot config — hardcoded for simplicity during dev/testing.
@@ -52,15 +52,24 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
       return reply.code(500).send({ error: 'Bot user not found' });
     }
 
-    // Insert message
-    const [msg] = await (db as any)
-      .insert(messages)
-      .values({
-        conversation_id: convId,
-        sender_id: botUser.id,
-        content: text.trim(),
-      })
-      .returning();
+    // Insert message + update conversation.last_message_id (same as handleMessageSend)
+    const [msg] = await (db as any).transaction(async (tx: any) => {
+      const [m] = await tx
+        .insert(messages)
+        .values({
+          conversation_id: convId,
+          sender_id: botUser.id,
+          content: text.trim(),
+        })
+        .returning();
+
+      await tx
+        .update(conversations)
+        .set({ last_message_id: m.id, updated_at: new Date() })
+        .where(eq(conversations.id, convId));
+
+      return [m];
+    });
 
     // Build enriched message for broadcast
     const enriched = {
