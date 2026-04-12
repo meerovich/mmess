@@ -365,7 +365,8 @@ export function MessageInput({
         {/* Paperclip button (D-27) */}
         <button
           className={styles.attachBtn}
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
+          onMouseDown={e => e.preventDefault()}
           disabled={uploadState.status === 'uploading'}
           aria-label={t('chat.attachFile')}
           aria-disabled={uploadState.status === 'uploading'}
