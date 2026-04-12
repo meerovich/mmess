@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { apiFetch } from '../../lib/api';
 import { MessageItem } from './MessageItem';
+import { useTranslation } from '../../lib/i18n';
 import styles from './MessageList.module.css';
 import type { Message } from '../../types/chat';
 
@@ -17,6 +18,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   const { state, dispatch, messagePagination } = useChat();
   const { user } = useAuth();
   const sendWs = useSendMessage();
+  const { t } = useTranslation();
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
@@ -317,12 +319,12 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       style={isInitialLoading ? { opacity: 0 } : undefined}
     >
       <div ref={sentinelRef} className={styles.sentinel} />
-      {isLoadingMore && <div className={styles.loadingMore}>Loading older messages…</div>}
+      {isLoadingMore && <div className={styles.loadingMore}>{t('chat.loadingOlder')}</div>}
       {groupedMessages.map(({ msg, isGrouped }, idx) => (
         <React.Fragment key={msg.id}>
           {idx === firstUnreadIdx && (
             <div ref={unreadDividerRef} className={styles.unreadDivider}>
-              <span className={styles.unreadDividerText}>Unread messages</span>
+              <span className={styles.unreadDividerText}>{t('chat.unreadMessages')}</span>
             </div>
           )}
           <div

@@ -1,0 +1,74 @@
+.wrapper {
+  position: relative;
+}
+
+.avatarBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: opacity 0.15s;
+}
+.avatarBtn:hover {
+  opacity: 0.8;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+.menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  z-index: 1000;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  min-width: 200px;
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-xs);
+}
+
+.menuHeader {
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.email {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.separator {
+  height: 1px;
+  background: var(--color-border);
+  margin: var(--space-xs) 0;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.menuItem:hover,
+.menuItem:active {
+  background: var(--color-reaction-bg);
+}
+
+.menuItemDanger {
+  color: #dc3545;
+}

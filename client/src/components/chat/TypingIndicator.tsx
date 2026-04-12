@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
+import { useTranslation } from '../../lib/i18n';
 import styles from './TypingIndicator.module.css';
 
 interface TypingIndicatorProps {
@@ -20,6 +21,7 @@ const GRACE_MS = 1500;
 
 export function TypingIndicator({ conversationId }: TypingIndicatorProps) {
   const { state } = useChat();
+  const { t } = useTranslation();
   const typers = state.typingUsers[conversationId] ?? [];
 
   // visibleTypers is what we actually render. It lags behind `typers` on the
@@ -41,11 +43,11 @@ export function TypingIndicator({ conversationId }: TypingIndicatorProps) {
 
   let text = '';
   if (visibleTypers.length === 1) {
-    text = `${visibleTypers[0].username} is typing…`;
+    text = t('typing.one', { name: visibleTypers[0].username });
   } else if (visibleTypers.length === 2) {
-    text = `${visibleTypers[0].username} and ${visibleTypers[1].username} are typing…`;
+    text = t('typing.two', { name1: visibleTypers[0].username, name2: visibleTypers[1].username });
   } else if (visibleTypers.length >= 3) {
-    text = 'Several people are typing…';
+    text = t('typing.many');
   }
 
   return (

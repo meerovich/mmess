@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ConversationItem } from './ConversationItem';
 import { NewChatModal } from './NewChatModal';
 import { NewGroupModal } from './NewGroupModal';
-import { Avatar } from '../common/Avatar';
+import { UserMenu } from './UserMenu';
 import { ThemeToggle } from '../common/ThemeToggle';
 import styles from './ConversationList.module.css';
 
@@ -109,10 +109,10 @@ export function ConversationList() {
         )}
       </div>
 
-      {/* Footer: current user info + theme toggle (D-06) */}
+      {/* Footer: user menu (avatar click → logout/language) + theme + version */}
       {user && (
         <div className={styles.footer}>
-          <Avatar name={user.username} size="sm" />
+          <UserMenu />
           <span className={styles.footerName}>{user.username}</span>
           <span className={styles.versionLabel} title={`Build ${__APP_VERSION__}`}>
             v{__APP_VERSION__}

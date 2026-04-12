@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 import { useChatLayout } from './ChatLayout';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -25,6 +26,7 @@ export function ChatPane() {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -40,7 +42,7 @@ export function ChatPane() {
   if (!activeConversationId) {
     return (
       <div className={styles.emptyState}>
-        <span>Select a conversation</span>
+        <span>{t('chat.selectConversation')}</span>
       </div>
     );
   }
@@ -55,7 +57,7 @@ export function ChatPane() {
     <div className={styles.pane}>
       {wsStatus === 'reconnecting' && (
         <div className={styles.reconnectingBanner}>
-          Reconnecting…
+          {t('chat.reconnecting')}
         </div>
       )}
 
@@ -65,7 +67,7 @@ export function ChatPane() {
           onClick={handleBack}
           aria-label="Back to conversations"
         >
-          ← Back
+          {t('chat.back')}
         </button>
         <div className={styles.headerAvatar}>
           <span className={styles.avatarInitial}>

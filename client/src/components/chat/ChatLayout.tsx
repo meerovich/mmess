@@ -5,6 +5,7 @@ import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
 import { NotificationBanner } from './NotificationBanner';
 import { registerPushSubscription } from '../../lib/pushSubscription';
+import { useTranslation } from '../../lib/i18n';
 import styles from './ChatLayout.module.css';
 
 interface ChatLayoutContextValue {
@@ -25,6 +26,7 @@ export function ChatLayout() {
   const { dispatch } = useChat();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   // Sync URL param → ChatContext activeConversationId.
   // This is how push notification clicks (/chat/:id) and deep links work:
@@ -115,7 +117,7 @@ export function ChatLayout() {
         <NotificationBanner />
         {newVersionAvailable && (
           <div className={styles.versionBanner} onClick={() => window.location.reload()}>
-            Доступно обновление — нажмите для перезагрузки
+            {t('update.available')}
           </div>
         )}
         <div ref={layoutRef} className={styles.layout}>

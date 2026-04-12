@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
@@ -7,11 +8,8 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { ChatLayout } from './components/chat/ChatLayout';
+import { LocaleContext, getLocale } from './lib/i18n';
 
-// Layout route that keeps ChatProvider + WebSocketProvider mounted across
-// / and /chat/:conversationId. The <Outlet> renders ChatLayout for both
-// child routes, so navigating between them does NOT unmount/remount the
-// provider tree — state is preserved, no jitter, back/forward works.
 function ChatShell() {
   return (
     <ChatProvider>
@@ -23,7 +21,11 @@ function ChatShell() {
 }
 
 export default function App() {
+  const [locale, setLocaleState] = useState(getLocale());
+  const forceUpdate = useCallback(() => setLocaleState(getLocale()), []);
+
   return (
+    <LocaleContext.Provider value={{ locale, forceUpdate }}>
     <BrowserRouter>
       <AuthProvider>
         <Routes>
@@ -39,5 +41,6 @@ export default function App() {
         </Routes>
       </AuthProvider>
     </BrowserRouter>
+    </LocaleContext.Provider>
   );
 }
