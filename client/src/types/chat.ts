@@ -17,7 +17,7 @@ export interface ReplyTo {
   sender?: { id: string; username: string };
 }
 
-export type MessageStatus = 'sending' | 'sent' | 'failed';
+export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'failed';
 
 export interface Message {
   id: string;
@@ -112,6 +112,8 @@ export type ChatAction =
   | { type: 'REACTION_REMOVED'; messageId: string; conversationId: string; userId: string; emoji: string }
   | { type: 'SET_TYPING_USERS'; conversationId: string; typers: { userId: string; username: string }[] }
   | { type: 'MARK_READ'; conversationId: string; messageId: string }
+  | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string }
+  | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string }
   | { type: 'WS_STATUS'; status: 'connected' | 'disconnected' | 'reconnecting' }
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
   | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }

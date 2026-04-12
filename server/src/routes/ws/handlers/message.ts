@@ -186,6 +186,21 @@ export async function handleMessageSend(
     { type: 'message:new', payload: { message: enrichedMessage } },
     socket
   );
+
+  // D-10: Delivery detection — if at least one recipient socket is OPEN,
+  // notify sender that the message was delivered (server-side only, no client ack needed).
+  const { isOnline } = await import('../registry.js');
+  const recipientIds = participantIds.filter(id => id !== userId);
+  const anyDelivered = recipientIds.some(id => isOnline(id));
+  if (anyDelivered) {
+    socket.send(JSON.stringify({
+      type: 'message:delivered',
+      payload: {
+        conversation_id: payload.conversation_id,
+        message_id: newMessage.id,
+      },
+    }));
+  }
 }
 
 export async function handleMessageEdit(

@@ -118,12 +118,29 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
         });
       }
       break;
+    case 'message:delivered':
+      if (msg.payload?.conversation_id && msg.payload?.message_id) {
+        dispatch({
+          type: 'MESSAGE_DELIVERED',
+          conversationId: msg.payload.conversation_id as string,
+          messageId: msg.payload.message_id as string,
+        });
+      }
+      break;
     case 'read:by':
-      if (msg.payload?.conversation_id) {
+      if (msg.payload?.conversation_id && msg.payload?.user_id) {
+        // D-07: server sends message_id (singular), not message_ids (plural)
+        dispatch({
+          type: 'UPDATE_PARTICIPANT_READ',
+          conversationId: msg.payload.conversation_id as string,
+          userId: msg.payload.user_id as string,
+          lastReadAt: msg.payload.read_at as string,
+        });
+        // Also zero unread count for this conversation (existing behavior)
         dispatch({
           type: 'MARK_READ',
           conversationId: msg.payload.conversation_id as string,
-          messageId: (msg.payload.message_ids as string[])?.[0] ?? '',
+          messageId: (msg.payload.message_id as string) ?? '',
         });
       }
       break;

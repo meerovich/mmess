@@ -101,6 +101,19 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         },
       };
 
+    case 'MESSAGE_DELIVERED': {
+      const convMsgs = state.messages[action.conversationId] ?? [];
+      return {
+        ...state,
+        messages: {
+          ...state.messages,
+          [action.conversationId]: convMsgs.map(m =>
+            m.id === action.messageId ? { ...m, status: 'delivered' as const } : m
+          ),
+        },
+      };
+    }
+
     case 'MESSAGE_EDITED': {
       const convId = action.message.conversation_id;
       return {
@@ -167,6 +180,22 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         conversations: state.conversations.map((c: Conversation) =>
           c.id === action.conversationId ? { ...c, unread_count: 0 } : c
         ),
+      };
+
+    case 'UPDATE_PARTICIPANT_READ':
+      return {
+        ...state,
+        conversations: state.conversations.map((c: Conversation) => {
+          if (c.id !== action.conversationId) return c;
+          return {
+            ...c,
+            participants: c.participants.map(p =>
+              p.user_id === action.userId
+                ? { ...p, last_read_at: action.lastReadAt }
+                : p
+            ),
+          };
+        }),
       };
 
     case 'WS_STATUS':
