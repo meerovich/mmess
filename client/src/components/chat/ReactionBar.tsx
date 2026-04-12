@@ -18,6 +18,49 @@ interface ReactionBarProps {
   conversationId: string;
 }
 
+// Exported separately for use in timestamp row (MessageItem)
+export function AddReactionButton({ messageId, conversationId }: { messageId: string; conversationId: string }) {
+  const sendWs = useSendMessage();
+  const [showPicker, setShowPicker] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const handleEmojiSelect = (emojiData: { native: string }) => {
+    sendWs({
+      type: 'reaction:add',
+      payload: { message_id: messageId, emoji: emojiData.native, conversation_id: conversationId },
+    });
+    setShowPicker(false);
+  };
+
+  return (
+    <div className={styles.addReactionWrapper} style={{ display: 'inline-flex' }}>
+      <button
+        className={`${styles.addReactionBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
+        onClick={() => setShowPicker(prev => !prev)}
+        aria-label="Add reaction"
+        style={{ opacity: 1, width: 18, height: 18, fontSize: '11px' }}
+      >
+        +
+      </button>
+      {showPicker && (
+        <div
+          ref={pickerRef}
+          className={styles.pickerContainer}
+          onBlur={(e) => {
+            if (!pickerRef.current?.contains(e.relatedTarget as Node)) {
+              setShowPicker(false);
+            }
+          }}
+        >
+          <Suspense fallback={<div className={styles.pickerLoading}>Loading…</div>}>
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+          </Suspense>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface GroupedReaction {
   emoji: string;
   count: number;
@@ -93,47 +136,24 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
     .filter(Boolean)
     .join(' ');
 
+  // Only render if there are reaction badges to show.
+  // The + button has been moved to the timestamp row (AddReactionButton).
+  if (!hasReactions) return null;
+
   return (
     <div className={wrapperClass}>
-      {hasReactions && (
-        <div className={styles.reactions}>
-          {grouped.map(g => (
-            <button
-              key={g.emoji}
-              className={`${styles.badge} ${g.reactedByMe ? styles.badgeActive : ''}`}
-              onClick={() => handleBadgeClick(g.emoji, g.reactedByMe)}
-              title={g.usernames.join(', ')}
-              aria-label={`${g.emoji} ${g.count} reaction${g.count !== 1 ? 's' : ''} from ${g.usernames.join(', ')}`}
-            >
-              {g.emoji} {g.count}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className={styles.addReactionWrapper}>
-        <button
-          className={addBtnClass}
-          onClick={() => setShowPicker(prev => !prev)}
-          aria-label="Add reaction"
-        >
-          +
-        </button>
-        {showPicker && (
-          <div
-            ref={pickerRef}
-            className={styles.pickerContainer}
-            onBlur={(e) => {
-              if (!pickerRef.current?.contains(e.relatedTarget as Node)) {
-                setShowPicker(false);
-              }
-            }}
+      <div className={styles.reactions}>
+        {grouped.map(g => (
+          <button
+            key={g.emoji}
+            className={`${styles.badge} ${g.reactedByMe ? styles.badgeActive : ''}`}
+            onClick={() => handleBadgeClick(g.emoji, g.reactedByMe)}
+            title={g.usernames.join(', ')}
+            aria-label={`${g.emoji} ${g.count} reaction${g.count !== 1 ? 's' : ''} from ${g.usernames.join(', ')}`}
           >
-            <Suspense fallback={<div className={styles.pickerLoading}>Loading…</div>}>
-              <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-            </Suspense>
-          </div>
-        )}
+            {g.emoji} {g.count}
+          </button>
+        ))}
       </div>
     </div>
   );

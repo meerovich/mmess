@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
-import { ReactionBar } from './ReactionBar';
+import { ReactionBar, AddReactionButton } from './ReactionBar';
 import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
 import styles from './MessageItem.module.css';
@@ -252,13 +252,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             />
           )}
           {!message.is_deleted && (
-            <button
-              className={styles.inlineReplyBtn}
-              onClick={handleReply}
-              aria-label="Reply"
-            >
-              ↩
-            </button>
+            <>
+              <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
+              <button
+                className={styles.inlineReplyBtn}
+                onClick={handleReply}
+                aria-label="Reply"
+              >
+                ↩
+              </button>
+            </>
           )}
         </div>
 
