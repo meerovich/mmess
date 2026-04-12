@@ -1,4 +1,5 @@
 import { formatDistanceToNow, format, isThisYear } from 'date-fns';
+import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,11 +13,12 @@ interface ConversationItemProps {
   conversation: Conversation;
 }
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: string, locale: 'ru' | 'en'): string {
   const date = new Date(dateStr);
+  const dateFnsLocale = locale === 'ru' ? ru : enUS;
   const diffHours = (Date.now() - date.getTime()) / (1000 * 60 * 60);
   if (diffHours < 24) {
-    return formatDistanceToNow(date);
+    return formatDistanceToNow(date, { locale: dateFnsLocale });
   }
   if (isThisYear(date)) {
     return format(date, 'dd/MM');
@@ -29,7 +31,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
 
   const isActive = conversation.id === state.activeConversationId;
 
@@ -58,7 +60,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         .slice(0, 50)
     : null;
 
-  const timeStr = conversation.updated_at ? formatTime(conversation.updated_at) : '';
+  const timeStr = conversation.updated_at ? formatTime(conversation.updated_at, locale) : '';
 
   // Check for draft text in localStorage
   const draft = typeof window !== 'undefined'
@@ -108,7 +110,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
               isOnline
                 ? t('time.online')
                 : presence?.last_seen_at
-                ? t('time.lastSeen', { time: formatDistanceToNow(new Date(presence.last_seen_at), { addSuffix: true }) })
+                ? t('time.lastSeen', { time: formatDistanceToNow(new Date(presence.last_seen_at), { addSuffix: true, locale: locale === 'ru' ? ru : enUS }) })
                 : t('time.lastSeenUnknown')
             }
             aria-label={isOnline ? t('time.online') : t('time.offline')}
