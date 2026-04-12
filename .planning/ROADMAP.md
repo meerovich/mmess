@@ -53,7 +53,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
   5. Phase ends with a production deploy to https://chatboris.mooo.com and a smoke test (docker compose ps healthy, /api/health returns new version, two-browser E2E for read receipts PASS)
 **Plans**: 3 plans
 Plans:
-- [ ] 07-01-PLAN.md — Fix read receipt pipeline + 3-state WhatsApp-style display
+- [x] 07-01-PLAN.md — Fix read receipt pipeline + 3-state WhatsApp-style display
 - [ ] 07-02-PLAN.md — Extend E2E WS regression test script
 - [ ] 07-03-PLAN.md — Production deploy, E2E run, manual regression sweep
 **UI hint**: yes
@@ -135,7 +135,7 @@ Plans:
 | 4. Groups & Presence | v1.0 | 5/5 | Complete | 2026-04-11 |
 | 5. File Sharing | v1.0 | 7/7 | Complete | 2026-04-11 |
 | 6. UI & Deploy | v1.0 | 4/4 | Complete | 2026-04-11 |
-| 7. Stabilization | v1.1 | 0/3 | Planned | — |
+| 7. Stabilization | v1.1 | 1/3 | In Progress|  |
 | 8. Account self-service & session control | v1.1 | 0/? | Not started | — |
 | 9. Deep routing | v1.1 | 0/? | Not started | — |
 | 10. Localization | v1.1 | 0/? | Not started | — |

@@ -9,8 +9,8 @@
 
 ## Stabilization (STAB)
 
-- [ ] **STAB-01**: User can see check-mark read receipts on their own messages (sent → delivered → read) reflecting actual recipient read state
-- [ ] **STAB-02**: Receiver's `read:mark` event propagates to sender within 1s and updates the check-mark without a page reload
+- [x] **STAB-01**: User can see check-mark read receipts on their own messages (sent → delivered → read) reflecting actual recipient read state
+- [x] **STAB-02**: Receiver's `read:mark` event propagates to sender within 1s and updates the check-mark without a page reload
 - [ ] **STAB-03**: Regression sweep of v1.0.3 base features (auth, DM, group, text, reactions, files, typing, presence, unread counter, notifications, themes, mobile layout) passes without user-visible defects
 - [ ] **STAB-04**: Any regression found during sweep is fixed and documented in `.planning/HOTFIXES.md` or phase VERIFICATION.md
 
@@ -88,8 +88,8 @@ Every v1.1 requirement is mapped to exactly one phase. Coverage: 28/28.
 
 | Requirement | Phase | Status |
 |---|---|---|
-| STAB-01 | Phase 7 — Stabilization | Pending |
-| STAB-02 | Phase 7 — Stabilization | Pending |
+| STAB-01 | Phase 7 — Stabilization | Complete |
+| STAB-02 | Phase 7 — Stabilization | Complete |
 | STAB-03 | Phase 7 — Stabilization | Pending |
 | STAB-04 | Phase 7 — Stabilization | Pending |
 | REG-01 | Phase 8 — Account self-service & session control | Pending |
