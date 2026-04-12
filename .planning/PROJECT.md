@@ -3,19 +3,26 @@
 ## Current State
 
 **Shipped:** v1.0 MVP — 2026-04-11 (6 phases, 32 plans, 35 requirements, 61 tasks)
+**Running in production:** v1.0.3 at https://chatboris.mooo.com (post-MVP hotfixes 1–6, see `.planning/HOTFIXES.md`)
 
-mmess is a feature-complete self-hosted messenger running on Docker Compose with Caddy auto-TLS. All code-level acceptance criteria are verified; runtime E2E testing (two-browser flows, mobile PWA install, VPS deploy) remains as open UAT items in `.planning/phases/*/0*-HUMAN-UAT.md`.
+mmess is a feature-complete self-hosted messenger running on Docker Compose with Caddy auto-TLS. v1.0 code-level acceptance criteria validated. Hotfixes 1-6 cleared production bugs (white screen, multi-session sync, auto-scroll, notifications, reactions, typing flicker, cache headers, advisory lock BigInt, WS keepalive). Day-to-day usability blockers (no logout, no i18n, broken read receipts, shallow routing, invite-only registration) now drive v1.1.
 
-## Next Milestone Goals
+## Current Milestone: v1.1 Stabilization + UX polish + self-service + DX research
 
-Not yet planned. Candidates from v2 backlog:
-- Voice/video calls (WebRTC)
-- Message full-text search across conversations
-- Link preview with URL unfurling
-- Conversation mute / notification settings
-- Message pinning
+**Goal:** Take v1.0.3 to "daily-use ready": close known base-function bugs, add localization, self-service registration, logout, and deep routing. Design (not implement) a pre-deploy testing mechanism. Deliver a go/no-go recommendation on migrating the frontend from React to Angular.
 
-Run `/gsd:new-milestone` to start questioning for v1.1 or v2.0.
+**Target features:**
+- **Stabilization**: regression sweep of v1.0.3 base features + fix read receipts (check-mark delivery/display) + any other bugs the sweep surfaces
+- **i18n (ru + en)**: language toggle, all UI strings translatable, preference persisted
+- **Self-service registration**: users register without an admin invite, with rate limit and env-flagged optional-invite fallback
+- **Logout**: UI entry point wired to existing `/auth/logout`, clears ChatContext + AuthContext
+- **Deep routing**: `/chat/:conversationId` survives page reload (URL-driven active conversation)
+- **Pre-deploy test mechanism (design only)**: document + plan for docker-compose.dev, local HTTPS, seed script, staging profile — implementation deferred to v1.2
+- **Angular migration research (research only)**: technical feasibility report + recommendation, no code change
+
+**Cross-cutting directives:**
+- Every phase ends with test + deploy + smoke test before declaring done
+- Every phase/hotfix writes to `.planning/HOTFIXES.md` or phase `VERIFICATION.md`
 
 ## What This Is
 
@@ -44,9 +51,16 @@ Instant, reliable message delivery between users over a secure WebSocket connect
 - ✓ Conversation search — Phase 6
 - ✓ Production deploy artifacts (Docker healthchecks, env template, backup/restore, README) — Phase 6
 
-### Active
+### Active (v1.1)
 
-(None — v1 milestone complete)
+- Regression sweep of v1.0.3 base features
+- Read receipts delivery/display bug fix
+- i18n runtime (ru + en) with persisted language preference
+- Self-service user registration
+- Logout UI + client state reset
+- Deep routing — conversation in URL survives reload
+- Pre-deploy test mechanism (design only, no implementation)
+- Angular migration feasibility research (decision only, no implementation)
 
 ### Out of Scope
 
@@ -121,4 +135,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-11 after v1.0 milestone complete*
+*Last updated: 2026-04-12 — v1.1 milestone started (v1.0.3 running in production)*
