@@ -27,6 +27,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const didInitialLoadRef = useRef<string | null>(null);
+  const didScrollRef = useRef<string | null>(null);
   // Track the last_read_message_id at the moment the conversation was opened,
   // so the "unread" divider stays stable while new messages come in.
   const [openReadCursor, setOpenReadCursor] = useState<string | null>(null);
@@ -115,6 +116,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     const me = conv?.participants.find(p => p.user_id === user?.id);
     setOpenReadCursor(me?.last_read_message_id ?? null);
     setShowDivider(true);
+    didScrollRef.current = null; // reset so scroll fires for new conversation
   }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initial load when conversationId changes.
@@ -139,23 +141,9 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           hasMore: data.hasMore ?? false,
           nextCursor: data.nextCursor ?? null,
         });
-        // Scroll to correct position THEN reveal — prevents jitter.
-        // Triple rAF + microtask ensures ALL layout (including reply previews,
-        // images, etc.) has completed before we scroll and reveal.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              if (unreadDividerRef.current) {
-                unreadDividerRef.current.scrollIntoView({ block: 'center' });
-                isAtBottomRef.current = false;
-              } else {
-                scrollToBottom();
-                isAtBottomRef.current = true;
-              }
-              setIsInitialLoading(false);
-            });
-          });
-        });
+        // Reveal list — scroll positioning happens in a separate effect
+        // after React commits the DOM with messages rendered.
+        setIsInitialLoading(false);
       })
       .catch(() => {
         dispatch({
@@ -168,6 +156,26 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
         setIsInitialLoading(false);
       });
   }, [conversationId, dispatch, scrollToBottom]);
+
+  // Scroll to correct position after initial load renders the list.
+  // Fires when isInitialLoading transitions from true to false AND messages exist.
+  useEffect(() => {
+    if (isInitialLoading || messages.length === 0) return;
+    if (didScrollRef.current === conversationId) return;
+    didScrollRef.current = conversationId;
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (unreadDividerRef.current) {
+          unreadDividerRef.current.scrollIntoView({ block: 'center' });
+          isAtBottomRef.current = false;
+        } else {
+          scrollToBottom();
+          isAtBottomRef.current = true;
+        }
+      });
+    });
+  }, [isInitialLoading, messages.length, conversationId, scrollToBottom]);
 
   // Auto-scroll on new messages if the user was already at the bottom. We
   // read `isAtBottomRef.current` which reflects state from the LAST scroll

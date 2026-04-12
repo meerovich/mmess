@@ -19,12 +19,32 @@
 }
 
 .sidebar {
-  width: var(--sidebar-width);
   flex-shrink: 0;
   border-right: 1px solid var(--color-border);
   background: var(--color-surface-secondary);
   overflow-y: auto;
   min-width: 0;
+}
+
+.resizeHandle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.resizeHandle:hover,
+.resizeHandle:active {
+  background: var(--color-accent);
+  opacity: 0.5;
+}
+
+/* Hide resize handle on mobile — no mouse drag there */
+@media (max-width: 767px) {
+  .resizeHandle {
+    display: none;
+  }
 }
 
 .pane {

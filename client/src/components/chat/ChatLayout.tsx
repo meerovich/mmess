@@ -27,6 +27,11 @@ export function ChatLayout() {
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('mmess-sidebar-width');
+    return saved ? parseInt(saved, 10) : 340;
+  });
+  const isDragging = useRef(false);
 
   // Sync URL param → ChatContext activeConversationId.
   // This is how push notification clicks (/chat/:id) and deep links work:
@@ -129,9 +134,37 @@ export function ChatLayout() {
           </div>
         )}
         <div ref={layoutRef} className={styles.layout}>
-          <div className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}>
+          <div
+            className={`${styles.sidebar} ${showChat ? styles.hidden : ''}`}
+            style={{ width: sidebarWidth }}
+          >
             <ConversationList />
           </div>
+          <div
+            className={styles.resizeHandle}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              isDragging.current = true;
+              const startX = e.clientX;
+              const startWidth = sidebarWidth;
+
+              const onMouseMove = (ev: MouseEvent) => {
+                if (!isDragging.current) return;
+                const newWidth = Math.max(250, Math.min(600, startWidth + ev.clientX - startX));
+                setSidebarWidth(newWidth);
+              };
+
+              const onMouseUp = () => {
+                isDragging.current = false;
+                localStorage.setItem('mmess-sidebar-width', String(sidebarWidth));
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+              };
+
+              document.addEventListener('mousemove', onMouseMove);
+              document.addEventListener('mouseup', onMouseUp);
+            }}
+          />
           <div className={`${styles.pane} ${!showChat ? styles.hidden : ''}`}>
             <ChatPane />
           </div>
