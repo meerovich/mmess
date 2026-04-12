@@ -32,6 +32,16 @@ export function AddReactionButton({ messageId, conversationId }: {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
+  // Close picker when viewport resizes (keyboard open/close) to avoid stale positioning
+  React.useEffect(() => {
+    if (!showPicker) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => { setShowPicker(false); setExpanded(false); };
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, [showPicker]);
+
   const handleEmojiClick = (emoji: string) => {
     sendWs({
       type: 'reaction:add',

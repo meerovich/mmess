@@ -107,7 +107,7 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
             body: text.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120),
             tag: convId,
             url: `/chat/${convId}`,
-            icon: `/api/avatar/${encodeURIComponent(botUser.username)}.svg`,
+            icon: `/api/avatar/${encodeURIComponent(botUser.username)}.png`,
           }).catch(() => {});
         }
       }
