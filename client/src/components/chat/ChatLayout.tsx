@@ -95,19 +95,17 @@ export function ChatLayout() {
     const vv = window.visualViewport;
     if (!vv) return;
 
+    // Remember initial height at page load (before any keyboard)
+    const initialHeight = vv.height;
+
     const setVH = () => {
-      // Set --vh so CSS can use calc(var(--vh) * 100) instead of 100vh
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
 
       if (layoutRef.current) {
-        // Set explicit height from visualViewport
         layoutRef.current.style.height = `${vv.height}px`;
-        // Counteract iOS viewport offset (keyboard pushes page up)
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-        // Remove bottom safe-area when keyboard is open (viewport shrank)
-        // Keyboard is "open" if visualViewport is noticeably smaller than window
-        // 150px threshold catches even the smallest keyboards (emoji bar, password autofill)
-        const keyboardOpen = window.innerHeight - vv.height > 150;
+        // Keyboard open = current height significantly less than initial
+        const keyboardOpen = initialHeight - vv.height > 100;
         layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
 
