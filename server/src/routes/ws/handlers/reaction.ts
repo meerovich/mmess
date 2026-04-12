@@ -17,6 +17,10 @@ export async function handleReactionAdd(
   db: DB, socket: WebSocket, userId: string,
   payload: { message_id: string; emoji: string }, clientId: string
 ): Promise<void> {
+  // Broadcast to ALL participants including the sender's own sockets so that
+  // the sender sees their own reaction immediately (reducer is idempotent).
+  // `ack` alone is insufficient — the client handleIncoming `ack` case only
+  // handles message:send acks (has .message field), not reaction acks.
   const { broadcast } = await import('../registry.js');
 
   const [msg] = await db.select({ conversation_id: messages.conversation_id })
@@ -58,7 +62,7 @@ export async function handleReactionAdd(
       },
     };
     socket.send(JSON.stringify({ type: 'ack', payload: removedEvent.payload, id: clientId }));
-    broadcast(participantIds, removedEvent, userId);
+    broadcast(participantIds, removedEvent);
     return;
   }
 
@@ -88,7 +92,7 @@ export async function handleReactionAdd(
       },
     };
     socket.send(JSON.stringify(removedEvent));
-    broadcast(participantIds, removedEvent, userId);
+    broadcast(participantIds, removedEvent);
   }
 
   await db.insert(message_reactions)
@@ -105,13 +109,17 @@ export async function handleReactionAdd(
     },
   };
   socket.send(JSON.stringify({ type: 'ack', payload: addedEvent.payload, id: clientId }));
-  broadcast(participantIds, addedEvent, userId);
+  broadcast(participantIds, addedEvent);
 }
 
 export async function handleReactionRemove(
   db: DB, socket: WebSocket, userId: string,
   payload: { message_id: string; emoji: string }, clientId: string
 ): Promise<void> {
+  // Broadcast to ALL participants including the sender's own sockets so that
+  // the sender sees their own reaction immediately (reducer is idempotent).
+  // `ack` alone is insufficient — the client handleIncoming `ack` case only
+  // handles message:send acks (has .message field), not reaction acks.
   const { broadcast } = await import('../registry.js');
 
   const [msg] = await db.select({ conversation_id: messages.conversation_id })
@@ -139,5 +147,5 @@ export async function handleReactionRemove(
     },
   };
   socket.send(JSON.stringify({ type: 'ack', payload: event.payload, id: clientId }));
-  broadcast(participantIds, event, userId);
+  broadcast(participantIds, event);
 }

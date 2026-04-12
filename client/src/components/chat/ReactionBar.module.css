@@ -83,7 +83,12 @@
 .pickerContainer {
   position: absolute;
   bottom: 100%;
-  left: 0;
+  /* Anchor the picker to the RIGHT edge of the add-reaction button so the
+     picker body always expands to the LEFT, keeping it inside the viewport
+     for messages on the right column (own messages) where `left: 0` used to
+     push the picker off the right edge of the screen. */
+  right: 0;
+  left: auto;
   z-index: 100;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border-radius: 8px;

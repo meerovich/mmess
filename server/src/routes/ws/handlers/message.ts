@@ -101,7 +101,7 @@ export async function handleMessageSend(
   },
   clientId: string
 ): Promise<void> {
-  const { broadcast } = await import('../registry.js');
+  const { broadcastExcludeSocket } = await import('../registry.js');
 
   // Verify user is a participant
   const [participant] = await db
@@ -177,9 +177,15 @@ export async function handleMessageSend(
   // Ack sender (D-03) — wrapped in { message: ... } to match client handleIncoming
   socket.send(JSON.stringify({ type: 'ack', payload: { message: enrichedMessage }, id: clientId }));
 
-  // Fan out to other participants (D-04) — ALSO wrapped so client reads payload.message
+  // Fan out to other participants (D-04). Exclude only the source socket so
+  // that OTHER sessions of the sender (second device, other browser) also
+  // receive message:new and stay in sync — see multi-session bug report.
   const participantIds = await getParticipantIds(db, payload.conversation_id);
-  broadcast(participantIds, { type: 'message:new', payload: { message: enrichedMessage } }, userId);
+  broadcastExcludeSocket(
+    participantIds,
+    { type: 'message:new', payload: { message: enrichedMessage } },
+    socket
+  );
 }
 
 export async function handleMessageEdit(
@@ -189,7 +195,7 @@ export async function handleMessageEdit(
   payload: { message_id: string; content: string },
   clientId: string
 ): Promise<void> {
-  const { broadcast } = await import('../registry.js');
+  const { broadcastExcludeSocket } = await import('../registry.js');
 
   const [msg] = await db
     .select()
@@ -247,7 +253,11 @@ export async function handleMessageEdit(
 
   socket.send(JSON.stringify({ type: 'ack', payload: { message: enrichedUpdated }, id: clientId }));
   const participantIds = await getParticipantIds(db, msg.conversation_id);
-  broadcast(participantIds, { type: 'message:edited', payload: { message: enrichedUpdated } }, userId);
+  broadcastExcludeSocket(
+    participantIds,
+    { type: 'message:edited', payload: { message: enrichedUpdated } },
+    socket
+  );
 }
 
 export async function handleMessageDelete(
@@ -257,7 +267,7 @@ export async function handleMessageDelete(
   payload: { message_id: string },
   clientId: string
 ): Promise<void> {
-  const { broadcast } = await import('../registry.js');
+  const { broadcastExcludeSocket } = await import('../registry.js');
 
   const [msg] = await db
     .select()
@@ -306,5 +316,9 @@ export async function handleMessageDelete(
 
   socket.send(JSON.stringify({ type: 'ack', payload: { message_id: deleted.id }, id: clientId }));
   const participantIds = await getParticipantIds(db, msg.conversation_id);
-  broadcast(participantIds, { type: 'message:deleted', payload: { message_id: deleted.id, conversation_id: msg.conversation_id } }, userId);
+  broadcastExcludeSocket(
+    participantIds,
+    { type: 'message:deleted', payload: { message_id: deleted.id, conversation_id: msg.conversation_id } },
+    socket
+  );
 }

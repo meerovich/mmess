@@ -40,11 +40,16 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           message: { ...newMsg, status: 'sent' },
         });
 
-        // Browser notification (D-30): fire only when tab is not focused + message is from another user
+        // Browser notification: fire on every incoming message from another
+        // user, regardless of tab visibility. Previously we gated on
+        // `document.visibilityState !== 'visible'` (D-30), but users reported
+        // missing notifications when the chat tab was in the background of a
+        // multi-window session — the visibility API reports 'visible' there
+        // even though the user is not actually looking. Simpler rule: if it
+        // is from someone else, surface it.
         if (
           'Notification' in window &&
           Notification.permission === 'granted' &&
-          document.visibilityState !== 'visible' &&
           newMsg.sender_id !== _currentUserId
         ) {
           const title = newMsg.sender?.username ?? 'New message';

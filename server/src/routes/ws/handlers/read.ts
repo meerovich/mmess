@@ -9,7 +9,7 @@ export async function handleReadMark(
   db: DB, socket: WebSocket, userId: string,
   payload: { message_id: string; conversation_id: string }, clientId: string
 ): Promise<void> {
-  const { broadcast } = await import('../registry.js');
+  const { broadcastExcludeSocket } = await import('../registry.js');
 
   // Verify user is a participant
   const [cp] = await db.select({ last_read_message_id: conversation_participants.last_read_message_id })
@@ -53,7 +53,9 @@ export async function handleReadMark(
     .from(conversation_participants)
     .where(eq(conversation_participants.conversation_id, payload.conversation_id));
 
-  broadcast(
+  // Exclude only the source socket so the user's OTHER sessions also update
+  // their unread cursor (multi-session sync).
+  broadcastExcludeSocket(
     participants.map(p => p.user_id),
     {
       type: 'read:by',
@@ -64,6 +66,6 @@ export async function handleReadMark(
         read_at: new Date().toISOString(),
       },
     },
-    userId
+    socket
   );
 }

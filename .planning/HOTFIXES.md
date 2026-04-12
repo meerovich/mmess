@@ -284,4 +284,119 @@ deployed as v1.0.2.
 
 ---
 
-*Last updated: 2026-04-12 during post-deploy hotfix session.*
+## Hotfix 6 — Multi-session sync + typing delay + picker overflow + auto-scroll + always-on notifications (v1.0.3)
+
+Real-world issues reported during two-device testing (desktop + mobile) after v1.0.2.
+All fixed together and deployed as v1.0.3.
+
+### 6.1 Multi-session sender sync (same user, two devices)
+
+- **Files:** `server/src/routes/ws/registry.ts`,
+  `server/src/routes/ws/handlers/message.ts`,
+  `server/src/routes/ws/handlers/read.ts`.
+- **Symptom:** User A logs in to chat from both desktop and phone. Sending a
+  message from desktop shows the message on desktop (optimistic), but phone
+  does not see it until page reload. The receiver (user B) sees it fine.
+- **Root cause:** The old `broadcast(userIds, event, excludeUserId?)` helper
+  excluded the entire sender user from the fan-out — so none of the sender's
+  OTHER sockets received `message:new`. The sender's own socket got the
+  `ack`, but the sender's second device got nothing.
+- **Fix:** New `broadcastExcludeSocket(userIds, data, excludeSocket)` helper
+  that excludes only the source WebSocket, not the whole user. Applied to
+  `message:new`, `message:edited`, `message:deleted`, and `read:by` fan-out.
+  Sender's other devices now receive the same `message:new` that other
+  participants do.
+- Reactions deliberately use plain `broadcast(...)` with NO exclusion
+  (see 6.5 below) because reaction acks carry a different payload shape.
+
+### 6.2 Typing indicator flicker — grace period before hiding
+
+- **File:** `client/src/components/chat/TypingIndicator.tsx`
+- **Symptom:** "Alice is typing…" flashed on and off on every keystroke
+  boundary because the server broadcasts an empty `typers` array the instant
+  the client stops typing for a beat.
+- **Fix:** Added 1.5s client-side grace — local `visibleTypers` state is
+  updated immediately when typers arrive, but cleared with a debounced
+  `setTimeout` when they go empty. Rapid start/stop cycles no longer flap;
+  genuine stops fade within ~1.5s of the last keystroke.
+
+### 6.3 Emoji picker overflows the right edge of the viewport
+
+- **File:** `client/src/components/chat/ReactionBar.module.css`
+- **Symptom:** On desktop, clicking the `+` button on the current user's own
+  messages (right column) opened the emoji-mart picker off the right edge of
+  the screen, unreachable.
+- **Fix:** `.pickerContainer` was anchored `left: 0` → pinned to `right: 0;
+  left: auto` so the picker expands LEFT from the trigger instead of RIGHT.
+  Mobile bottom-sheet override is unchanged.
+
+### 6.4 New incoming messages don't auto-scroll the list to the bottom
+
+- **File:** `client/src/components/chat/MessageList.tsx`
+- **Symptom:** When a new message arrived, the list did NOT scroll to show
+  it even though the user was already at the bottom.
+- **Root cause:** The old `isAtBottom()` helper was called from inside the
+  new-message effect, which runs AFTER React has committed the new DOM.
+  The inserted message had already extended `scrollHeight`, so the
+  pre-insert "at bottom" user was no longer within the 100px threshold —
+  the condition evaluated false and auto-scroll was skipped.
+- **Fix:** Replaced the callback with `isAtBottomRef`, a React ref updated
+  on every scroll event (via a passive `scroll` listener) BEFORE the new
+  message arrives. The new-message effect reads `isAtBottomRef.current`
+  which reflects the LAST observed scroll state, so the "am I at bottom?"
+  question is answered against the pre-insert layout. Double-rAF is used
+  to scroll AFTER React has committed the DOM and layout has been applied.
+  Initial load also sets `isAtBottomRef.current = true` so the first batch
+  of messages triggers auto-scroll correctly.
+- **Threshold:** widened from 100px to 150px for more forgiving behaviour.
+
+### 6.5 Notifications should fire on every incoming message, not only replies
+
+- **File:** `client/src/providers/WebSocketProvider.tsx`
+- **Symptom:** Browser notifications only fired for a subset of incoming
+  messages — users reported missing notifications when the chat tab was a
+  background tab in a multi-window session.
+- **Root cause:** Previous code gated notifications on
+  `document.visibilityState !== 'visible'`. In a multi-window setup the
+  visibility API reports the chat tab as 'visible' even when the user is
+  actually looking at another monitor/window, so the notification was
+  suppressed.
+- **Fix:** Removed the visibility gate entirely. Notifications now fire on
+  every incoming `message:new` from another user, regardless of tab
+  visibility. `newMsg.sender_id !== _currentUserId` still prevents
+  self-notifications. Dedup per conversation is preserved via
+  `tag: newMsg.conversation_id`.
+
+### 6.6 Sender's own reactions not visible until page reload
+
+- **File:** `server/src/routes/ws/handlers/reaction.ts`
+- **Symptom:** User A reacts to a message. Receiver B sees the reaction
+  badge appear. Sender A sees NOTHING on their own bubble until reload.
+- **Root cause:** Reaction handler was changed to `broadcastExcludeSocket`
+  during 6.1 work. Unlike `message:send`, the client's `handleIncoming`
+  `ack` case ONLY processes acks that carry a `.message` field
+  (`OPTIMISTIC_MESSAGE_CONFIRM`). Reaction acks carry only
+  `{message_id, user_id, emoji, conversation_id}` and are NOT dispatched
+  to the reducer. So excluding the source socket meant the source socket's
+  reducer never got the `reaction:added` event.
+- **Fix:** Reverted reaction handlers to plain `broadcast(participantIds,
+  event)` with NO exclusion — every participant, INCLUDING the sender's
+  own socket, receives `reaction:added` / `reaction:removed`. The reducer
+  is idempotent (filters out existing reactions by the same user before
+  appending), so re-receiving one's own event is a no-op on the data.
+
+### Smoke test performed before declaring done (per user directive)
+
+- `docker compose ps` — all 3 services `(healthy)`.
+- `curl / -I` — `HTTP/2 200`, `cache-control: no-store, must-revalidate`.
+- `curl /api/health` — `{"status":"ok","version":"1.0.3",…}`.
+- Two desktop browser sessions as admin: send from session A → session A
+  shows optimistic + ack, session B receives `message:new` live.
+- Admin + tester E2E: both directions working, typing indicator lingers
+  ~1.5s after typing stops, reactions visible immediately to the sender.
+- Emoji picker no longer overflows right on own-column messages.
+- Auto-scroll triggers on incoming messages when at bottom.
+
+---
+
+*Last updated: 2026-04-12 — hotfix 6 batch deployed as v1.0.3.*

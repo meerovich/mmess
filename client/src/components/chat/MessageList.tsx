@@ -24,17 +24,35 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   const messages: Message[] = state.messages[conversationId] ?? [];
   const pagination = messagePagination[conversationId];
 
-  const isAtBottom = useCallback(() => {
-    if (!listRef.current) return false;
-    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
-    return scrollHeight - scrollTop - clientHeight < 100;
-  }, []);
+  // We track "is the user currently at the bottom of the list" via a ref that
+  // is updated on every scroll event. Reading the value AFTER React has
+  // already inserted the new message gives a false-negative (the inserted
+  // message extends scrollHeight, so the pre-insert "at bottom" user is no
+  // longer < 100px from bottom). The ref stores the LAST observed state and
+  // is the source of truth used by the new-message effect.
+  const isAtBottomRef = useRef(true);
 
   const scrollToBottom = useCallback(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, []);
+
+  const handleScroll = useCallback(() => {
+    if (!listRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = listRef.current;
+    // 150px threshold — slightly generous so the auto-scroll is forgiving
+    // of users who nudged the list a few pixels.
+    isAtBottomRef.current = scrollHeight - scrollTop - clientHeight < 150;
+  }, []);
+
+  // Register scroll listener so isAtBottomRef stays fresh.
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // Initial load when conversationId changes
   useEffect(() => {
@@ -52,8 +70,15 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           hasMore: data.hasMore ?? false,
           nextCursor: data.nextCursor ?? null,
         });
-        // Scroll to bottom after initial load
-        requestAnimationFrame(() => scrollToBottom());
+        // Scroll to bottom after initial load and mark the user as being at
+        // the bottom so subsequent incoming messages auto-follow.
+        isAtBottomRef.current = true;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            scrollToBottom();
+            isAtBottomRef.current = true;
+          });
+        });
       })
       .catch(() => {
         dispatch({
@@ -66,16 +91,25 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       });
   }, [conversationId, dispatch, scrollToBottom]);
 
-  // Auto-scroll on new messages if at bottom
+  // Auto-scroll on new messages if the user was already at the bottom. We
+  // read `isAtBottomRef.current` which reflects state from the LAST scroll
+  // event — before React inserted the new message and invalidated the
+  // "distance from bottom" calculation. Also reset the ref to true after
+  // auto-scrolling so subsequent messages keep following.
   const prevLengthRef = useRef(messages.length);
   useEffect(() => {
-    if (messages.length > prevLengthRef.current) {
-      if (isAtBottom()) {
-        requestAnimationFrame(() => scrollToBottom());
-      }
+    if (messages.length > prevLengthRef.current && isAtBottomRef.current) {
+      // Double rAF: first waits for React to commit the new DOM, second
+      // runs after layout so scrollHeight reflects the inserted message.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          scrollToBottom();
+          isAtBottomRef.current = true;
+        });
+      });
     }
     prevLengthRef.current = messages.length;
-  }, [messages.length, isAtBottom, scrollToBottom]);
+  }, [messages.length, scrollToBottom]);
 
   // Load more (infinite upward scroll)
   const loadMore = useCallback(async () => {
