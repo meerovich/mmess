@@ -159,6 +159,20 @@ export const sessions = pgTable(
   })
 );
 
+// ─── Push Subscriptions ─────────────────────────────────────────────────────
+
+export const push_subscriptions = pgTable('push_subscriptions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  user_id: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  ...timestamps(),
+}, (t) => ({
+  idx_push_user: index('idx_push_subscriptions_user').on(t.user_id),
+  unq_push_endpoint: unique('unq_push_endpoint').on(t.endpoint),
+}));
+
 export const invites = pgTable('invites', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   token_hash: text('token_hash').notNull().unique(),

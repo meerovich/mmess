@@ -201,6 +201,30 @@ export async function handleMessageSend(
       },
     }));
   }
+
+  // Web Push fallback: for any recipient who is NOT online (WS disconnected —
+  // screen locked, tab closed, etc.), send a push notification so they see it
+  // on their lock screen. This is the guaranteed-delivery mechanism.
+  const { sendPushToUser, isPushConfigured } = await import('../../../lib/push.js');
+  if (isPushConfigured()) {
+    const sender = enrichedMessage.sender as { username?: string } | null;
+    const senderName = sender?.username ?? 'Someone';
+    const content = enrichedMessage.content as string | null;
+    const body = content
+      ? content.slice(0, 120)
+      : 'Sent a file';
+
+    for (const recipientId of recipientIds) {
+      if (!isOnline(recipientId)) {
+        sendPushToUser(db, recipientId, {
+          title: senderName,
+          body,
+          tag: payload.conversation_id,
+          url: `/chat/${payload.conversation_id}`,
+        }).catch(() => { /* push failures are non-fatal */ });
+      }
+    }
+  }
 }
 
 export async function handleMessageEdit(

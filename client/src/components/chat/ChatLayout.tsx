@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
 import { NotificationBanner } from './NotificationBanner';
+import { registerPushSubscription } from '../../lib/pushSubscription';
 import styles from './ChatLayout.module.css';
 
 interface ChatLayoutContextValue {
@@ -19,6 +20,12 @@ export function useChatLayout(): ChatLayoutContextValue {
 
 export function ChatLayout() {
   const [showChat, setShowChat] = useState(false);
+
+  // Register Web Push subscription on mount (user is authenticated at this point).
+  // Idempotent — skips if already subscribed or if push is not supported.
+  useEffect(() => {
+    registerPushSubscription();
+  }, []);
 
   return (
     <ChatLayoutContext.Provider value={{ showChat, setShowChat }}>
