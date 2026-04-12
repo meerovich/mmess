@@ -104,7 +104,7 @@ export function ChatLayout() {
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-        // Do not override paddingBottom — let CSS safe-area handle it
+        // paddingBottom managed by mmess-keyboard event (focus/blur)
       }
 
       // Force window back to top
@@ -119,9 +119,19 @@ export function ChatLayout() {
     vv.addEventListener('resize', setVH);
     vv.addEventListener('scroll', setVH);
 
+    // Toggle safe-area padding based on keyboard state (focus/blur from MessageInput)
+    const onKeyboard = (e: Event) => {
+      const open = (e as CustomEvent).detail?.open;
+      if (layoutRef.current) {
+        layoutRef.current.style.paddingBottom = open ? '0' : '';
+      }
+    };
+    window.addEventListener('mmess-keyboard', onKeyboard);
+
     return () => {
       vv.removeEventListener('resize', setVH);
       vv.removeEventListener('scroll', setVH);
+      window.removeEventListener('mmess-keyboard', onKeyboard);
     };
   }, []);
 

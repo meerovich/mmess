@@ -391,11 +391,12 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onFocus={() => {
             window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
-            // iOS Safari scrolls the page to bring the textarea into view
-            // when the keyboard opens. Force scroll back to 0 after a brief
-            // delay so the page doesn't shift.
+            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: true } }));
             setTimeout(() => window.scrollTo(0, 0), 100);
             setTimeout(() => window.scrollTo(0, 0), 300);
+          }}
+          onBlur={() => {
+            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
