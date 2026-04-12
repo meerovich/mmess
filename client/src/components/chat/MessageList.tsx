@@ -22,6 +22,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   const lastMessageRef = useRef<HTMLDivElement>(null);
   const unreadDividerRef = useRef<HTMLDivElement>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const didInitialLoadRef = useRef<string | null>(null);
   // Track the last_read_message_id at the moment the conversation was opened,
   // so the "unread" divider stays stable while new messages come in.
@@ -103,11 +104,17 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     setShowDivider(true);
   }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Initial load when conversationId changes
+  // Initial load when conversationId changes.
+  // The list is hidden (opacity: 0) until messages are loaded AND scroll
+  // position is set — this prevents visible "jitter" (empty → content → scroll jump).
   useEffect(() => {
     if (!conversationId) return;
-    if (didInitialLoadRef.current === conversationId) return;
+    if (didInitialLoadRef.current === conversationId) {
+      setIsInitialLoading(false);
+      return;
+    }
     didInitialLoadRef.current = conversationId;
+    setIsInitialLoading(true);
 
     apiFetch(`/api/conversations/${conversationId}/messages?limit=50`)
       .then(res => res.ok ? res.json() : { messages: [], hasMore: false, nextCursor: null })
@@ -119,8 +126,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           hasMore: data.hasMore ?? false,
           nextCursor: data.nextCursor ?? null,
         });
-        // After load: if there's an unread divider, scroll to it.
-        // Otherwise scroll to bottom.
+        // Scroll to correct position THEN reveal — prevents jitter.
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (unreadDividerRef.current) {
@@ -130,6 +136,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
               scrollToBottom();
               isAtBottomRef.current = true;
             }
+            setIsInitialLoading(false);
           });
         });
       })
@@ -141,6 +148,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           hasMore: false,
           nextCursor: null,
         });
+        setIsInitialLoading(false);
       });
   }, [conversationId, dispatch, scrollToBottom]);
 
@@ -299,7 +307,11 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   });
 
   return (
-    <div ref={listRef} className={styles.list}>
+    <div
+      ref={listRef}
+      className={styles.list}
+      style={isInitialLoading ? { opacity: 0 } : undefined}
+    >
       <div ref={sentinelRef} className={styles.sentinel} />
       {isLoadingMore && <div className={styles.loadingMore}>Loading older messages…</div>}
       {groupedMessages.map(({ msg, isGrouped }, idx) => (

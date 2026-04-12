@@ -36,6 +36,14 @@ export function ChatLayout() {
     if (urlConversationId) {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
       setShowChat(true);
+      // Close any push notifications for this conversation — user is reading it now.
+      if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.getNotifications({ tag: urlConversationId }).then(notifications => {
+            notifications.forEach(n => n.close());
+          });
+        });
+      }
     } else {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
       setShowChat(false);
