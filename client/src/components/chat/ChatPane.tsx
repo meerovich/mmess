@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChatLayout } from './ChatLayout';
@@ -23,16 +24,17 @@ export function ChatPane() {
   const { activeConversationId, conversations, wsStatus } = state;
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
+  const navigate = useNavigate();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   // Mobile back navigation: clear active conversation + close chat pane so the
-  // sidebar becomes visible again. On desktop both panes are always visible,
-  // so setShowChat(false) is a no-op except on mobile.
+  // sidebar becomes visible again. Navigate to / so the URL matches.
   const handleBack = () => {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
     setShowChat(false);
+    navigate('/');
   };
 
   if (!activeConversationId) {

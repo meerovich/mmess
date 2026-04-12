@@ -1,4 +1,5 @@
 import { formatDistanceToNow, format, isThisYear } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChatLayout } from './ChatLayout';
@@ -26,6 +27,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { state, dispatch } = useChat();
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
+  const navigate = useNavigate();
 
   const isActive = conversation.id === state.activeConversationId;
 
@@ -56,6 +58,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   function handleClick() {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
+    navigate(`/chat/${conversation.id}`);
   }
 
   return (

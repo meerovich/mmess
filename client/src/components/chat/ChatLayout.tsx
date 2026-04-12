@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { useChat } from '../../contexts/ChatContext';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
 import { NotificationBanner } from './NotificationBanner';
@@ -19,36 +21,49 @@ export function useChatLayout(): ChatLayoutContextValue {
 }
 
 export function ChatLayout() {
+  const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const { dispatch } = useChat();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
+
+  // Sync URL param → ChatContext activeConversationId.
+  // This is how push notification clicks (/chat/:id) and deep links work:
+  // the URL drives the active conversation, not just sidebar clicks.
+  useEffect(() => {
+    if (urlConversationId) {
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
+      setShowChat(true); // on mobile, show chat pane instead of sidebar
+    }
+  }, [urlConversationId, dispatch]);
 
   // Register Web Push subscription on mount (user is authenticated at this point).
   useEffect(() => {
     registerPushSubscription();
   }, []);
 
-  // MOBILE KEYBOARD FIX: use visualViewport to resize the layout when the
-  // virtual keyboard opens. On mobile browsers, opening the keyboard shrinks
-  // the visual viewport but does NOT shrink CSS viewport units (vh/dvh).
-  // This causes content to be pushed behind the keyboard. By listening to
-  // visualViewport.resize and setting an explicit pixel height on the layout
-  // container, the flex column reflows correctly — the header stays pinned
-  // at the top and only the message list shrinks.
+  // MOBILE KEYBOARD FIX: use visualViewport to resize layout when virtual
+  // keyboard opens. CSS dvh doesn't update when the keyboard appears on many
+  // mobile browsers. We set a CSS custom property --vh that the layout uses.
+  // No position:fixed needed — just an accurate height.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (!vv) return; // desktop or unsupported browser — CSS dvh is fine
+    if (!vv) return;
 
     const onResize = () => {
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
       }
+      // Also prevent scroll-to-input behavior that pushes content up:
+      // reset window scroll to 0 so the fixed-height layout stays at top.
+      window.scrollTo(0, 0);
     };
 
-    // Set initial height
-    onResize();
-
     vv.addEventListener('resize', onResize);
-    return () => vv.removeEventListener('resize', onResize);
+    vv.addEventListener('scroll', onResize);
+    return () => {
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onResize);
+    };
   }, []);
 
   return (
