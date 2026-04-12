@@ -104,9 +104,7 @@ export function ChatLayout() {
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-        // Always zero bottom padding — prevents layout jumping when
-        // keyboard opens/closes or file picker triggers blur.
-        layoutRef.current.style.paddingBottom = '0';
+        // Do not override paddingBottom — let CSS safe-area handle it
       }
 
       // Force window back to top
