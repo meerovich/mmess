@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
@@ -28,6 +29,8 @@ export function AddReactionButton({ messageId, conversationId }: {
   const sendWs = useSendMessage();
   const [showPicker, setShowPicker] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   const handleEmojiClick = (emoji: string) => {
     sendWs({
@@ -38,46 +41,77 @@ export function AddReactionButton({ messageId, conversationId }: {
     setExpanded(false);
   };
 
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showPicker) {
+      setShowPicker(false);
+      setExpanded(false);
+      return;
+    }
+    // Calculate position from button rect — picker appears above the button
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      // Position picker above the button, right-aligned
+      const left = Math.max(8, Math.min(r.right - 316, window.innerWidth - 324));
+      setPickerPos({ top: r.top - 8, left });
+    }
+    setShowPicker(true);
+  };
+
+  // Render picker via portal at document.body so it escapes all overflow:hidden ancestors
+  const pickerPortal = showPicker && pickerPos ? createPortal(
+    <>
+      <div className={styles.pickerBackdrop} onClick={() => { setShowPicker(false); setExpanded(false); }} />
+      <div
+        className={styles.quickPicker}
+        style={{
+          position: 'fixed',
+          top: 'auto',
+          bottom: window.innerHeight - pickerPos.top,
+          left: pickerPos.left,
+          right: 'auto',
+        }}
+      >
+        <div className={styles.quickPickerRow}>
+          {TOP_EMOJIS.map(emoji => (
+            <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
+              {emoji}
+            </button>
+          ))}
+          <button
+            className={styles.quickExpandBtn}
+            onClick={() => setExpanded(prev => !prev)}
+            aria-label={expanded ? 'Collapse' : 'More emojis'}
+          >
+            {expanded ? '▲' : '▼'}
+          </button>
+        </div>
+        {expanded && MORE_EMOJIS.map((row, i) => (
+          <div key={i} className={styles.quickPickerRow}>
+            {row.map(emoji => (
+              <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
+                {emoji}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </>,
+    document.body
+  ) : null;
+
   return (
-    <div className={styles.addReactionWrapper} style={{ display: 'inline-flex' }}>
+    <>
       <button
+        ref={btnRef}
         className={`${styles.inlineAddBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
-        onClick={(e) => { e.stopPropagation(); setShowPicker(prev => !prev); setExpanded(false); }}
+        onClick={handleToggle}
         aria-label="Add reaction"
       >
         +
       </button>
-      {showPicker && (
-        <>
-          <div className={styles.pickerBackdrop} onClick={() => { setShowPicker(false); setExpanded(false); }} />
-          <div className={styles.quickPicker}>
-            <div className={styles.quickPickerRow}>
-              {TOP_EMOJIS.map(emoji => (
-                <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
-                  {emoji}
-                </button>
-              ))}
-              <button
-                className={styles.quickExpandBtn}
-                onClick={() => setExpanded(prev => !prev)}
-                aria-label={expanded ? 'Collapse' : 'More emojis'}
-              >
-                {expanded ? '▲' : '▼'}
-              </button>
-            </div>
-            {expanded && MORE_EMOJIS.map((row, i) => (
-              <div key={i} className={styles.quickPickerRow}>
-                {row.map(emoji => (
-                  <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
-                    {emoji}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+      {pickerPortal}
+    </>
   );
 }
 

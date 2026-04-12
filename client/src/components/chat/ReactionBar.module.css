@@ -156,11 +156,11 @@
   z-index: 99;
 }
 
+/* Picker rendered via portal at document.body with position:fixed.
+   Position is set inline by JS (getBoundingClientRect of the + button). */
 .quickPicker {
-  position: absolute;
-  bottom: 100%;
-  right: 0;
-  z-index: 100;
+  position: fixed;
+  z-index: 10000;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -168,18 +168,15 @@
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 6px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
-  margin-bottom: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile: full-width picker pinned to bottom of message area */
+/* Mobile: stretch to full width */
 @media (max-width: 767px) {
   .quickPicker {
-    position: fixed;
-    bottom: auto;
+    left: 8px !important;
     right: 8px;
-    left: 8px;
-    border-radius: 12px;
+    width: auto;
   }
   .quickPickerRow {
     justify-content: space-around;
