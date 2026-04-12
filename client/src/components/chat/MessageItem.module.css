@@ -108,14 +108,20 @@
 .receipt {
   display: inline;
   margin-left: var(--space-xs);
+  font-size: 0.8em;
+  letter-spacing: -2px;
 }
 
-.receipt.allRead {
-  color: var(--color-success);
-}
-
-.receipt.pending {
+.sent {
   color: var(--color-text-muted);
+}
+
+.delivered {
+  color: var(--color-text-muted);
+}
+
+.allRead {
+  color: var(--color-accent);
 }
 
 /* Reply preview inside bubble */

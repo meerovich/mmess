@@ -28,37 +28,58 @@ function ReadReceipt({
 }) {
   if (message.sender_id !== currentUserId) return null;
 
+  // D-06: No separate spinner — optimistic insert shows single check immediately
   if (message.status === 'sending') {
     return (
-      <span className={`${styles.receipt} ${styles.pending}`} title="Sending">
-        ✓
+      <span className={`${styles.receipt} ${styles.sent}`} title="Sending">
+        &#10003;
       </span>
     );
   }
 
-  // Check if all other participants have read
   const otherParticipants = participants.filter(p => p.user_id !== currentUserId);
 
-  // isAllRead: true when every other participant's last_read_at >= this message's created_at.
-  // last_read_at is the created_at of the last message they read (ISO string from server).
-  // Both are ISO strings — lexicographic comparison is valid for ISO 8601 timestamps.
+  // D-02: In group chats, ALL participants must have read for blue double check
   const isAllRead =
     otherParticipants.length > 0 &&
     otherParticipants.every(p =>
       p.last_read_at != null && p.last_read_at >= message.created_at
     );
 
-  const tooltipParts: string[] = otherParticipants
+  // D-01: delivered = at least one recipient socket received message:new
+  const isDelivered = message.status === 'delivered' || isAllRead;
+
+  // D-03: Tooltip shows list of names who have read
+  const readNames: string[] = otherParticipants
     .filter(p => p.last_read_at != null && p.last_read_at >= message.created_at)
     .map(p => p.username);
-  const tooltipText = tooltipParts.length > 0 ? `Read by: ${tooltipParts.join(', ')}` : undefined;
+  const tooltipText = readNames.length > 0
+    ? `Read by: ${readNames.join(', ')}`
+    : isDelivered
+      ? 'Delivered'
+      : 'Sent';
 
+  // D-05: WhatsApp-style — single gray check (sent), double gray check (delivered), double blue check (read)
+  if (isAllRead) {
+    return (
+      <span className={`${styles.receipt} ${styles.allRead}`} title={tooltipText}>
+        &#10003;&#10003;
+      </span>
+    );
+  }
+
+  if (isDelivered) {
+    return (
+      <span className={`${styles.receipt} ${styles.delivered}`} title={tooltipText}>
+        &#10003;&#10003;
+      </span>
+    );
+  }
+
+  // Sent (single gray check)
   return (
-    <span
-      className={`${styles.receipt} ${isAllRead ? styles.allRead : styles.pending}`}
-      title={tooltipText}
-    >
-      {isAllRead ? '✓✓' : '✓'}
+    <span className={`${styles.receipt} ${styles.sent}`} title={tooltipText}>
+      &#10003;
     </span>
   );
 }
