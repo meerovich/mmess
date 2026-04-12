@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
@@ -108,6 +108,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [showContextMenu, setShowContextMenu] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
@@ -146,6 +148,20 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
 
+  // Long-press handler for mobile context menu
+  const handleTouchStart = () => {
+    if (message.is_deleted) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setShowContextMenu(true);
+    }, 500);
+  };
+  const handleTouchEnd = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   return (
     <div
       className={`${styles.item} ${isOwn ? styles.own : ''}`}
@@ -154,6 +170,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         setIsHovered(false);
         setShowMenu(false);
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchEnd}
     >
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
@@ -323,6 +342,31 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             </div>
           )}
         </div>
+      )}
+
+      {/* Long-press context menu (mobile) */}
+      {showContextMenu && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 19 }}
+            onClick={() => setShowContextMenu(false)}
+          />
+          <div className={styles.contextMenu}>
+            <button className={styles.contextMenuItem} onClick={() => { setShowContextMenu(false); handleReply(); }}>
+              ↩ Ответить
+            </button>
+            {canEditDelete && (
+              <>
+                <button className={styles.contextMenuItem} onClick={() => { setShowContextMenu(false); handleEdit(); }}>
+                  ✏ Редактировать
+                </button>
+                <button className={styles.contextMenuItem} onClick={() => { setShowContextMenu(false); setShowDeleteConfirm(true); }}>
+                  🗑 Удалить
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

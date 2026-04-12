@@ -213,11 +213,11 @@
   text-overflow: ellipsis;
 }
 
-/* Hover menu — positioned absolutely so it doesn't cause layout shift */
+/* Hover menu — inside the bubble, top-right corner */
 .menuWrapper {
   position: absolute;
-  top: 0;
-  right: -36px;
+  top: 4px;
+  right: 4px;
   display: flex;
   align-items: center;
   gap: var(--space-xs);
@@ -225,9 +225,45 @@
 }
 
 .menuWrapperOwn {
-  right: auto;
-  left: -36px;
-  flex-direction: row-reverse;
+  right: 4px;
+  left: auto;
+}
+
+/* Mobile: hide hover menu (no hover on touch), show long-press menu instead */
+@media (max-width: 767px) {
+  .menuWrapper {
+    display: none;
+  }
+}
+
+/* Long-press context menu (mobile) */
+.contextMenu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: var(--space-xs) 0;
+  min-width: 140px;
+}
+
+.contextMenuItem {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.contextMenuItem:active {
+  background: var(--color-reaction-bg);
 }
 
 .menuBtn {
