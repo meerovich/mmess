@@ -11,8 +11,8 @@
 
 - [x] **STAB-01**: User can see check-mark read receipts on their own messages (sent → delivered → read) reflecting actual recipient read state
 - [x] **STAB-02**: Receiver's `read:mark` event propagates to sender within 1s and updates the check-mark without a page reload
-- [ ] **STAB-03**: Regression sweep of v1.0.3 base features (auth, DM, group, text, reactions, files, typing, presence, unread counter, notifications, themes, mobile layout) passes without user-visible defects
-- [ ] **STAB-04**: Any regression found during sweep is fixed and documented in `.planning/HOTFIXES.md` or phase VERIFICATION.md
+- [x] **STAB-03**: Regression sweep of v1.0.3 base features (auth, DM, group, text, reactions, files, typing, presence, unread counter, notifications, themes, mobile layout) passes without user-visible defects
+- [x] **STAB-04**: Any regression found during sweep is fixed and documented in `.planning/HOTFIXES.md` or phase VERIFICATION.md
 
 ## Localization (I18N)
 
@@ -90,8 +90,8 @@ Every v1.1 requirement is mapped to exactly one phase. Coverage: 28/28.
 |---|---|---|
 | STAB-01 | Phase 7 — Stabilization | Complete |
 | STAB-02 | Phase 7 — Stabilization | Complete |
-| STAB-03 | Phase 7 — Stabilization | Pending |
-| STAB-04 | Phase 7 — Stabilization | Pending |
+| STAB-03 | Phase 7 — Stabilization | Complete |
+| STAB-04 | Phase 7 — Stabilization | Complete |
 | REG-01 | Phase 8 — Account self-service & session control | Pending |
 | REG-02 | Phase 8 — Account self-service & session control | Pending |
 | REG-03 | Phase 8 — Account self-service & session control | Pending |
