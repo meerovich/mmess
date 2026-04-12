@@ -84,4 +84,39 @@
 
 ## Traceability
 
-*(filled in by the roadmapper — each requirement mapped to exactly one phase)*
+Every v1.1 requirement is mapped to exactly one phase. Coverage: 28/28.
+
+| Requirement | Phase | Status |
+|---|---|---|
+| STAB-01 | Phase 7 — Stabilization | Pending |
+| STAB-02 | Phase 7 — Stabilization | Pending |
+| STAB-03 | Phase 7 — Stabilization | Pending |
+| STAB-04 | Phase 7 — Stabilization | Pending |
+| REG-01 | Phase 8 — Account self-service & session control | Pending |
+| REG-02 | Phase 8 — Account self-service & session control | Pending |
+| REG-03 | Phase 8 — Account self-service & session control | Pending |
+| REG-04 | Phase 8 — Account self-service & session control | Pending |
+| REG-05 | Phase 8 — Account self-service & session control | Pending |
+| REG-06 | Phase 8 — Account self-service & session control | Pending |
+| LOGOUT-01 | Phase 8 — Account self-service & session control | Pending |
+| LOGOUT-02 | Phase 8 — Account self-service & session control | Pending |
+| LOGOUT-03 | Phase 8 — Account self-service & session control | Pending |
+| LOGOUT-04 | Phase 8 — Account self-service & session control | Pending |
+| ROUTE-01 | Phase 9 — Deep routing | Pending |
+| ROUTE-02 | Phase 9 — Deep routing | Pending |
+| ROUTE-03 | Phase 9 — Deep routing | Pending |
+| ROUTE-04 | Phase 9 — Deep routing | Pending |
+| I18N-01 | Phase 10 — Localization (ru/en) | Pending |
+| I18N-02 | Phase 10 — Localization (ru/en) | Pending |
+| I18N-03 | Phase 10 — Localization (ru/en) | Pending |
+| I18N-04 | Phase 10 — Localization (ru/en) | Pending |
+| I18N-05 | Phase 10 — Localization (ru/en) | Pending |
+| DEVX-01 | Phase 11 — Pre-deploy test design (doc only) | Pending |
+| DEVX-02 | Phase 11 — Pre-deploy test design (doc only) | Pending |
+| DEVX-03 | Phase 11 — Pre-deploy test design (doc only) | Pending |
+| DEVX-04 | Phase 11 — Pre-deploy test design (doc only) | Pending |
+| ANGULAR-01 | Phase 12 — Angular migration research (doc only) | Pending |
+| ANGULAR-02 | Phase 12 — Angular migration research (doc only) | Pending |
+| ANGULAR-03 | Phase 12 — Angular migration research (doc only) | Pending |
+| ANGULAR-04 | Phase 12 — Angular migration research (doc only) | Pending |
+| ANGULAR-05 | Phase 12 — Angular migration research (doc only) | Pending |
