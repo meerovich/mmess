@@ -41,12 +41,6 @@
   border-color: var(--color-accent);
 }
 
-.addReactionWrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-}
-
 /* Compact inline "+" trigger. Matches badge height so it does not stretch the row.
    Desktop: hidden by default, revealed when the parent message bubble is hovered
    (see MessageItem.module.css `.bubble:hover :global(.mmess-add-reaction-btn)`).
@@ -80,40 +74,7 @@
   opacity: 1;
 }
 
-.pickerContainer {
-  position: absolute;
-  bottom: 100%;
-  /* Anchor the picker to the RIGHT edge of the add-reaction button so the
-     picker body always expands to the LEFT, keeping it inside the viewport
-     for messages on the right column (own messages) where `left: 0` used to
-     push the picker off the right edge of the screen. */
-  right: 0;
-  left: auto;
-  z-index: 100;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  /* Constrain picker so it cannot blow the parent bubble wider than viewport */
-  max-width: min(360px, 90vw);
-  max-height: min(400px, 60vh);
-  overflow: auto;
-}
-
-/* Mobile: pin picker to the bottom of the viewport as a sheet with a scrim.
-   Prevents the emoji-mart picker from pushing content horizontally OR
-   floating above the viewport where the user cannot reach it. */
 @media (max-width: 767px) {
-  .pickerContainer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-    max-width: 100vw;
-    max-height: 70vh;
-    border-radius: 12px 12px 0 0;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
-  }
-
   /* On mobile there is no hover; always show the + trigger. */
   .addReactionBtn {
     opacity: 1;

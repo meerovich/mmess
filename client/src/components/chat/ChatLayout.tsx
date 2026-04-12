@@ -95,9 +95,6 @@ export function ChatLayout() {
     const vv = window.visualViewport;
     if (!vv) return;
 
-    // Remember initial height at page load (before any keyboard)
-    const initialHeight = vv.height;
-
     const setVH = () => {
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
 

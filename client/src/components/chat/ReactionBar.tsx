@@ -165,8 +165,6 @@ function groupReactions(reactions: MessageReaction[], currentUserId: string): Gr
 
 export function ReactionBar({ reactions, messageId, currentUserId, conversationId }: ReactionBarProps) {
   const sendWs = useSendMessage();
-  const [showPicker, setShowPicker] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
   const grouped = groupReactions(reactions, currentUserId);
   const hasReactions = grouped.length > 0;
@@ -185,39 +183,12 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
     }
   };
 
-  const handleEmojiSelect = (emojiData: { native: string }) => {
-    sendWs({
-      type: 'reaction:add',
-      payload: { message_id: messageId, emoji: emojiData.native, conversation_id: conversationId },
-    });
-    setShowPicker(false);
-  };
-
-  // When there are no reactions and the picker is closed, we still render the
-  // add-reaction button but mark the wrapper as "empty" so MessageItem.module.css
-  // can collapse it out of the document flow until the parent bubble is hovered
-  // (desktop) or we're on mobile (always visible via media query).
-  const wrapperClass = [
-    styles.reactionBarWrapper,
-    !hasReactions ? 'mmess-reaction-bar-empty' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
-  const addBtnClass = [
-    styles.addReactionBtn,
-    'mmess-add-reaction-btn',
-    showPicker ? styles.addReactionBtnOpen : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
-
   // Only render if there are reaction badges to show.
   // The + button has been moved to the timestamp row (AddReactionButton).
   if (!hasReactions) return null;
 
   return (
-    <div className={wrapperClass}>
+    <div className={styles.reactionBarWrapper}>
       <div className={styles.reactions}>
         {grouped.map(g => (
           <button

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
@@ -256,7 +256,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) return;
 
-    let debounceTimer: ReturnType<typeof setTimeout>;
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -286,7 +286,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
             }
           }, 500);
         } else {
-          clearTimeout(debounceTimer);
+          if (debounceTimer !== null) clearTimeout(debounceTimer);
         }
       },
       { threshold: 0.5 }
@@ -295,9 +295,9 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     observer.observe(lastMessageRef.current);
     return () => {
       observer.disconnect();
-      clearTimeout(debounceTimer);
+      if (debounceTimer !== null) clearTimeout(debounceTimer);
     };
-  }, [messages, conversationId, sendWs]);
+  }, [messages, conversationId, sendWs, user?.id]);
 
   // Find the index of the first unread INCOMING message for the divider.
   // "Unread" = any message AFTER the openReadCursor from ANOTHER user.
@@ -322,14 +322,14 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   }, [firstUnreadIdx, showDivider]);
 
   // Group messages: consecutive same sender within 5 minutes
-  const groupedMessages = messages.map((msg, idx) => {
+  const groupedMessages = useMemo(() => messages.map((msg, idx) => {
     if (idx === 0) return { msg, isGrouped: false };
     const prev = messages[idx - 1];
     const sameUser = prev.sender_id === msg.sender_id;
     const within5Min =
       new Date(msg.created_at).getTime() - new Date(prev.created_at).getTime() < 5 * 60 * 1000;
     return { msg, isGrouped: sameUser && within5Min };
-  });
+  }), [messages]);
 
   if (isInitialLoading) {
     return (
