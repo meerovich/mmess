@@ -46,24 +46,51 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: var(--text-body);
+  font-size: 20px;
   color: var(--color-accent);
   padding: var(--space-xs);
   flex-shrink: 0;
   min-width: 44px;
   min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* On desktop the sidebar is always visible, so the back button is redundant. */
+/* On desktop the sidebar is always visible, so the back button is redundant.
+   Use invisible placeholder to keep centering balanced. */
 @media (min-width: 768px) {
   .backButton {
-    display: none;
+    visibility: hidden;
   }
 }
 
+.headerCenter {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.headerCenterClickable {
+  cursor: pointer;
+}
+
+.headerCenterClickable:hover .headerName {
+  text-decoration: underline;
+}
+
+.headerName {
+  font-size: var(--text-heading);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .headerAvatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--color-accent-muted);
   display: flex;
@@ -76,28 +103,6 @@
   font-size: var(--text-body);
   font-weight: 600;
   color: var(--color-accent);
-}
-
-.headerInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.headerName {
-  font-size: var(--text-heading);
-  font-weight: 600;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.headerInfoClickable {
-  cursor: pointer;
-}
-
-.headerInfoClickable:hover .headerName {
-  text-decoration: underline;
 }
 
 .headerSubtitle {

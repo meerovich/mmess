@@ -67,20 +67,14 @@ export function ChatPane() {
           onClick={handleBack}
           aria-label={t('chat.backToConversations')}
         >
-          {t('chat.back')}
+          ←
         </button>
-        <div className={styles.headerAvatar}>
-          <span className={styles.avatarInitial}>
-            {conversationName.charAt(0).toUpperCase()}
-          </span>
-        </div>
         <div
-          className={`${styles.headerInfo} ${conversation?.type === 'group' ? styles.headerInfoClickable : ''}`}
+          className={`${styles.headerCenter} ${conversation?.type === 'group' ? styles.headerCenterClickable : ''}`}
           onClick={() => conversation?.type === 'group' && setShowSettings(true)}
           role={conversation?.type === 'group' ? 'button' : undefined}
           tabIndex={conversation?.type === 'group' ? 0 : undefined}
           onKeyDown={e => conversation?.type === 'group' && e.key === 'Enter' && setShowSettings(true)}
-          aria-label={conversation?.type === 'group' ? t('chat.openSettings', { name: conversationName }) : undefined}
         >
           <span className={styles.headerName}>{conversationName}</span>
           {conversation?.type === 'group' && (
@@ -88,6 +82,11 @@ export function ChatPane() {
               {t('chat.membersCount', { count: String(conversation.participants.length) })}
             </span>
           )}
+        </div>
+        <div className={styles.headerAvatar}>
+          <span className={styles.avatarInitial}>
+            {conversationName.charAt(0).toUpperCase()}
+          </span>
         </div>
       </header>
 
