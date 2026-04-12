@@ -104,9 +104,22 @@ export function ChatLayout() {
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-        // Keyboard open = current height significantly less than initial
+        // Keyboard open = current height significantly less than initial.
+        // Use a small tolerance to avoid flicker when keyboard briefly hides
+        // (e.g., tapping the attach button).
         const keyboardOpen = initialHeight - vv.height > 100;
-        layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
+        // Only restore padding after a stable non-keyboard state (300ms debounce)
+        if (keyboardOpen) {
+          layoutRef.current.style.paddingBottom = '0';
+          layoutRef.current.dataset.kbOpen = '1';
+        } else if (layoutRef.current.dataset.kbOpen === '1') {
+          setTimeout(() => {
+            if (layoutRef.current && initialHeight - vv.height <= 100) {
+              layoutRef.current.style.paddingBottom = '';
+              layoutRef.current.dataset.kbOpen = '';
+            }
+          }, 300);
+        }
       }
 
       // Force window back to top
