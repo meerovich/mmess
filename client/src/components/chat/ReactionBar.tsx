@@ -59,18 +59,25 @@ export function AddReactionButton({ messageId, conversationId }: {
   };
 
   // Render picker via portal at document.body so it escapes all overflow:hidden ancestors
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const pickerPortal = showPicker && pickerPos ? createPortal(
     <>
-      <div className={styles.pickerBackdrop} onClick={() => { setShowPicker(false); setExpanded(false); }} />
       <div
-        className={styles.quickPicker}
-        style={{
+        className={styles.pickerBackdrop}
+        onClick={() => { setShowPicker(false); setExpanded(false); }}
+        onTouchMove={(e) => e.preventDefault()}
+      />
+      <div
+        className={`${styles.quickPicker} ${isMobile ? styles.quickPickerMobile : ''}`}
+        style={isMobile ? {
           position: 'fixed',
-          top: 'auto',
+          bottom: window.innerHeight - pickerPos.top,
+        } : {
+          position: 'fixed',
           bottom: window.innerHeight - pickerPos.top,
           left: pickerPos.left,
-          right: 'auto',
         }}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         <div className={styles.quickPickerRow}>
           {TOP_EMOJIS.map(emoji => (

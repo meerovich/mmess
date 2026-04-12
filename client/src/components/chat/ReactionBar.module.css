@@ -153,7 +153,11 @@
 .pickerBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 99;
+  z-index: 9999;
+  /* Block all touch interaction so the chat behind can't scroll */
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: contain;
 }
 
 /* Picker rendered via portal at document.body with position:fixed.
@@ -171,13 +175,14 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* Mobile: stretch to full width */
+/* Mobile: full-width picker */
+.quickPickerMobile {
+  left: 8px !important;
+  right: 8px !important;
+  width: auto !important;
+}
+
 @media (max-width: 767px) {
-  .quickPicker {
-    left: 8px !important;
-    right: 8px;
-    width: auto;
-  }
   .quickPickerRow {
     justify-content: space-around;
   }
