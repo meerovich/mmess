@@ -51,10 +51,15 @@ export function ChatLayout() {
 
     const onResize = () => {
       if (layoutRef.current) {
-        layoutRef.current.style.height = `${vv.height}px`;
+        // vv.height = distance from top of visible area to top of keyboard.
+        // vv.offsetTop = how much iOS Safari pushed the viewport down (scroll
+        // compensation when the focused input is near the bottom). We subtract
+        // offsetTop so the layout height exactly fills the visible area between
+        // the top of the screen and the top of the keyboard — no gap.
+        const h = vv.height - (vv.offsetTop ?? 0);
+        layoutRef.current.style.height = `${h}px`;
       }
-      // Also prevent scroll-to-input behavior that pushes content up:
-      // reset window scroll to 0 so the fixed-height layout stays at top.
+      // Prevent iOS Safari from scrolling the page up when focusing input.
       window.scrollTo(0, 0);
     };
 

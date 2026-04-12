@@ -46,8 +46,14 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       ? (conversation.participants.find(p => p.user_id !== user.id)?.username ?? conversation.name ?? 'Unknown')
       : (conversation.name ?? 'Group');
 
+  // Strip markdown syntax for sidebar preview: remove **bold**, *italic*,
+  // `code`, [links](url), # headers, etc. — show clean plain text.
   const lastPreview = conversation.last_message?.content
-    ? conversation.last_message.content.slice(0, 50)
+    ? conversation.last_message.content
+        .replace(/[*_~`#>\[\]()!]/g, '')
+        .replace(/\n+/g, ' ')
+        .trim()
+        .slice(0, 50)
     : null;
 
   const timeStr = conversation.updated_at ? formatTime(conversation.updated_at) : '';

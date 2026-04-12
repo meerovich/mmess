@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
@@ -9,6 +10,21 @@ import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
 import styles from './MessageItem.module.css';
 import type { Message, Participant } from '../../types/chat';
+
+// Configure marked for chat messages: no paragraph wrapping for single lines,
+// breaks on newlines (GFM), sanitize by not allowing raw HTML.
+marked.setOptions({ breaks: true, gfm: true });
+
+/** Render markdown to HTML string, stripping outer <p> for single-line messages. */
+function renderMarkdown(text: string): string {
+  const html = marked.parse(text, { async: false }) as string;
+  // Strip wrapping <p>...</p> if the entire output is a single paragraph
+  const trimmed = html.trim();
+  if (trimmed.startsWith('<p>') && trimmed.endsWith('</p>') && trimmed.indexOf('<p>', 1) === -1) {
+    return trimmed.slice(3, -4);
+  }
+  return trimmed;
+}
 
 interface MessageItemProps {
   message: Message;
@@ -202,9 +218,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               />
             )}
 
-            {/* Text content (caption or regular message) */}
+            {/* Text content with markdown rendering */}
             {message.content && (
-              <div className={styles.content}>{message.content}</div>
+              <div
+                className={styles.content}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+              />
             )}
           </>
         )}
