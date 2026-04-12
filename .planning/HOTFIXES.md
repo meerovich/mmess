@@ -399,4 +399,68 @@ All fixed together and deployed as v1.0.3.
 
 ---
 
-*Last updated: 2026-04-12 — hotfix 6 batch deployed as v1.0.3.*
+## Hotfix 7 — Read receipt pipeline + E2E regression (v1.0.4, Phase 7)
+
+Phase 7 stabilization execution — see `.planning/phases/07-stabilization/07-VERIFICATION.md`.
+
+- **Server:** `message:delivered` event emitted when broadcast reaches online socket
+- **Client:** Fixed `read:by` handler field name (`message_ids` → `message_id`), `MARK_READ`
+  reducer now updates `participants[].last_read_at`, `ReadReceipt` component shows 3-state
+  ✓ gray → ✓✓ gray → ✓✓ blue
+- **E2E test:** `.vps-test-ws.mjs` rewritten to 242-line regression script, 27/27 assertions
+
+---
+
+## Hotfix 8 — Sticky header + guaranteed delivery on WS reconnect (v1.0.5)
+
+Critical daily-use bugs reported by user after v1.0.4 deploy.
+
+### 8.1 Chat header scrolls away — back button unreachable
+
+- **File:** `client/src/components/chat/ChatPane.module.css`
+- **Symptom:** On mobile, to return to conversation list, user had to scroll
+  the message list all the way to the top to reach the back button in the header.
+- **Root cause:** `.pane` in ChatPane.module.css lacked `overflow: hidden`, allowing
+  child content to push the fixed header off screen in edge cases.
+- **Fix:** Added `overflow: hidden` to `.pane`.
+
+### 8.2 Messages not delivered after phone screen lock/unlock
+
+- **Files:** `client/src/providers/WebSocketProvider.tsx`,
+  `client/src/components/chat/MessageList.tsx`
+- **Symptom:** User has chat open on phone, locks screen. Messages sent by
+  others during lock period are NOT delivered. After unlocking, still no
+  messages appear until manually navigating back to conversation list and
+  re-entering the chat.
+- **Root cause:** When the mobile OS suspends the browser tab, the WebSocket
+  connection is silently dropped. The existing reconnect logic (5s timer on
+  `ws.onclose`) successfully re-establishes the WS, but there was **no
+  mechanism to fetch messages missed during the disconnection gap**. A comment
+  in the code said "REST-based replay per D-06 is handled by components" —
+  but this replay was never implemented.
+- **Fix (WebSocketProvider):** Track first-vs-reconnect via `hasConnectedOnceRef`.
+  On reconnect (not first connect), immediately:
+  1. Re-fetch full conversation list via `GET /api/conversations` (picks up
+     new conversations, updated unread counts)
+  2. Re-fetch messages for the active conversation via
+     `GET /api/conversations/:id/messages?limit=50` and dispatch `SET_MESSAGES`
+- **Fix (MessageList):** Reset `didInitialLoadRef` on WS reconnect
+  (`reconnecting → connected` transition) so that navigating to any
+  conversation after reconnect triggers a fresh message fetch instead of
+  serving stale cached data.
+- **Design note:** This is a "blunt but guaranteed" approach — re-fetches the
+  last 50 messages and replaces state. A more efficient `after=last_message_id`
+  incremental fetch would require adding a new server endpoint parameter.
+  At this scale (tens of users, ~50 messages per fetch) the full re-fetch is
+  fast enough and eliminates any risk of missed messages.
+
+### Smoke test
+
+- `docker compose ps` — all 3 healthy
+- `/api/health` — `{"status":"ok","version":"1.0.5"}`
+- `curl -I /` — `cache-control: no-store, must-revalidate`
+- Login as admin — OK
+
+---
+
+*Last updated: 2026-04-12 — hotfix 8 deployed as v1.0.5.*
