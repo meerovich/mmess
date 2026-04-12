@@ -168,6 +168,24 @@
   margin-left: var(--space-xs);
 }
 
+/* Inline reply button in timestamp row — always visible, compact */
+.inlineReplyBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.inlineReplyBtn:hover,
+.inlineReplyBtn:active {
+  opacity: 1;
+  color: var(--color-accent);
+}
+
 .receipt {
   display: inline;
   margin-left: var(--space-xs);
