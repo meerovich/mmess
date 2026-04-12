@@ -17,3 +17,27 @@
   color: var(--color-text-muted);
   padding: var(--space-sm);
 }
+
+.unreadDivider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0;
+}
+
+.unreadDivider::before,
+.unreadDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-accent);
+  opacity: 0.5;
+}
+
+.unreadDividerText {
+  font-size: var(--text-label);
+  color: var(--color-accent);
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0 var(--space-xs);
+}

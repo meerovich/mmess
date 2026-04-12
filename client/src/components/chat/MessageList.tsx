@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { apiFetch } from '../../lib/api';
 import { MessageItem } from './MessageItem';
@@ -14,12 +15,18 @@ interface MessageListProps {
 
 export function MessageList({ conversationId, onReply, onEdit }: MessageListProps) {
   const { state, dispatch, messagePagination } = useChat();
+  const { user } = useAuth();
   const sendWs = useSendMessage();
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const lastMessageRef = useRef<HTMLDivElement>(null);
+  const unreadDividerRef = useRef<HTMLDivElement>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const didInitialLoadRef = useRef<string | null>(null);
+  // Track the last_read_message_id at the moment the conversation was opened,
+  // so the "unread" divider stays stable while new messages come in.
+  const [openReadCursor, setOpenReadCursor] = useState<string | null>(null);
+  const [showDivider, setShowDivider] = useState(true);
 
   const messages: Message[] = state.messages[conversationId] ?? [];
   const pagination = messagePagination[conversationId];
@@ -66,6 +73,15 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     prevWsStatusRef.current = state.wsStatus;
   }, [state.wsStatus]);
 
+  // Capture the current user's last_read_message_id when opening a conversation.
+  // This determines where the "unread messages" divider is placed.
+  useEffect(() => {
+    const conv = state.conversations.find(c => c.id === conversationId);
+    const me = conv?.participants.find(p => p.user_id === user?.id);
+    setOpenReadCursor(me?.last_read_message_id ?? null);
+    setShowDivider(true);
+  }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Initial load when conversationId changes
   useEffect(() => {
     if (!conversationId) return;
@@ -82,13 +98,17 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
           hasMore: data.hasMore ?? false,
           nextCursor: data.nextCursor ?? null,
         });
-        // Scroll to bottom after initial load and mark the user as being at
-        // the bottom so subsequent incoming messages auto-follow.
-        isAtBottomRef.current = true;
+        // After load: if there's an unread divider, scroll to it.
+        // Otherwise scroll to bottom.
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            scrollToBottom();
-            isAtBottomRef.current = true;
+            if (unreadDividerRef.current) {
+              unreadDividerRef.current.scrollIntoView({ block: 'center' });
+              isAtBottomRef.current = false;
+            } else {
+              scrollToBottom();
+              isAtBottomRef.current = true;
+            }
           });
         });
       })
@@ -210,6 +230,24 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     };
   }, [messages, conversationId, sendWs]);
 
+  // Find the index of the first unread message for the divider.
+  // "Unread" = any message AFTER the openReadCursor (by position in the sorted array).
+  // The divider is placed BEFORE the first unread message.
+  const firstUnreadIdx = (() => {
+    if (!openReadCursor || !showDivider) return -1;
+    const cursorIdx = messages.findIndex(m => m.id === openReadCursor);
+    if (cursorIdx === -1) return -1; // cursor not in loaded messages
+    if (cursorIdx >= messages.length - 1) return -1; // everything is read
+    return cursorIdx + 1;
+  })();
+
+  // Hide the divider 3 seconds after it's been rendered (user has "seen" the unread section).
+  useEffect(() => {
+    if (firstUnreadIdx < 0 || !showDivider) return;
+    const timer = setTimeout(() => setShowDivider(false), 3000);
+    return () => clearTimeout(timer);
+  }, [firstUnreadIdx, showDivider]);
+
   // Group messages: consecutive same sender within 5 minutes
   const groupedMessages = messages.map((msg, idx) => {
     if (idx === 0) return { msg, isGrouped: false };
@@ -225,17 +263,23 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       <div ref={sentinelRef} className={styles.sentinel} />
       {isLoadingMore && <div className={styles.loadingMore}>Loading older messages…</div>}
       {groupedMessages.map(({ msg, isGrouped }, idx) => (
-        <div
-          key={msg.id}
-          ref={idx === groupedMessages.length - 1 ? lastMessageRef : undefined}
-        >
-          <MessageItem
-            message={msg}
-            isGrouped={isGrouped}
-            onReply={onReply}
-            onEdit={onEdit}
-          />
-        </div>
+        <React.Fragment key={msg.id}>
+          {idx === firstUnreadIdx && (
+            <div ref={unreadDividerRef} className={styles.unreadDivider}>
+              <span className={styles.unreadDividerText}>Unread messages</span>
+            </div>
+          )}
+          <div
+            ref={idx === groupedMessages.length - 1 ? lastMessageRef : undefined}
+          >
+            <MessageItem
+              message={msg}
+              isGrouped={isGrouped}
+              onReply={onReply}
+              onEdit={onEdit}
+            />
+          </div>
+        </React.Fragment>
       ))}
     </div>
   );
