@@ -61,6 +61,27 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // MOBILE KEYBOARD FIX: when the virtual keyboard opens, the visual viewport
+  // shrinks. If the user was at the bottom, scroll down so the last messages
+  // remain visible above the keyboard instead of being covered.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    let prevHeight = vv.height;
+
+    const onResize = () => {
+      const newHeight = vv.height;
+      // Keyboard opened (viewport shrank) while user was at bottom → scroll down
+      if (newHeight < prevHeight && isAtBottomRef.current) {
+        requestAnimationFrame(() => scrollToBottom());
+      }
+      prevHeight = newHeight;
+    };
+
+    vv.addEventListener('resize', onResize);
+    return () => vv.removeEventListener('resize', onResize);
+  }, [scrollToBottom]);
+
   // Reset initial-load guard on WS reconnect so that navigating to any
   // conversation after a reconnect triggers a fresh fetch — otherwise the
   // guard prevents re-fetching and the user sees stale messages from before
@@ -215,6 +236,21 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
                 message_id: lastMessage.id,
               },
             });
+            // Immediately update local state so the unread divider won't
+            // reappear when re-entering this conversation.
+            dispatch({
+              type: 'MARK_READ',
+              conversationId,
+              messageId: lastMessage.id,
+            });
+            if (user?.id) {
+              dispatch({
+                type: 'UPDATE_PARTICIPANT_READ',
+                conversationId,
+                userId: user.id,
+                lastReadAt: new Date().toISOString(),
+              });
+            }
           }, 500);
         } else {
           clearTimeout(debounceTimer);

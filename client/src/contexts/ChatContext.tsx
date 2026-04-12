@@ -182,7 +182,10 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         ),
       };
 
-    case 'UPDATE_PARTICIPANT_READ':
+    case 'UPDATE_PARTICIPANT_READ': {
+      // Find the latest message in this conversation to set as last_read_message_id
+      const readMsgs = state.messages[action.conversationId];
+      const latestMsgId = readMsgs?.[readMsgs.length - 1]?.id ?? null;
       return {
         ...state,
         conversations: state.conversations.map((c: Conversation) => {
@@ -191,12 +194,17 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
             ...c,
             participants: c.participants.map(p =>
               p.user_id === action.userId
-                ? { ...p, last_read_at: action.lastReadAt }
+                ? {
+                    ...p,
+                    last_read_at: action.lastReadAt,
+                    last_read_message_id: latestMsgId ?? p.last_read_message_id,
+                  }
                 : p
             ),
           };
         }),
       };
+    }
 
     case 'WS_STATUS':
       return { ...state, wsStatus: action.status };
