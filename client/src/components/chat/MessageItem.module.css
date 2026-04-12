@@ -160,10 +160,9 @@
   gap: var(--space-xs);
 }
 
-.timestampActions {
+.timestampReactions {
   display: flex;
   align-items: center;
-  gap: 2px;
 }
 
 .timestampSpacer {

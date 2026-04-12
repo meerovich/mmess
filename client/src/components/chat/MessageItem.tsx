@@ -232,32 +232,32 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           </>
         )}
 
-        {/* Reactions */}
-        {!message.is_deleted && (
-          <ReactionBar
-            reactions={message.reactions}
-            messageId={message.id}
-            currentUserId={currentUserId}
-            conversationId={message.conversation_id}
-          />
-        )}
-
-        {/* Timestamp row: actions left | spacer | time+receipt right */}
+        {/* Timestamp row: [reaction badges] left | spacer | [+ ↩ time receipt] right */}
         <div className={styles.timestamp}>
           {!message.is_deleted && (
-            <span className={styles.timestampActions}>
-              <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
-              <button
-                className={styles.inlineReplyBtn}
-                onClick={handleReply}
-                aria-label={t('chat.reply')}
-              >
-                ↩
-              </button>
+            <span className={styles.timestampReactions}>
+              <ReactionBar
+                reactions={message.reactions}
+                messageId={message.id}
+                currentUserId={currentUserId}
+                conversationId={message.conversation_id}
+              />
             </span>
           )}
           <span className={styles.timestampSpacer} />
           <span className={styles.timestampTime}>
+            {!message.is_deleted && (
+              <>
+                <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
+                <button
+                  className={styles.inlineReplyBtn}
+                  onClick={handleReply}
+                  aria-label={t('chat.reply')}
+                >
+                  ↩
+                </button>
+              </>
+            )}
             {timestamp}
             {message.edited_at && !message.is_deleted && (
               <span className={styles.edited}>{t('chat.edited')}</span>
