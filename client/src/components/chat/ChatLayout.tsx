@@ -105,7 +105,9 @@ export function ChatLayout() {
         // Counteract iOS viewport offset (keyboard pushes page up)
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
         // Remove bottom safe-area when keyboard is open (viewport shrank)
-        const keyboardOpen = vv.height < window.innerHeight * 0.85;
+        // Keyboard is "open" if visualViewport is noticeably smaller than window
+        // 150px threshold catches even the smallest keyboards (emoji bar, password autofill)
+        const keyboardOpen = window.innerHeight - vv.height > 150;
         layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
 
