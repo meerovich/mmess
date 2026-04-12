@@ -1,15 +1,9 @@
-import React, { lazy, Suspense, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
 
-// @emoji-mart/react has no TS declarations — use any cast for the lazy picker
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const EmojiPickerRaw = lazy(() =>
-  import('@emoji-mart/react').then(mod => ({ default: (mod as any).default ?? mod }))
-);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const EmojiPicker = EmojiPickerRaw as React.ComponentType<any>;
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
 interface ReactionBarProps {
   reactions: MessageReaction[];
@@ -18,16 +12,16 @@ interface ReactionBarProps {
   conversationId: string;
 }
 
-// Exported separately for use in timestamp row (MessageItem)
+// Exported separately for use in timestamp row (MessageItem).
+// Compact quick-reaction panel instead of full emoji-mart picker.
 export function AddReactionButton({ messageId, conversationId }: { messageId: string; conversationId: string }) {
   const sendWs = useSendMessage();
   const [showPicker, setShowPicker] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
-  const handleEmojiSelect = (emojiData: { native: string }) => {
+  const handleEmojiClick = (emoji: string) => {
     sendWs({
       type: 'reaction:add',
-      payload: { message_id: messageId, emoji: emojiData.native, conversation_id: conversationId },
+      payload: { message_id: messageId, emoji, conversation_id: conversationId },
     });
     setShowPicker(false);
   };
@@ -43,19 +37,20 @@ export function AddReactionButton({ messageId, conversationId }: { messageId: st
         +
       </button>
       {showPicker && (
-        <div
-          ref={pickerRef}
-          className={styles.pickerContainer}
-          onBlur={(e) => {
-            if (!pickerRef.current?.contains(e.relatedTarget as Node)) {
-              setShowPicker(false);
-            }
-          }}
-        >
-          <Suspense fallback={<div className={styles.pickerLoading}>Loading…</div>}>
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-          </Suspense>
-        </div>
+        <>
+          <div className={styles.pickerBackdrop} onClick={() => setShowPicker(false)} />
+          <div className={styles.quickPicker}>
+            {QUICK_EMOJIS.map(emoji => (
+              <button
+                key={emoji}
+                className={styles.quickEmojiBtn}
+                onClick={() => handleEmojiClick(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

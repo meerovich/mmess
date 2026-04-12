@@ -125,3 +125,41 @@
   color: var(--color-text-muted);
   font-size: var(--text-label);
 }
+
+/* Compact quick-reaction picker */
+.pickerBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.quickPicker {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  gap: 2px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 4px 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.quickEmojiBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: background 0.1s;
+}
+
+.quickEmojiBtn:hover,
+.quickEmojiBtn:active {
+  background: var(--color-reaction-bg-active);
+}
