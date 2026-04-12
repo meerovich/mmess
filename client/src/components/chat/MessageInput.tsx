@@ -297,6 +297,13 @@ export function MessageInput({
     <div
       className={`${styles.inputArea} ${isDragging ? styles.dragOver : ''}`}
       aria-dropeffect={isDragging ? 'copy' : undefined}
+      onTouchMove={(e) => {
+        // Prevent iOS from dragging the input area (rubber-band bounce)
+        // Only prevent if the target is not the textarea itself (allow scroll inside textarea)
+        if (!(e.target instanceof HTMLTextAreaElement)) {
+          e.preventDefault();
+        }
+      }}
     >
       {/* Reply strip */}
       {replyTo && (
@@ -381,7 +388,14 @@ export function MessageInput({
           value={value}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'))}
+          onFocus={() => {
+            window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
+            // iOS Safari scrolls the page to bring the textarea into view
+            // when the keyboard opens. Force scroll back to 0 after a brief
+            // delay so the page doesn't shift.
+            setTimeout(() => window.scrollTo(0, 0), 100);
+            setTimeout(() => window.scrollTo(0, 0), 300);
+          }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
           rows={1}
