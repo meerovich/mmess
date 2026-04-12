@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import { eq, and, gt, desc } from 'drizzle-orm';
+import { eq, and, gt, desc, lte } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { messages, users, files, conversations } from '../../db/schema.js';
+import { messages, users, files, conversations, message_reads, conversation_participants } from '../../db/schema.js';
 import { broadcastExcludeSocket } from '../ws/registry.js';
 
 // Bot config — hardcoded for simplicity during dev/testing.
@@ -198,5 +198,100 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
 
     // Return in chronological order (oldest first)
     return { messages: enriched.reverse() };
+  });
+
+  // POST /bot/read — mark all messages in conversation as read by the bot.
+  // This updates last_read_message_id and broadcasts read:by so the sender
+  // sees their checkmarks turn blue.
+  fastify.post('/bot/read', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['secret'],
+        properties: {
+          secret: { type: 'string' },
+          conversation_id: { type: 'string' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { secret, conversation_id } = request.body as {
+      secret: string;
+      conversation_id?: string;
+    };
+
+    if (!checkSecret(secret)) {
+      return reply.code(403).send({ error: 'Invalid secret' });
+    }
+
+    const convId = conversation_id ?? BOT_CONV_MIHA;
+
+    const [botUser] = await (db as any)
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, BOT_EMAIL));
+
+    if (!botUser) {
+      return reply.code(500).send({ error: 'Bot user not found' });
+    }
+
+    // Find the latest message in the conversation
+    const [lastMsg] = await (db as any)
+      .select({ id: messages.id, created_at: messages.created_at })
+      .from(messages)
+      .where(eq(messages.conversation_id, convId))
+      .orderBy(desc(messages.created_at))
+      .limit(1);
+
+    if (!lastMsg) {
+      return { ok: true, read_count: 0 };
+    }
+
+    // Batch insert read receipts for all unread messages
+    const unread = await (db as any)
+      .select({ id: messages.id })
+      .from(messages)
+      .where(and(
+        eq(messages.conversation_id, convId),
+        lte(messages.created_at, lastMsg.created_at)
+      ));
+
+    for (const msg of unread) {
+      await (db as any)
+        .insert(message_reads)
+        .values({ message_id: msg.id, user_id: botUser.id })
+        .onConflictDoNothing();
+    }
+
+    // Update last_read_message_id on conversation_participants
+    await (db as any)
+      .update(conversation_participants)
+      .set({ last_read_message_id: lastMsg.id })
+      .where(and(
+        eq(conversation_participants.conversation_id, convId),
+        eq(conversation_participants.user_id, botUser.id)
+      ));
+
+    // Broadcast read:by to all participants so sender sees checkmarks
+    const { broadcast } = await import('../ws/registry.js');
+    const participants = await (db as any)
+      .select({ user_id: conversation_participants.user_id })
+      .from(conversation_participants)
+      .where(eq(conversation_participants.conversation_id, convId));
+
+    broadcast(
+      participants.map((p: { user_id: string }) => p.user_id),
+      {
+        type: 'read:by',
+        payload: {
+          conversation_id: convId,
+          user_id: botUser.id,
+          message_id: lastMsg.id,
+          read_at: new Date().toISOString(),
+        },
+      }
+    );
+
+    return { ok: true, read_count: unread.length };
   });
 }

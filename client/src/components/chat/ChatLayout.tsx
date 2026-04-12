@@ -29,10 +29,16 @@ export function ChatLayout() {
   // Sync URL param → ChatContext activeConversationId.
   // This is how push notification clicks (/chat/:id) and deep links work:
   // the URL drives the active conversation, not just sidebar clicks.
+  // When URL is / (no conversationId), reset to sidebar view — this is what
+  // makes browser swipe-back gesture work: history.back() goes to /,
+  // urlConversationId becomes undefined, showChat resets to false.
   useEffect(() => {
     if (urlConversationId) {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
-      setShowChat(true); // on mobile, show chat pane instead of sidebar
+      setShowChat(true);
+    } else {
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
+      setShowChat(false);
     }
   }, [urlConversationId, dispatch]);
 
