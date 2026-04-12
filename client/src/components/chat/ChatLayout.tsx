@@ -113,27 +113,9 @@ export function ChatLayout() {
     vv.addEventListener('resize', setVH);
     vv.addEventListener('scroll', setVH);
 
-    // Also handle touchmove on non-scrollable areas to prevent rubber-band
-    const preventBounce = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      // Allow scroll inside scrollable containers (message list, modals)
-      let el: HTMLElement | null = target;
-      while (el && el !== document.body) {
-        const style = getComputedStyle(el);
-        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-          return; // allow natural scroll
-        }
-        el = el.parentElement;
-      }
-      e.preventDefault();
-    };
-
-    document.addEventListener('touchmove', preventBounce, { passive: false });
-
     return () => {
       vv.removeEventListener('resize', setVH);
       vv.removeEventListener('scroll', setVH);
-      document.removeEventListener('touchmove', preventBounce);
     };
   }, []);
 
