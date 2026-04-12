@@ -54,6 +54,18 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
+  // Reset initial-load guard on WS reconnect so that navigating to any
+  // conversation after a reconnect triggers a fresh fetch — otherwise the
+  // guard prevents re-fetching and the user sees stale messages from before
+  // the connection was lost (screen lock, network change, etc.).
+  const prevWsStatusRef = useRef(state.wsStatus);
+  useEffect(() => {
+    if (prevWsStatusRef.current === 'reconnecting' && state.wsStatus === 'connected') {
+      didInitialLoadRef.current = null; // force re-fetch on next render
+    }
+    prevWsStatusRef.current = state.wsStatus;
+  }, [state.wsStatus]);
+
   // Initial load when conversationId changes
   useEffect(() => {
     if (!conversationId) return;

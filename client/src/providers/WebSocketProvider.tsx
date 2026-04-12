@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ChatAction, Message } from '../types/chat';
 import { useChat } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 
 // Module-level references set by WebSocketProvider for use in handleIncoming
 let _currentUserId: string | null = null;
@@ -187,9 +188,15 @@ const WebSocketContext = createContext<WebSocketContextValue | null>(null);
 export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { dispatch } = useChat();
+  const hasConnectedOnceRef = useRef(false);
+  const { dispatch, state } = useChat();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Stable ref to current state so the reconnect handler can read fresh
+  // conversations/messages without re-creating the connect callback.
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // Keep module-level refs in sync for use in handleIncoming (defined outside component)
   useEffect(() => {
@@ -207,10 +214,45 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws`);
 
     ws.onopen = () => {
+      const isReconnect = hasConnectedOnceRef.current;
+      hasConnectedOnceRef.current = true;
       dispatch({ type: 'WS_STATUS', status: 'connected' });
-      // On reconnect: REST-based replay per D-06 is handled by components
-      // that subscribe to wsStatus changes and re-fetch missed messages via
-      // GET /api/conversations/:id/messages?after=last_seen_message_id
+
+      // On reconnect: re-fetch conversations (for new conversations, updated
+      // unread counts) and re-fetch messages for the active conversation.
+      // This is the guaranteed-delivery mechanism — any messages that arrived
+      // while the WS was disconnected (screen lock, network loss, etc.) are
+      // fetched via REST and merged into state.
+      if (isReconnect) {
+        // 1. Re-fetch conversation list
+        apiFetch('/api/conversations')
+          .then(res => res.ok ? res.json() : null)
+          .then((data: { conversations: import('../types/chat').Conversation[] } | null) => {
+            if (data?.conversations) {
+              dispatch({ type: 'SET_CONVERSATIONS', conversations: data.conversations });
+            }
+          })
+          .catch(() => { /* silent — WS is back, next reconnect will retry */ });
+
+        // 2. Re-fetch messages for the currently open conversation
+        const activeId = stateRef.current.activeConversationId;
+        if (activeId) {
+          apiFetch(`/api/conversations/${activeId}/messages?limit=50`)
+            .then(res => res.ok ? res.json() : null)
+            .then((data: { messages: Message[]; hasMore: boolean; nextCursor: string | null } | null) => {
+              if (data?.messages) {
+                dispatch({
+                  type: 'SET_MESSAGES',
+                  conversationId: activeId,
+                  messages: data.messages,
+                  hasMore: data.hasMore ?? false,
+                  nextCursor: data.nextCursor ?? null,
+                });
+              }
+            })
+            .catch(() => { /* silent */ });
+        }
+      }
     };
 
     ws.onmessage = (event) => {
