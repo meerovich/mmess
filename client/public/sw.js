@@ -27,24 +27,24 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// When user clicks the notification, open or focus the chat
+// When user clicks the notification, open the specific chat it came from
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.url || '/';
+  const path = event.notification.data?.url || '/';
+  // Build absolute URL from SW origin + relative path
+  const targetUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // If a window is already open, focus it and navigate
+      // If a window with our app is already open, focus it and navigate to the chat
       for (const client of clients) {
-        if (client.url.includes(self.registration.scope)) {
-          client.focus();
-          client.navigate(url);
-          return;
+        if (new URL(client.url).origin === self.location.origin) {
+          return client.focus().then(() => client.navigate(targetUrl));
         }
       }
-      // Otherwise open a new window
-      return self.clients.openWindow(url);
+      // No existing window — open a new one pointing directly to the chat
+      return self.clients.openWindow(targetUrl);
     })
   );
 });
