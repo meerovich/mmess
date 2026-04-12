@@ -204,6 +204,37 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     _navigate = navigate;
   }, [user, navigate]);
 
+  // Re-fetch conversations + active conversation messages. Called on reconnect
+  // and on visibility-change wake to guarantee delivery of missed messages.
+  const replayMissedMessages = useCallback(() => {
+    apiFetch('/api/conversations')
+      .then(res => res.ok ? res.json() : null)
+      .then((data: { conversations: import('../types/chat').Conversation[] } | null) => {
+        if (data?.conversations) {
+          dispatch({ type: 'SET_CONVERSATIONS', conversations: data.conversations });
+        }
+      })
+      .catch(() => {});
+
+    const activeId = stateRef.current.activeConversationId;
+    if (activeId) {
+      apiFetch(`/api/conversations/${activeId}/messages?limit=50`)
+        .then(res => res.ok ? res.json() : null)
+        .then((data: { messages: Message[]; hasMore: boolean; nextCursor: string | null } | null) => {
+          if (data?.messages) {
+            dispatch({
+              type: 'SET_MESSAGES',
+              conversationId: activeId,
+              messages: data.messages,
+              hasMore: data.hasMore ?? false,
+              nextCursor: data.nextCursor ?? null,
+            });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [dispatch]);
+
   const connect = useCallback(() => {
     // Prevent duplicate connections
     if (wsRef.current && wsRef.current.readyState < 2) {
@@ -218,40 +249,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       hasConnectedOnceRef.current = true;
       dispatch({ type: 'WS_STATUS', status: 'connected' });
 
-      // On reconnect: re-fetch conversations (for new conversations, updated
-      // unread counts) and re-fetch messages for the active conversation.
-      // This is the guaranteed-delivery mechanism — any messages that arrived
-      // while the WS was disconnected (screen lock, network loss, etc.) are
-      // fetched via REST and merged into state.
+      // On reconnect: guaranteed-delivery via REST replay. Any messages that
+      // arrived while the WS was disconnected (screen lock, network loss) are
+      // fetched and merged into state.
       if (isReconnect) {
-        // 1. Re-fetch conversation list
-        apiFetch('/api/conversations')
-          .then(res => res.ok ? res.json() : null)
-          .then((data: { conversations: import('../types/chat').Conversation[] } | null) => {
-            if (data?.conversations) {
-              dispatch({ type: 'SET_CONVERSATIONS', conversations: data.conversations });
-            }
-          })
-          .catch(() => { /* silent — WS is back, next reconnect will retry */ });
-
-        // 2. Re-fetch messages for the currently open conversation
-        const activeId = stateRef.current.activeConversationId;
-        if (activeId) {
-          apiFetch(`/api/conversations/${activeId}/messages?limit=50`)
-            .then(res => res.ok ? res.json() : null)
-            .then((data: { messages: Message[]; hasMore: boolean; nextCursor: string | null } | null) => {
-              if (data?.messages) {
-                dispatch({
-                  type: 'SET_MESSAGES',
-                  conversationId: activeId,
-                  messages: data.messages,
-                  hasMore: data.hasMore ?? false,
-                  nextCursor: data.nextCursor ?? null,
-                });
-              }
-            })
-            .catch(() => { /* silent */ });
-        }
+        replayMissedMessages();
       }
     };
 
@@ -266,13 +268,15 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
 
     ws.onclose = () => {
       dispatch({ type: 'WS_STATUS', status: 'reconnecting' });
-      reconnectTimerRef.current = setTimeout(connect, 5000); // D-05: fixed 5s
+      // Fast reconnect — 2s instead of 5s for quicker recovery after screen
+      // lock/unlock or brief network drops.
+      reconnectTimerRef.current = setTimeout(connect, 2000);
     };
 
     ws.onerror = () => ws.close(); // triggers onclose → reconnect
 
     wsRef.current = ws;
-  }, [dispatch]);
+  }, [dispatch, replayMissedMessages]);
 
   useEffect(() => {
     connect();
@@ -283,6 +287,55 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       wsRef.current?.close();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // GUARANTEED DELIVERY: when the tab/app becomes visible again (user unlocks
+  // phone, switches back to tab), immediately check WS health and replay
+  // missed messages. Mobile browsers aggressively suspend WS connections when
+  // the tab is hidden/screen locked — the onclose event may fire late or not
+  // at all, so we can't rely solely on the reconnect timer.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+
+      const ws = wsRef.current;
+      // If WS is already dead or closing → force immediate reconnect
+      if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+        if (reconnectTimerRef.current !== null) {
+          clearTimeout(reconnectTimerRef.current);
+        }
+        connect();
+        return;
+      }
+
+      // WS reports OPEN — but it may be a zombie (OS killed the TCP stream
+      // without sending a close frame). Always replay via REST to catch any
+      // messages missed during the hidden period. If the WS is truly alive,
+      // this is a cheap idempotent refetch; if it's a zombie, the fetch will
+      // work (HTTP is independent of WS) and the next server ping timeout
+      // will close the zombie socket triggering a real reconnect.
+      replayMissedMessages();
+    };
+
+    // Also reconnect when the device comes back online after a network drop.
+    const handleOnline = () => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        if (reconnectTimerRef.current !== null) {
+          clearTimeout(reconnectTimerRef.current);
+        }
+        connect();
+      }
+      // Always replay in case messages were missed during offline period
+      replayMissedMessages();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [connect, replayMissedMessages]);
 
   return (
     <WebSocketContext.Provider value={{ wsRef }}>

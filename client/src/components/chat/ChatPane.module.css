@@ -1,10 +1,15 @@
 .pane {
   display: flex;
   flex-direction: column;
+  /* Use 100% of the parent flex slot, never exceed it */
   height: 100%;
+  max-height: 100%;
   background: var(--color-surface);
   min-width: 0;
-  /* Prevent children from overflowing and causing the header to scroll away */
+  /* min-height: 0 is critical for nested flex: allows the pane to shrink
+     below its content height, which lets the message list scroll internally
+     instead of pushing the header off screen */
+  min-height: 0;
   overflow: hidden;
 }
 
