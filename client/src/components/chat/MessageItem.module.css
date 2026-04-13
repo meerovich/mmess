@@ -59,20 +59,24 @@
      Copy button provides the copy functionality instead. */
 }
 
-/* All elements inside bubble: pass touch through to bubble's native listener.
-   pointer-events: none prevents iOS Safari from intercepting touch on text/images.
-   touch-action: pan-y ensures browser only handles vertical scroll. */
-.bubble * {
-  pointer-events: none;
-  touch-action: pan-y;
-  -webkit-touch-callout: none;
+/* Transparent overlay inside bubble catches ALL touch events.
+   This prevents iOS Safari from intercepting touch on text content. */
+.bubbleTouchLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  /* transparent, captures touch, lets visual content show through */
 }
 
-/* Re-enable pointer events on interactive elements */
-.bubble button,
-.bubble a,
-.bubble :global(a) {
-  pointer-events: auto;
+/* Buttons need to be above the touch layer to remain clickable */
+.timestamp {
+  position: relative;
+  z-index: 2;
+}
+
+.bubble * {
+  touch-action: pan-y;
+  -webkit-touch-callout: none;
 }
 
 .bubbleHighlighted {

@@ -345,6 +345,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               : { transition: 'transform 0.2s ease-out' }
         }
       >
+        {/* Transparent touch layer — catches all touch on iOS where text blocks swipe */}
+        <div className={styles.bubbleTouchLayer} />
+
         {/* Sender name for group chats — show if not grouped and not own */}
         {!isOwn && !isGrouped && conversation?.type === 'group' && (
           <div className={styles.senderName}>{message.sender.username}</div>
