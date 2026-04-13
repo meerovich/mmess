@@ -213,14 +213,23 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Saved original styles to restore when menu closes
-  const savedBubbleStyleRef = useRef('');
+  // Save bubble's parent + next sibling to restore position on close
+  const savedParentRef = useRef<HTMLElement | null>(null);
+  const savedNextRef = useRef<Node | null>(null);
+  const savedStyleRef = useRef('');
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
-    // Restore original bubble styles
-    if (bubbleRef.current) {
-      bubbleRef.current.style.cssText = savedBubbleStyleRef.current;
+    // Move bubble back to its original DOM position
+    const el = bubbleRef.current;
+    if (el && savedParentRef.current) {
+      el.style.cssText = savedStyleRef.current;
+      if (savedNextRef.current) {
+        savedParentRef.current.insertBefore(el, savedNextRef.current);
+      } else {
+        savedParentRef.current.appendChild(el);
+      }
+      savedParentRef.current = null;
     }
   }, []);
 
@@ -232,14 +241,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const el = bubbleRef.current;
       const rect = el.getBoundingClientRect();
 
-      // Save original inline styles
-      savedBubbleStyleRef.current = el.style.cssText;
+      // Save original position in DOM
+      savedParentRef.current = el.parentElement;
+      savedNextRef.current = el.nextSibling;
+      savedStyleRef.current = el.style.cssText;
 
-      // Move original bubble to fixed position at top of screen
-      // Leave enough room: header ~48px + padding
-      const topPos = 56;
+      // Style for fixed positioning at top
       el.style.position = 'fixed';
-      el.style.top = topPos + 'px';
+      el.style.top = '56px';
       el.style.left = rect.left + 'px';
       el.style.width = rect.width + 'px';
       el.style.zIndex = '100001';
@@ -518,16 +527,22 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Telegram-style: opaque overlay (Portal) + menu below fixed-positioned original bubble */}
+      {/* Telegram-style: opaque overlay + real bubble moved into overlay + menu below */}
       {showLongPressMenu && !message.is_deleted && createPortal(
         <div
           className={styles.longPressOverlay}
           onClick={() => { closeLongPressMenu(); }}
           ref={(el) => {
-            if (el) el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+            if (el) {
+              el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+              // Move the REAL bubble DOM node into this overlay
+              if (bubbleRef.current && !el.contains(bubbleRef.current)) {
+                el.insertBefore(bubbleRef.current, el.firstChild);
+              }
+            }
           }}
         >
-          {/* Menu below the bubble (which is now position:fixed at top) */}
+          {/* Menu below the bubble (which is now inside this overlay) */}
           <div
             className={styles.longPressMenu}
             style={(() => {

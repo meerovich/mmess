@@ -68,7 +68,7 @@ async function testMessage(fromEnd, name) {
   }, { x, y });
 
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `E:/dev/mmess/test-ctx-${name}.png` });
+  await page.screenshot({ path: `E:/dev/mmess/.screenshots/test-ctx-${name}.png` });
   console.log(`  ${name}: saved (bubble ${idx}/${bubbles.length}, pos ${Math.round(box.y)})`);
 }
 
