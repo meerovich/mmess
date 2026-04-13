@@ -49,10 +49,17 @@ app.register(avatarRoutes);
 // when running outside the deploy flow (local dev, tests).
 const APP_VERSION = process.env.APP_VERSION ?? 'dev';
 
+// Minimum client version compatible with this API. Bump only when a server
+// change BREAKS older clients (e.g. removed endpoint, changed WS protocol).
+// Patch-level server updates that don't break the client leave this unchanged,
+// so the client won't nag users to reload unnecessarily.
+const MIN_CLIENT_VERSION = process.env.MIN_CLIENT_VERSION ?? '1.3.0';
+
 app.get('/health', async (_request, _reply) => {
   return {
     status: 'ok',
     version: APP_VERSION,
+    minClientVersion: MIN_CLIENT_VERSION,
     timestamp: new Date().toISOString(),
   };
 });

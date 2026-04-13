@@ -67,20 +67,30 @@ export function ChatLayout() {
   }, []);
 
   // VERSION CHECK: periodically poll /api/health to detect server version upgrades.
-  // If server version differs from the built-in client version, show a reload banner.
+  // Only show reload banner if client version is below server's minClientVersion.
+  // This avoids false positives when only the server was patched without breaking the client.
   const [newVersionAvailable, setNewVersionAvailable] = useState(false);
   useEffect(() => {
+    const versionLt = (a: string, b: string): boolean => {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < 3; i++) {
+        if ((pa[i] ?? 0) < (pb[i] ?? 0)) return true;
+        if ((pa[i] ?? 0) > (pb[i] ?? 0)) return false;
+      }
+      return false;
+    };
     const checkVersion = async () => {
       try {
         const res = await fetch('/api/health');
         if (!res.ok) return;
-        const data = await res.json() as { version?: string };
-        if (data.version && data.version !== __APP_VERSION__) {
+        const data = await res.json() as { version?: string; minClientVersion?: string };
+        const minVer = data.minClientVersion;
+        if (minVer && __APP_VERSION__ !== 'dev' && versionLt(__APP_VERSION__, minVer)) {
           setNewVersionAvailable(true);
         }
       } catch { /* silent */ }
     };
-    // Check on mount + every 60 seconds
     checkVersion();
     const interval = setInterval(checkVersion, 60_000);
     return () => clearInterval(interval);
