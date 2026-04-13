@@ -157,6 +157,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
     // Only swipe right (positive dx) — no cap, allow unlimited distance
     if (dx > 10) {
+      // Prevent browser from handling the touch (back gesture, scroll, etc.)
+      e.preventDefault();
       touchRef.current.swiping = true;
       setSwipeX(dx);
     }
@@ -212,21 +214,25 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // How much to shift the bubble up so the menu fits below
+  const [bubbleShiftY, setBubbleShiftY] = useState(0);
+
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       setMenuPos(longPressPosRef.current);
-      // Scroll message up if near bottom so menu fits below
+      const menuHeight = 180;
+      const margin = 20;
+      let shift = 0;
       if (bubbleRef.current) {
         const rect = bubbleRef.current.getBoundingClientRect();
-        const menuHeight = 180;
-        if (rect.bottom + menuHeight > window.innerHeight) {
-          bubbleRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < menuHeight + margin) {
+          shift = menuHeight + margin - spaceBelow;
         }
       }
-      setTimeout(() => {
-        setShowLongPressMenu(true);
-        if (navigator.vibrate) navigator.vibrate(30);
-      }, 100); // small delay for scroll to settle
+      setBubbleShiftY(shift);
+      setShowLongPressMenu(true);
+      if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
   }, []);
 
@@ -286,7 +292,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       <div
         ref={bubbleRef}
         className={`${styles.bubble} ${isOwn ? styles.own : styles.other} ${showLongPressMenu ? styles.bubbleHighlighted : ''}`}
-        style={swipeX > 0 ? { transform: `translateX(${swipeX}px)`, transition: 'none' } : { transition: 'transform 0.2s ease-out' }}
+        style={
+          swipeX > 0
+            ? { transform: `translateX(${swipeX}px)`, transition: 'none' }
+            : showLongPressMenu && bubbleShiftY > 0
+              ? { transform: `translateY(-${bubbleShiftY}px)`, transition: 'transform 0.2s ease-out' }
+              : { transition: 'transform 0.2s ease-out' }
+        }
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
@@ -453,33 +465,32 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
       {/* Long-press context menu (WhatsApp-style: overlay + message on top + menu below) */}
       {showLongPressMenu && !message.is_deleted && (
-        <div className={styles.longPressOverlay} onClick={() => setShowLongPressMenu(false)}>
+        <div className={styles.longPressOverlay} onClick={() => { setShowLongPressMenu(false); setBubbleShiftY(0); }}>
           <div
             className={styles.longPressMenu}
             style={(() => {
               const rect = bubbleRef.current?.getBoundingClientRect();
               if (!rect) return {};
-              const menuHeight = 160; // approximate height of 3 menu items
-              const fitsBelow = rect.bottom + menuHeight + 20 < window.innerHeight;
+              // Menu always below the (possibly shifted) bubble
               return {
                 position: 'fixed' as const,
                 left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
-                top: fitsBelow ? rect.bottom + 4 : rect.top - menuHeight - 4,
+                top: rect.bottom - bubbleShiftY + 4,
                 minWidth: Math.min(rect.width, 220),
               };
             })()}
             onClick={e => e.stopPropagation()}
           >
-            <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); }}>
+            <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
               {t('chat.reply')}
             </button>
-            <button className={styles.longPressItem} onClick={() => { setForwardMessage(message); setShowLongPressMenu(false); }}>
+            <button className={styles.longPressItem} onClick={() => { setForwardMessage(message); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
               {t('chat.forward')}
             </button>
             {message.content && (
-              <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); setShowLongPressMenu(false); }}>
+              <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                 {t('chat.copy')}
               </button>

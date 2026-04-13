@@ -57,6 +57,12 @@
   position: relative;
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Ensure ALL children inside bubble allow vertical pan only —
+   prevents browser from consuming horizontal touch on content/links/images */
+.bubble,
+.bubble * {
   touch-action: pan-y;
 }
 
