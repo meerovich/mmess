@@ -224,27 +224,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       setMenuPos(longPressPosRef.current);
-      const menuHeight = 200;
-      const margin = 40;
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
 
-      // If menu won't fit below, scroll the message up first
-      if (bubbleRef.current) {
-        const rect = bubbleRef.current.getBoundingClientRect();
-        const spaceBelow = window.innerHeight - rect.bottom;
-        if (spaceBelow < menuHeight + margin) {
-          // Scroll the bubble to top-third of screen so menu fits below
-          bubbleRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        }
-      }
-
-      // Show menu after scroll settles
-      setTimeout(() => {
-        setBubbleShiftY(0); // no translateY shift needed — we scrolled instead
-        // Dismiss keyboard before showing menu
-        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-        setShowLongPressMenu(true);
-        if (navigator.vibrate) navigator.vibrate(30);
-      }, 150);
+      // Simply show menu — positioning logic handles above/below in JSX
+      setBubbleShiftY(0);
+      setShowLongPressMenu(true);
+      if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
   }, []);
 
@@ -514,8 +499,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu — Portal to document.body (outside ChatLayout).
-           Works because ChatLayout no longer applies transform when keyboard is closed. */}
+      {/* Long-press context menu — Portal with cloned bubble snapshot above overlay */}
       {showLongPressMenu && !message.is_deleted && createPortal(
         <div
           className={styles.longPressOverlay}
@@ -526,15 +510,44 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             }
           }}
         >
+          {/* Cloned bubble above overlay — exact size from original */}
+          {(() => {
+            const rect = bubbleRef.current?.getBoundingClientRect();
+            if (!rect) return null;
+            return (
+              <div
+                style={{
+                  position: 'fixed',
+                  left: rect.left,
+                  top: rect.top,
+                  width: rect.width,
+                  height: rect.height,
+                  zIndex: 100001,
+                  pointerEvents: 'none',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{ width: rect.width, height: rect.height }}
+                  dangerouslySetInnerHTML={{ __html: bubbleRef.current?.innerHTML ?? '' }}
+                  className={`${styles.bubble} ${isOwn ? styles.own : styles.other}`}
+                />
+              </div>
+            );
+          })()}
+          {/* Menu below or above bubble depending on space */}
           <div
             className={styles.longPressMenu}
             style={(() => {
               const rect = bubbleRef.current?.getBoundingClientRect();
               if (!rect) return {};
+              const menuH = 160; // 3 items ~52px each
+              const spaceBelow = window.innerHeight - rect.bottom;
+              const placeBelow = spaceBelow >= menuH + 8;
               return {
                 position: 'fixed' as const,
                 left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
-                top: rect.bottom - bubbleShiftY + 4,
+                top: placeBelow ? rect.bottom + 4 : rect.top - menuH - 4,
                 minWidth: Math.min(rect.width, 220),
               };
             })()}

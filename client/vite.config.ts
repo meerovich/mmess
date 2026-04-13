@@ -16,10 +16,16 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:3000',
+      '/api': {
+        target: process.env.API_URL || 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
       '/ws': {
-        target: 'ws://localhost:3000',
+        target: process.env.WS_URL || 'ws://localhost:3000',
         ws: true,
+        changeOrigin: true,
+        secure: false,
       },
     },
   },
