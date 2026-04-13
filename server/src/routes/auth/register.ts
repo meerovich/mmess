@@ -6,6 +6,10 @@ import { db } from '../../db/index.js';
 import { users, invites } from '../../db/schema.js';
 import { eq, sql, and, isNull } from 'drizzle-orm';
 
+const REGISTRATION_MODE = process.env.REGISTRATION_MODE ?? 'open'; // open | invite-only | closed
+
+const PASSWORD_RE = /^(?=.*[a-zA-Zа-яА-ЯёЁ])(?=.*\d).{8,}$/;
+
 const registerBodySchema = {
   type: 'object',
   required: ['email', 'password', 'username'],
@@ -18,11 +22,16 @@ const registerBodySchema = {
 } as const;
 
 export default fp(async (fastify: FastifyInstance) => {
+  // Expose registration mode so the client can adapt UI
+  fastify.get('/auth/registration-mode', async () => {
+    return { mode: REGISTRATION_MODE };
+  });
+
   fastify.post('/auth/register', {
     config: {
       rateLimit: {
-        max: 3,
-        timeWindow: '1 hour',
+        max: 5,
+        timeWindow: '15 minutes',
         keyGenerator: (request) => request.ip,
       },
     },
@@ -30,12 +39,22 @@ export default fp(async (fastify: FastifyInstance) => {
       body: registerBodySchema,
     },
   }, async (request, reply) => {
+    // Check if registration is allowed
+    if (REGISTRATION_MODE === 'closed') {
+      return reply.code(403).send({ error: 'Registration is currently closed' });
+    }
+
     const { email, password, username, inviteToken } = request.body as {
       email: string;
       password: string;
       username: string;
       inviteToken?: string;
     };
+
+    // Password policy: min 8 chars, at least 1 letter + 1 digit
+    if (!PASSWORD_RE.test(password)) {
+      return reply.code(400).send({ error: 'Password must be at least 8 characters with at least 1 letter and 1 digit' });
+    }
 
     // Check if first user (auto-admin, no invite needed)
     const [countResult] = await db.execute<{ count: string }>(
@@ -46,8 +65,8 @@ export default fp(async (fastify: FastifyInstance) => {
 
     let invite: typeof invites.$inferSelect | null = null;
 
-    if (!isFirstUser) {
-      // Require invite token for all subsequent users
+    if (!isFirstUser && REGISTRATION_MODE === 'invite-only') {
+      // Require invite token
       if (!inviteToken) {
         return reply.code(400).send({ error: 'Invite token is required' });
       }
@@ -73,7 +92,16 @@ export default fp(async (fastify: FastifyInstance) => {
       invite = foundInvite;
     }
 
-    // Check for duplicate email/username
+    // Timing-safe duplicate check: always hash password before responding
+    // to prevent timing-based user enumeration.
+    const passwordHash = await argon2.hash(password, {
+      type: argon2.argon2id,
+      memoryCost: 19456,
+      timeCost: 2,
+      parallelism: 1,
+    });
+
+    // Check duplicates (generic error to avoid enumeration)
     const [existingEmail] = await db
       .select({ id: users.id })
       .from(users)
@@ -81,7 +109,7 @@ export default fp(async (fastify: FastifyInstance) => {
       .limit(1);
 
     if (existingEmail) {
-      return reply.code(409).send({ error: 'Email already registered' });
+      return reply.code(409).send({ error: 'Account creation failed. Please check your details and try again.' });
     }
 
     const [existingUsername] = await db
@@ -91,16 +119,8 @@ export default fp(async (fastify: FastifyInstance) => {
       .limit(1);
 
     if (existingUsername) {
-      return reply.code(409).send({ error: 'Username already taken' });
+      return reply.code(409).send({ error: 'Account creation failed. Please check your details and try again.' });
     }
-
-    // Hash password with Argon2id (OWASP 2025 defaults)
-    const passwordHash = await argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 19456,
-      timeCost: 2,
-      parallelism: 1,
-    });
 
     // Create user (in transaction with invite update)
     await db.transaction(async (tx) => {

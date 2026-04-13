@@ -60,7 +60,7 @@ export function LoginPage() {
         </button>
       </form>
       <p>
-        <Link to="/register">{t('auth.registerWithInvite')}</Link>
+        <Link to="/register">{t('auth.register')}</Link>
       </p>
     </div>
   );
