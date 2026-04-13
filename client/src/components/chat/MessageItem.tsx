@@ -207,12 +207,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
   // Long-press context menu (WhatsApp-style, mobile)
   const [showLongPressMenu, setShowLongPressMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
+      setMenuPos(longPressPosRef.current);
       setShowLongPressMenu(true);
-      // Vibrate if supported
       if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
   }, []);
@@ -227,6 +229,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   // Cancel long-press if swiping
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     handleTouchStart(e);
+    const touch = e.touches[0];
+    longPressPosRef.current = { x: touch.clientX, y: touch.clientY };
     handleLongPressStart();
   }, [handleTouchStart, handleLongPressStart]);
 
@@ -432,10 +436,18 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu (mobile) */}
+      {/* Long-press context menu (WhatsApp-style, positioned near touch) */}
       {showLongPressMenu && !message.is_deleted && (
         <div className={styles.longPressOverlay} onClick={() => setShowLongPressMenu(false)}>
-          <div className={styles.longPressMenu} onClick={e => e.stopPropagation()}>
+          <div
+            className={styles.longPressMenu}
+            style={{
+              position: 'fixed',
+              left: Math.min(menuPos.x, window.innerWidth - 220),
+              top: Math.min(menuPos.y - 20, window.innerHeight - 200),
+            }}
+            onClick={e => e.stopPropagation()}
+          >
             <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
               {t('chat.reply')}

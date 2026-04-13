@@ -3,6 +3,7 @@
   align-items: flex-end;
   gap: var(--space-sm);
   position: relative;
+  touch-action: pan-y;
 }
 
 .item.own {
@@ -438,9 +439,6 @@
   inset: 0;
   z-index: 200;
   background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .longPressMenu {
@@ -449,6 +447,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   min-width: 200px;
   overflow: hidden;
+  z-index: 201;
 }
 
 .longPressItem {
