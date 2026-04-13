@@ -34,7 +34,6 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
-  const suppressBlurRef = useRef(false);
 
   // Draft persistence: restore draft from localStorage on conversation switch.
   const draftKey = `draft:${conversationId}`;
@@ -366,13 +365,7 @@ export function MessageInput({
         {/* Paperclip button (D-27) */}
         <button
           className={styles.attachBtn}
-          onClick={(e) => {
-            e.preventDefault();
-            suppressBlurRef.current = true;
-            fileInputRef.current?.click();
-            // Reset after iOS has time to process the file picker
-            setTimeout(() => { suppressBlurRef.current = false; }, 1000);
-          }}
+          onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
           onMouseDown={e => e.preventDefault()}
           disabled={uploadState.status === 'uploading'}
           aria-label={t('chat.attachFile')}
@@ -397,24 +390,13 @@ export function MessageInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
-            // Cancel any pending blur timer
-            if ((window as any).__mmessBlurTimer) {
-              clearTimeout((window as any).__mmessBlurTimer);
-              (window as any).__mmessBlurTimer = null;
-            }
             window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
             window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: true } }));
             setTimeout(() => window.scrollTo(0, 0), 100);
             setTimeout(() => window.scrollTo(0, 0), 300);
           }}
           onBlur={() => {
-            // Delayed keyboard-close: wait 2s so attach/send button actions
-            // complete without layout jump. If user refocuses within 2s, the
-            // timer is cancelled by the next focus event.
-            const timer = setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
-            }, 2000);
-            (window as any).__mmessBlurTimer = timer;
+            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
