@@ -133,6 +133,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [swipeX, setSwipeX] = useState(0);
   const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
   // WhatsApp-style swipe-to-reply gesture
   const SWIPE_THRESHOLD = 60;
@@ -251,7 +252,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     <div
       ref={itemRef}
       className={`${styles.item} ${isOwn ? styles.own : ''}`}
-      style={swipeX > 0 ? { transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s' : 'none' } : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
@@ -276,7 +276,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         </div>
       )}
 
-      <div className={`${styles.bubble} ${isOwn ? styles.own : styles.other}`}>
+      <div
+        ref={bubbleRef}
+        className={`${styles.bubble} ${isOwn ? styles.own : styles.other} ${showLongPressMenu ? styles.bubbleHighlighted : ''}`}
+        style={swipeX > 0 ? { transform: `translateX(${swipeX}px)`, transition: 'none' } : { transition: 'transform 0.2s ease-out' }}
+      >
         {/* Sender name for group chats — show if not grouped and not own */}
         {!isOwn && !isGrouped && conversation?.type === 'group' && (
           <div className={styles.senderName}>{message.sender.username}</div>
@@ -437,16 +441,21 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu (WhatsApp-style, positioned near touch) */}
+      {/* Long-press context menu (WhatsApp-style: overlay + message on top + menu below) */}
       {showLongPressMenu && !message.is_deleted && (
         <div className={styles.longPressOverlay} onClick={() => setShowLongPressMenu(false)}>
           <div
             className={styles.longPressMenu}
-            style={{
-              position: 'fixed',
-              left: Math.min(menuPos.x, window.innerWidth - 220),
-              top: Math.min(menuPos.y - 20, window.innerHeight - 200),
-            }}
+            style={(() => {
+              const rect = bubbleRef.current?.getBoundingClientRect();
+              if (!rect) return {};
+              return {
+                position: 'fixed' as const,
+                left: rect.left,
+                top: Math.min(rect.bottom + 4, window.innerHeight - 180),
+                minWidth: Math.min(rect.width, 220),
+              };
+            })()}
             onClick={e => e.stopPropagation()}
           >
             <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); }}>
