@@ -217,10 +217,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [menuLeft, setMenuLeft] = useState(0);
   const [menuWidth, setMenuWidth] = useState(220);
   const [bubbleShiftY, setBubbleShiftY] = useState(0);
+  const [overlayBubbleRect, setOverlayBubbleRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
     setBubbleShiftY(0);
+    setOverlayBubbleRect(null);
   }, []);
 
   const handleLongPressStart = useCallback(() => {
@@ -266,6 +272,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       setMenuLeft(nextMenuLeft);
       setMenuWidth(desiredMenuWidth);
       setBubbleShiftY(shiftForMenu);
+      setOverlayBubbleRect({
+        top: shiftedBubbleTop,
+        left: rect.left,
+        width: rect.width,
+      });
 
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
@@ -340,6 +351,142 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   }, [handleLongPressStart, handleLongPressEnd]);
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
+  const bubbleContent = (
+    <>
+      {!isOwn && !isGrouped && conversation?.type === 'group' && (
+        <div className={styles.senderName}>{message.sender.username}</div>
+      )}
+
+      {message.reply_to && (
+        <ReplyPreview replyTo={message.reply_to} />
+      )}
+
+      {message.forwarded_from && (
+        <div className={styles.forwardedHeader}>
+          {t('chat.forwardedFrom', { name: message.forwarded_from.sender?.username ?? '?' })}
+        </div>
+      )}
+
+      {message.is_deleted ? (
+        <div className={`${styles.content} ${styles.deleted}`}>{t('chat.deleted')}</div>
+      ) : (
+        <>
+          {message.file_id && message.is_image && (
+            <div
+              className={styles.imageContainer}
+              onClick={() => setLightboxOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter') setLightboxOpen(true); }}
+              aria-label={`View ${message.file_name || 'image'}`}
+            >
+              <img
+                src={message.thumbnail_url ?? `/api/files/${message.file_id}/thumb`}
+                alt={message.file_name || 'Attached image'}
+                className={styles.inlineImage}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          {message.file_id && !message.is_image && message.file_name && (
+            <FileCard
+              fileId={message.file_id}
+              fileName={message.file_name}
+              fileSize={message.file_size ?? 0}
+              mimeType={message.file_mime ?? 'application/octet-stream'}
+            />
+          )}
+
+          {message.content && (
+            <div
+              className={styles.content}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, conversation?.participants.map(p => p.username)) }}
+            />
+          )}
+        </>
+      )}
+
+      <div className={styles.timestamp}>
+        {!message.is_deleted && (
+          <span className={styles.timestampReactions}>
+            <ReactionBar
+              reactions={message.reactions}
+              messageId={message.id}
+              currentUserId={currentUserId}
+              conversationId={message.conversation_id}
+            />
+          </span>
+        )}
+        <span className={styles.timestampSpacer} />
+        <span className={styles.timestampTime}>
+          {!message.is_deleted && (
+            <>
+              <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
+              <button
+                className={styles.inlineReplyBtn}
+                onClick={handleReply}
+                aria-label={t('chat.reply')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
+              </button>
+              <button
+                className={styles.inlineReplyBtn}
+                onClick={() => setForwardMessage(message)}
+                aria-label={t('chat.forward')}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
+              </button>
+              {message.content && (
+                <button
+                  className={styles.inlineReplyBtn}
+                  onClick={() => navigator.clipboard.writeText(message.content!)}
+                  aria-label={t('chat.copy')}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
+              )}
+            </>
+          )}
+          {timestamp}
+          {message.edited_at && !message.is_deleted && (
+            <span className={styles.edited}>{t('chat.edited')}</span>
+          )}
+          {isOwn && (
+            <ReadReceipt
+              message={message}
+              currentUserId={currentUserId}
+              participants={conversation?.participants ?? []}
+              t={t}
+            />
+          )}
+        </span>
+      </div>
+
+      {showDeleteConfirm && (
+        <div className={styles.deleteConfirm}>
+          <span className={styles.deleteConfirmText}>{t('chat.deleteConfirm')}</span>
+          <div className={styles.deleteConfirmButtons}>
+            <button
+              className={styles.keepBtn}
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              {t('chat.keepMessage')}
+            </button>
+            <button
+              className={styles.deleteBtn}
+              onClick={handleDeleteConfirm}
+            >
+              {t('chat.deleteMessage')}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   const longPressMenuPortal =
     showLongPressMenu && !message.is_deleted && typeof document !== 'undefined'
       ? createPortal(
@@ -350,6 +497,21 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               onClick={() => { closeLongPressMenu(); }}
               onTouchMove={e => e.preventDefault()}
             />
+            {overlayBubbleRect && (
+              <div
+                className={`${styles.bubble} ${isOwn ? styles.own : styles.other} ${styles.bubbleOverlayClone}`}
+                style={{
+                  position: 'fixed',
+                  top: overlayBubbleRect.top,
+                  left: overlayBubbleRect.left,
+                  width: overlayBubbleRect.width,
+                  maxWidth: overlayBubbleRect.width,
+                }}
+                aria-hidden="true"
+              >
+                {bubbleContent}
+              </div>
+            )}
             <div
               className={styles.longPressMenu}
               style={{
@@ -418,147 +580,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               : { transition: 'transform 0.2s ease-out' }
         }
       >
-        {/* Sender name for group chats — show if not grouped and not own */}
-        {!isOwn && !isGrouped && conversation?.type === 'group' && (
-          <div className={styles.senderName}>{message.sender.username}</div>
-        )}
-
-        {/* Reply preview */}
-        {message.reply_to && (
-          <ReplyPreview replyTo={message.reply_to} />
-        )}
-
-        {/* Forwarded header (Telegram-style) */}
-        {message.forwarded_from && (
-          <div className={styles.forwardedHeader}>
-            {t('chat.forwardedFrom', { name: message.forwarded_from.sender?.username ?? '?' })}
-          </div>
-        )}
-
-        {/* Message content */}
-        {message.is_deleted ? (
-          <div className={`${styles.content} ${styles.deleted}`}>{t('chat.deleted')}</div>
-        ) : (
-          <>
-            {/* Image attachment — inline thumbnail with click-to-lightbox (D-29, D-30) */}
-            {message.file_id && message.is_image && (
-              <div
-                className={styles.imageContainer}
-                onClick={() => setLightboxOpen(true)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') setLightboxOpen(true); }}
-                aria-label={`View ${message.file_name || 'image'}`}
-              >
-                <img
-                  src={message.thumbnail_url ?? `/api/files/${message.file_id}/thumb`}
-                  alt={message.file_name || 'Attached image'}
-                  className={styles.inlineImage}
-                  onError={(e) => {
-                    // Fall back to hiding broken image
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              </div>
-            )}
-
-            {/* File card — non-image attachment (D-32) */}
-            {message.file_id && !message.is_image && message.file_name && (
-              <FileCard
-                fileId={message.file_id}
-                fileName={message.file_name}
-                fileSize={message.file_size ?? 0}
-                mimeType={message.file_mime ?? 'application/octet-stream'}
-              />
-            )}
-
-            {/* Text content with markdown rendering */}
-            {message.content && (
-              <div
-                className={styles.content}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, conversation?.participants.map(p => p.username)) }}
-              />
-            )}
-          </>
-        )}
-
-        {/* Timestamp row: [reaction badges] left | spacer | [+ ↩ time receipt] right */}
-        <div className={styles.timestamp}>
-          {!message.is_deleted && (
-            <span className={styles.timestampReactions}>
-              <ReactionBar
-                reactions={message.reactions}
-                messageId={message.id}
-                currentUserId={currentUserId}
-                conversationId={message.conversation_id}
-              />
-            </span>
-          )}
-          <span className={styles.timestampSpacer} />
-          <span className={styles.timestampTime}>
-            {!message.is_deleted && (
-              <>
-                <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
-                <button
-                  className={styles.inlineReplyBtn}
-                  onClick={handleReply}
-                  aria-label={t('chat.reply')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
-                </button>
-                <button
-                  className={styles.inlineReplyBtn}
-                  onClick={() => setForwardMessage(message)}
-                  aria-label={t('chat.forward')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
-                </button>
-                {message.content && (
-                  <button
-                    className={styles.inlineReplyBtn}
-                    onClick={() => navigator.clipboard.writeText(message.content!)}
-                    aria-label={t('chat.copy')}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                  </button>
-                )}
-              </>
-            )}
-            {timestamp}
-            {message.edited_at && !message.is_deleted && (
-              <span className={styles.edited}>{t('chat.edited')}</span>
-            )}
-            {isOwn && (
-              <ReadReceipt
-                message={message}
-                currentUserId={currentUserId}
-                participants={conversation?.participants ?? []}
-                t={t}
-              />
-            )}
-          </span>
-        </div>
-
-        {/* Inline delete confirmation */}
-        {showDeleteConfirm && (
-          <div className={styles.deleteConfirm}>
-            <span className={styles.deleteConfirmText}>{t('chat.deleteConfirm')}</span>
-            <div className={styles.deleteConfirmButtons}>
-              <button
-                className={styles.keepBtn}
-                onClick={() => setShowDeleteConfirm(false)}
-              >
-                {t('chat.keepMessage')}
-              </button>
-              <button
-                className={styles.deleteBtn}
-                onClick={handleDeleteConfirm}
-              >
-                {t('chat.deleteMessage')}
-              </button>
-            </div>
-          </div>
-        )}
+        {bubbleContent}
       </div>
 
       {/* Lightbox — full-size image viewer (D-30, D-31) */}

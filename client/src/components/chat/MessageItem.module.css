@@ -72,6 +72,11 @@
   z-index: 100001;
 }
 
+.bubbleOverlayClone {
+  pointer-events: none;
+  z-index: 100001;
+}
+
 .bubble.own {
   background: var(--color-bubble-own);
   border: 1px solid var(--color-bubble-own-border);
