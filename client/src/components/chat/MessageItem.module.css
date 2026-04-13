@@ -55,8 +55,8 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: 18px;
   position: relative;
-  /* NOTE: user-select removed — it blocks touch events on iOS Safari.
-     Copy button provides the copy functionality instead. */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* All elements inside bubble: only allow vertical pan (browser handles scroll),
