@@ -215,8 +215,18 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       setMenuPos(longPressPosRef.current);
-      setShowLongPressMenu(true);
-      if (navigator.vibrate) navigator.vibrate(30);
+      // Scroll message up if near bottom so menu fits below
+      if (bubbleRef.current) {
+        const rect = bubbleRef.current.getBoundingClientRect();
+        const menuHeight = 180;
+        if (rect.bottom + menuHeight > window.innerHeight) {
+          bubbleRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
+      setTimeout(() => {
+        setShowLongPressMenu(true);
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 100); // small delay for scroll to settle
     }, 500);
   }, []);
 
@@ -257,9 +267,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         setIsHovered(false);
         setShowMenu(false);
       }}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
     >
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
@@ -280,6 +287,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         ref={bubbleRef}
         className={`${styles.bubble} ${isOwn ? styles.own : styles.other} ${showLongPressMenu ? styles.bubbleHighlighted : ''}`}
         style={swipeX > 0 ? { transform: `translateX(${swipeX}px)`, transition: 'none' } : { transition: 'transform 0.2s ease-out' }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         {/* Sender name for group chats — show if not grouped and not own */}
         {!isOwn && !isGrouped && conversation?.type === 'group' && (
@@ -449,10 +459,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             style={(() => {
               const rect = bubbleRef.current?.getBoundingClientRect();
               if (!rect) return {};
+              const menuHeight = 160; // approximate height of 3 menu items
+              const fitsBelow = rect.bottom + menuHeight + 20 < window.innerHeight;
               return {
                 position: 'fixed' as const,
-                left: rect.left,
-                top: Math.min(rect.bottom + 4, window.innerHeight - 180),
+                left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
+                top: fitsBelow ? rect.bottom + 4 : rect.top - menuHeight - 4,
                 minWidth: Math.min(rect.width, 220),
               };
             })()}
