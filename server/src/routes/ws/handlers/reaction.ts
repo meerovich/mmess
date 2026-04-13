@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
-import { message_reactions, messages, conversation_participants } from '../../../db/schema.js';
+import { message_reactions, messages, conversation_participants, users } from '../../../db/schema.js';
 
 type DB = PostgresJsDatabase<Record<string, never>>;
 
@@ -23,8 +23,10 @@ export async function handleReactionAdd(
   // handles message:send acks (has .message field), not reaction acks.
   const { broadcast } = await import('../registry.js');
 
-  const [msg] = await db.select({ conversation_id: messages.conversation_id })
-    .from(messages).where(eq(messages.id, payload.message_id));
+  const [msg] = await db.select({
+    conversation_id: messages.conversation_id,
+    sender_id: messages.sender_id,
+  }).from(messages).where(eq(messages.id, payload.message_id));
   if (!msg) {
     socket.send(JSON.stringify({ type: 'error', payload: { message: 'Message not found' }, id: clientId }));
     return;
@@ -110,6 +112,26 @@ export async function handleReactionAdd(
   };
   socket.send(JSON.stringify({ type: 'ack', payload: addedEvent.payload, id: clientId }));
   broadcast(participantIds, addedEvent);
+
+  // Push notification for reaction to offline message author
+  if (msg.sender_id && msg.sender_id !== userId) {
+    const { isOnline } = await import('../registry.js');
+    if (!isOnline(msg.sender_id)) {
+      const { sendPushToUser, isPushConfigured } = await import('../../../lib/push.js');
+      if (isPushConfigured()) {
+        const [reactor] = await db.select({ username: users.username })
+          .from(users).where(eq(users.id, userId));
+        const reactorName = reactor?.username ?? 'Someone';
+        sendPushToUser(db, msg.sender_id, {
+          title: reactorName,
+          body: `${payload.emoji} reacted to your message`,
+          tag: `reaction-${msg.conversation_id}`,
+          url: `/chat/${msg.conversation_id}`,
+          icon: `/api/avatar/${encodeURIComponent(reactorName)}.png`,
+        }).catch(() => { /* push failures are non-fatal */ });
+      }
+    }
+  }
 }
 
 export async function handleReactionRemove(

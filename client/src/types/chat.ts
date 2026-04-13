@@ -63,6 +63,7 @@ export interface Participant {
   avatar_url: string | null;
   is_admin: boolean;
   can_edit_messages: boolean;
+  status?: 'accepted' | 'pending' | 'declined';
   last_read_message_id?: string | null;
   last_read_at?: string | null; // ISO timestamp — message.created_at of the last-read message
 }
@@ -118,4 +119,6 @@ export type ChatAction =
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
   | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }
   | { type: 'SET_PRESENCE_BULK'; entries: Array<{ userId: string; presence: PresenceState }> }
-  | { type: 'CONVERSATION_UPDATED'; conversation: Conversation };
+  | { type: 'CONVERSATION_UPDATED'; conversation: Conversation }
+  | { type: 'INVITATION_ACCEPTED'; conversationId: string; userId: string }
+  | { type: 'INVITATION_DECLINED'; conversationId: string; userId: string };

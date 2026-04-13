@@ -27,7 +27,7 @@ export function MessageInput({
   onClearEdit,
 }: MessageInputProps) {
   const { user } = useAuth();
-  const { dispatch } = useChat();
+  const { state, dispatch } = useChat();
   const { t } = useTranslation();
   const sendWs = useSendMessage();
   const textareaRef = useRef<HTMLTextAreaElement>(null);

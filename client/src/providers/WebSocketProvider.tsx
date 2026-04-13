@@ -153,6 +153,18 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
         });
       }
       break;
+    case 'invitation:accepted':
+      if (msg.payload) {
+        const ia = msg.payload as { conversation_id: string; user_id: string };
+        dispatch({ type: 'INVITATION_ACCEPTED', conversationId: ia.conversation_id, userId: ia.user_id });
+      }
+      break;
+    case 'invitation:declined':
+      if (msg.payload) {
+        const id = msg.payload as { conversation_id: string; user_id: string };
+        dispatch({ type: 'INVITATION_DECLINED', conversationId: id.conversation_id, userId: id.user_id });
+      }
+      break;
     case 'presence:update':
       if (msg.payload?.user_id) {
         dispatch({

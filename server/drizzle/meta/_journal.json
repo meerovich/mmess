@@ -36,6 +36,13 @@
       "when": 1775990672594,
       "tag": "0004_left_the_order",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776256800000,
+      "tag": "0005_invitation_status",
+      "breakpoints": true
     }
   ]
 }

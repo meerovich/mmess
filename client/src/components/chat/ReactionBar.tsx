@@ -192,8 +192,8 @@ export function ReactionBar({ reactions, messageId, currentUserId, conversationI
       <div className={styles.reactions}>
         {grouped.map(g => (
           <button
-            key={g.emoji}
-            className={`${styles.badge} ${g.reactedByMe ? styles.badgeActive : ''}`}
+            key={`${g.emoji}-${g.count}`}
+            className={`${styles.badge} ${g.reactedByMe ? styles.badgeActive : ''} ${styles.badgeAnimated}`}
             onClick={() => handleBadgeClick(g.emoji, g.reactedByMe)}
             title={g.usernames.join(', ')}
             aria-label={`${g.emoji} ${g.count} reaction${g.count !== 1 ? 's' : ''} from ${g.usernames.join(', ')}`}

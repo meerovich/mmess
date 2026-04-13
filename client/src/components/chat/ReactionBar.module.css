@@ -41,6 +41,16 @@
   border-color: var(--color-accent);
 }
 
+@keyframes reactionPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.badgeAnimated {
+  animation: reactionPulse 0.35s ease-out;
+}
+
 /* Compact inline "+" trigger. Matches badge height so it does not stretch the row.
    Desktop: hidden by default, revealed when the parent message bubble is hovered
    (see MessageItem.module.css `.bubble:hover :global(.mmess-add-reaction-btn)`).

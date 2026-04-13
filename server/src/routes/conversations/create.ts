@@ -108,19 +108,22 @@ async function handleDirectConversation(
 
     const convId = newConversation.id;
 
-    // Add both participants (neither is admin in a direct chat)
+    // Add both participants (neither is admin in a direct chat).
+    // Creator is 'accepted'; target is 'pending' until they accept the invite.
     await tx.insert(conversation_participants).values([
       {
         conversation_id: convId,
         user_id: userId,
         is_admin: false,
         can_edit_messages: false,
+        status: 'accepted',
       },
       {
         conversation_id: convId,
         user_id: targetUserId,
         is_admin: false,
         can_edit_messages: false,
+        status: 'pending',
       },
     ]);
 
@@ -217,6 +220,7 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
       avatar_url: users.avatar_url,
       is_admin: conversation_participants.is_admin,
       can_edit_messages: conversation_participants.can_edit_messages,
+      status: conversation_participants.status,
     })
     .from(conversation_participants)
     .innerJoin(users, eq(conversation_participants.user_id, users.id))
@@ -265,6 +269,7 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
       avatar_url: p.avatar_url,
       is_admin: p.is_admin,
       can_edit_messages: p.can_edit_messages,
+      status: p.status,
     })),
     updated_at: conv.updated_at.toISOString(),
     created_at: conv.created_at.toISOString(),

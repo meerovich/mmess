@@ -1,0 +1,143 @@
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--space-md);
+  background: var(--color-surface-secondary);
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  padding: var(--space-xl) var(--space-lg);
+  width: 100%;
+  max-width: 400px;
+}
+
+.logo {
+  text-align: center;
+  font-size: var(--text-display);
+  font-weight: 700;
+  color: var(--color-accent);
+  margin: 0 0 var(--space-lg);
+  letter-spacing: -0.5px;
+}
+
+.field {
+  margin-top: var(--space-md);
+}
+
+.field:first-child {
+  margin-top: 0;
+}
+
+.label {
+  display: block;
+  font-size: var(--text-label);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.input {
+  width: 100%;
+  padding: 10px var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 16px; /* prevents iOS zoom */
+  font-family: var(--font-family);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+}
+
+.input::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.button {
+  display: block;
+  width: 100%;
+  padding: 10px var(--space-md);
+  margin-top: var(--space-lg);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: none;
+  border-radius: 6px;
+  font-size: var(--text-body);
+  font-weight: 600;
+  font-family: var(--font-family);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--color-destructive);
+  font-size: var(--text-label);
+  margin-top: var(--space-sm);
+}
+
+.link {
+  text-align: center;
+  margin-top: var(--space-md);
+  font-size: var(--text-label);
+  color: var(--color-text-secondary);
+}
+
+.link a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link a:hover {
+  text-decoration: underline;
+}
+
+.pwChecks {
+  margin-top: var(--space-xs);
+}
+
+.pwCheck {
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.pwCheckOk {
+  font-size: var(--text-label);
+  color: var(--color-success);
+}
+
+.hint {
+  display: block;
+  margin-top: var(--space-xs);
+  font-size: var(--text-label);
+  color: var(--color-text-muted);
+}
+
+.successMessage {
+  background: var(--color-success);
+  color: #fff;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 6px;
+  font-size: var(--text-label);
+  text-align: center;
+  margin-bottom: var(--space-md);
+}

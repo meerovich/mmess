@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useTranslation } from '../lib/i18n';
+import styles from './AuthForm.module.css';
 
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const successMessage = (location.state as { message?: string })?.message;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,41 +31,42 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '80px auto', padding: '0 16px' }}>
-      <h1>mmess</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>
-            {t('auth.email')}
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <h1 className={styles.logo}>mmess</h1>
+        {successMessage && (
+          <div className={styles.successMessage}>{successMessage}</div>
+        )}
+        <form onSubmit={handleSubmit}>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('auth.email')}</label>
             <input
+              className={styles.input}
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
-              style={{ display: 'block', marginTop: 4, width: '100%' }}
             />
-          </label>
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <label>
-            {t('auth.password')}
+          </div>
+          <div className={styles.field}>
+            <label className={styles.label}>{t('auth.password')}</label>
             <input
+              className={styles.input}
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              style={{ display: 'block', marginTop: 4, width: '100%' }}
             />
-          </label>
-        </div>
-        {error && <p style={{ color: 'red' }}>{error}</p>}
-        <button type="submit" disabled={submitting} style={{ marginTop: 16 }}>
-          {submitting ? t('auth.loggingIn') : t('auth.login')}
-        </button>
-      </form>
-      <p>
-        <Link to="/register">{t('auth.register')}</Link>
-      </p>
+          </div>
+          {error && <p className={styles.error}>{error}</p>}
+          <button className={styles.button} type="submit" disabled={submitting}>
+            {submitting ? t('auth.loggingIn') : t('auth.login')}
+          </button>
+        </form>
+        <p className={styles.link}>
+          <Link to="/register">{t('auth.register')}</Link>
+        </p>
+      </div>
     </div>
   );
 }

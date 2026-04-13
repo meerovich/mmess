@@ -44,6 +44,7 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
         avatar_url: users.avatar_url,
         is_admin: conversation_participants.is_admin,
         can_edit_messages: conversation_participants.can_edit_messages,
+        status: conversation_participants.status,
         last_read_message_id: conversation_participants.last_read_message_id,
       })
       .from(conversation_participants)
@@ -62,6 +63,7 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       avatar_url: string | null;
       is_admin: boolean;
       can_edit_messages: boolean;
+      status: string;
       last_read_message_id: string | null;
       last_read_at: string | null;
     }>>();
@@ -73,8 +75,9 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
         avatar_url: p.avatar_url,
         is_admin: p.is_admin,
         can_edit_messages: p.can_edit_messages,
+        status: p.status,
         last_read_message_id: p.last_read_message_id ?? null,
-        last_read_at: null, // populated below via last_read_message_id lookup
+        last_read_at: null,
       });
       participantsByConv.set(p.conversation_id, list);
     }

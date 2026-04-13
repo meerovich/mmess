@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
+import { apiFetch } from '../../lib/api';
 import { useChatLayout } from './ChatLayout';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -96,8 +97,10 @@ export function ChatPane() {
         onEdit={setEditMessage}
       />
       <TypingIndicator conversationId={activeConversationId} />
-      <MessageInput
+      <InvitationAwareInput
+        conversation={conversation}
         conversationId={activeConversationId}
+        currentUserId={user?.id ?? ''}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         editMessage={editMessage}
@@ -110,5 +113,99 @@ export function ChatPane() {
         />
       )}
     </div>
+  );
+}
+
+/** Wraps MessageInput with invitation-aware logic for DMs */
+function InvitationAwareInput({
+  conversation,
+  conversationId,
+  currentUserId,
+  replyTo,
+  onClearReply,
+  editMessage,
+  onClearEdit,
+}: {
+  conversation: Conversation | undefined;
+  conversationId: string;
+  currentUserId: string;
+  replyTo: Message | null;
+  onClearReply: () => void;
+  editMessage: Message | null;
+  onClearEdit: () => void;
+}) {
+  const { dispatch } = useChat();
+  const { t } = useTranslation();
+  const [loading, setLoading] = useState(false);
+
+  if (!conversation || conversation.type !== 'direct') {
+    return (
+      <MessageInput
+        conversationId={conversationId}
+        replyTo={replyTo}
+        onClearReply={onClearReply}
+        editMessage={editMessage}
+        onClearEdit={onClearEdit}
+      />
+    );
+  }
+
+  const myParticipant = conversation.participants.find(p => p.user_id === currentUserId);
+  const otherParticipant = conversation.participants.find(p => p.user_id !== currentUserId);
+
+  // I'm the invited user — show accept/decline
+  if (myParticipant?.status === 'pending') {
+    const handleAccept = async () => {
+      setLoading(true);
+      try {
+        await apiFetch(`/api/conversations/${conversationId}/accept`, { method: 'POST' });
+        dispatch({ type: 'INVITATION_ACCEPTED', conversationId, userId: currentUserId });
+      } catch { /* ignore */ }
+      setLoading(false);
+    };
+    const handleDecline = async () => {
+      setLoading(true);
+      try {
+        await apiFetch(`/api/conversations/${conversationId}/decline`, { method: 'POST' });
+        dispatch({ type: 'INVITATION_DECLINED', conversationId, userId: currentUserId });
+      } catch { /* ignore */ }
+      setLoading(false);
+    };
+
+    return (
+      <div className={styles.invitationBar}>
+        <span>{t('chat.invitationReceived')}</span>
+        <div className={styles.invitationActions}>
+          <button className={styles.acceptBtn} onClick={handleAccept} disabled={loading}>
+            {t('chat.accept')}
+          </button>
+          <button className={styles.declineBtn} onClick={handleDecline} disabled={loading}>
+            {t('chat.decline')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Other user hasn't accepted yet — show waiting state
+  if (otherParticipant?.status === 'pending') {
+    const msgs = conversation.last_message ? 1 : 0;
+    if (msgs > 0) {
+      return (
+        <div className={styles.invitationBar}>
+          <span>{t('chat.waitingAcceptance')}</span>
+        </div>
+      );
+    }
+  }
+
+  return (
+    <MessageInput
+      conversationId={conversationId}
+      replyTo={replyTo}
+      onClearReply={onClearReply}
+      editMessage={editMessage}
+      onClearEdit={onClearEdit}
+    />
   );
 }

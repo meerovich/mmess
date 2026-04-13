@@ -258,12 +258,34 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
     case 'CONVERSATION_UPDATED': {
       const idx = state.conversations.findIndex(c => c.id === action.conversation.id);
       if (idx === -1) {
-        // New conversation (e.g. admin added us) — prepend
         return { ...state, conversations: [action.conversation, ...state.conversations] };
       }
       const updated = [...state.conversations];
       updated[idx] = action.conversation;
       return { ...state, conversations: updated };
+    }
+
+    case 'INVITATION_ACCEPTED': {
+      return {
+        ...state,
+        conversations: state.conversations.map(c => {
+          if (c.id !== action.conversationId) return c;
+          return {
+            ...c,
+            participants: c.participants.map(p =>
+              p.user_id === action.userId ? { ...p, status: 'accepted' as const } : p
+            ),
+          };
+        }),
+      };
+    }
+
+    case 'INVITATION_DECLINED': {
+      // Remove declined conversation from list
+      return {
+        ...state,
+        conversations: state.conversations.filter(c => c.id !== action.conversationId),
+      };
     }
 
     default:

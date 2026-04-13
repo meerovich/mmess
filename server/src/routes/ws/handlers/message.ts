@@ -116,6 +116,32 @@ export async function handleMessageSend(
     return;
   }
 
+  // Invitation gate: in pending DM, only creator can send 1 invite message
+  if (participant.status === 'pending') {
+    socket.send(JSON.stringify({ type: 'error', payload: { message: 'Accept the invitation first' }, id: clientId }));
+    return;
+  }
+  if (participant.status === 'accepted') {
+    // Check if ANY other participant is still pending (DM invitation not yet accepted)
+    const otherPending = await db.select({ user_id: conversation_participants.user_id })
+      .from(conversation_participants)
+      .where(and(
+        eq(conversation_participants.conversation_id, payload.conversation_id),
+        eq(conversation_participants.status, 'pending')
+      ));
+    if (otherPending.length > 0) {
+      // Allow only 1 message (the invite text) before acceptance
+      const existingMsgs = await db.select({ id: messages.id })
+        .from(messages)
+        .where(eq(messages.conversation_id, payload.conversation_id))
+        .limit(1);
+      if (existingMsgs.length > 0) {
+        socket.send(JSON.stringify({ type: 'error', payload: { message: 'Waiting for invitation acceptance' }, id: clientId }));
+        return;
+      }
+    }
+  }
+
   // File validation (D-20)
   let fileRecord: typeof files.$inferSelect | null = null;
   if (payload.file_id) {

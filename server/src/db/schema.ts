@@ -15,6 +15,7 @@ import { sql } from 'drizzle-orm';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export const conversationTypeEnum = pgEnum('conversation_type', ['direct', 'group']);
+export const participantStatusEnum = pgEnum('participant_status', ['accepted', 'pending', 'declined']);
 
 // ─── Timestamp helper ────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export const conversation_participants = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     is_admin: boolean('is_admin').notNull().default(false),
     can_edit_messages: boolean('can_edit_messages').notNull().default(false),
+    status: participantStatusEnum('status').notNull().default('accepted'),
     last_read_message_id: uuid('last_read_message_id'), // for unread count (PITFALLS.md #8)
     joined_at: timestamp('joined_at', { withTimezone: true }).defaultNow().notNull(),
   },

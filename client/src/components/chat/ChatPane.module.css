@@ -110,3 +110,51 @@
   color: var(--color-text-secondary);
   display: block;
 }
+
+.invitationBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent-muted);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--text-label);
+  color: var(--color-text-primary);
+  flex-wrap: wrap;
+}
+
+.invitationActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.acceptBtn {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border: none;
+  border-radius: 6px;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.acceptBtn:disabled {
+  opacity: 0.5;
+}
+
+.declineBtn {
+  background: none;
+  color: var(--color-destructive);
+  border: 1px solid var(--color-destructive);
+  border-radius: 6px;
+  padding: var(--space-xs) var(--space-md);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.declineBtn:disabled {
+  opacity: 0.5;
+}
