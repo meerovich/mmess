@@ -114,10 +114,13 @@ export function ChatLayout() {
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
-        layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
+        // Only apply transform when offset > 0 (keyboard open).
+        // translateY(0) creates a CSS stacking context that breaks position:fixed
+        // for overlays (context menu, forward modal, etc.)
+        layoutRef.current.style.transform = vv.offsetTop > 0
+          ? `translateY(${vv.offsetTop}px)`
+          : '';
 
-        // Detect keyboard from actual viewport height change (reliable on iOS).
-        // File picker / action sheet don't shrink visualViewport — only keyboard does.
         const keyboardOpen = vv.height < initialHeight * 0.85;
         layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }

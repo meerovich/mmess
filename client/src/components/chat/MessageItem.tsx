@@ -514,7 +514,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu — rendered via Portal to cover entire screen including input bar */}
+      {/* Long-press context menu — Portal to document.body (outside ChatLayout).
+           Works because ChatLayout no longer applies transform when keyboard is closed. */}
       {showLongPressMenu && !message.is_deleted && createPortal(
         <div
           className={styles.longPressOverlay}
