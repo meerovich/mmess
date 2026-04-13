@@ -11,14 +11,15 @@ WORKDIR /app
 # "../tsconfig.base.json". We place it at /tsconfig.base.json so that the
 # relative path resolves correctly when WORKDIR is /app.
 COPY tsconfig.base.json /tsconfig.base.json
+
+# Layer cache: package.json copied first; npm install only re-runs when deps change
 COPY server/package.json ./
 
-# Install directly into /app (not via workspace flag). Skipping the root
-# package-lock.json avoids npm workspace hoisting issues that failed on the
-# build host. --legacy-peer-deps tolerates peer range conflicts in the server
-# plugin stack (@fastify/*, drizzle, sharp).
-RUN npm install --no-audit --no-fund --legacy-peer-deps
+# Mount npm cache for faster rebuilds on VPS with limited RAM
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-audit --no-fund --legacy-peer-deps
 
+# Source changes don't invalidate npm install layer above
 COPY server/ ./
 RUN npm run build
 
@@ -28,7 +29,10 @@ FROM node:22-slim AS runtime
 WORKDIR /app
 
 COPY server/package.json ./
-RUN npm install --omit=dev --no-audit --no-fund --legacy-peer-deps
+
+# Reuse npm cache mount — production deps only
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --omit=dev --no-audit --no-fund --legacy-peer-deps
 
 COPY --from=builder /app/dist ./dist
 COPY server/drizzle ./drizzle
