@@ -459,7 +459,9 @@
 .longPressOverlay {
   position: fixed;
   z-index: 99999;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(9, 13, 18, 0.26);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   touch-action: none;
 }
 
