@@ -279,14 +279,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                   onClick={handleReply}
                   aria-label={t('chat.reply')}
                 >
-                  ↩
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
                 </button>
                 <button
                   className={styles.inlineReplyBtn}
                   onClick={() => setForwardMessage(message)}
                   aria-label={t('chat.forward')}
                 >
-                  ↗
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
                 </button>
               </>
             )}
@@ -352,14 +352,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             onClick={handleReply}
             aria-label={t('chat.reply')}
           >
-            ↩
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
           </button>
           <button
             className={styles.menuBtn}
             onClick={() => setForwardMessage(message)}
             aria-label={t('chat.forward')}
           >
-            ↗
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
           </button>
 
           {canEditDelete && (
