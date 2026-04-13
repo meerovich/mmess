@@ -155,12 +155,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       return;
     }
 
-    // Only swipe right (positive dx) — no cap, allow unlimited distance
     if (dx > 10) {
-      // Prevent browser from handling the touch (back gesture, scroll, etc.)
       e.preventDefault();
       touchRef.current.swiping = true;
-      setSwipeX(dx);
+      setSwipeX(Math.min(dx, 100));
     }
   }, []);
 
@@ -282,7 +280,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       if (dx > 10) {
         e.preventDefault();
         touchRef.current.swiping = true;
-        setSwipeX(dx);
+        setSwipeX(Math.min(dx, 100));
       }
     };
 

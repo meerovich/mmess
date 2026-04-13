@@ -264,22 +264,22 @@
   display: flex;
   flex-direction: column;
   border-left: 3px solid var(--color-accent);
-  padding: var(--space-xs) var(--space-sm);
-  margin-bottom: var(--space-xs);
-  background: rgba(11, 87, 208, 0.05);
-  border-radius: 0 4px 4px 0;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-sm);
+  background: rgba(11, 87, 208, 0.08);
+  border-radius: 0 6px 6px 0;
   gap: 2px;
 }
 
 .replyPreviewSender {
-  font-size: var(--text-label);
+  font-size: var(--text-body);
   font-weight: 600;
   color: var(--color-accent);
 }
 
 .replyPreviewText {
   font-size: var(--text-label);
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
