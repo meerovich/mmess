@@ -34,6 +34,7 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+  const suppressBlurRef = useRef(false);
 
   // Draft persistence: restore draft from localStorage on conversation switch.
   const draftKey = `draft:${conversationId}`;
@@ -365,7 +366,13 @@ export function MessageInput({
         {/* Paperclip button (D-27) */}
         <button
           className={styles.attachBtn}
-          onClick={(e) => { e.preventDefault(); fileInputRef.current?.click(); }}
+          onClick={(e) => {
+            e.preventDefault();
+            suppressBlurRef.current = true;
+            fileInputRef.current?.click();
+            // Reset after iOS has time to process the file picker
+            setTimeout(() => { suppressBlurRef.current = false; }, 1000);
+          }}
           onMouseDown={e => e.preventDefault()}
           disabled={uploadState.status === 'uploading'}
           aria-label={t('chat.attachFile')}
@@ -396,7 +403,10 @@ export function MessageInput({
             setTimeout(() => window.scrollTo(0, 0), 300);
           }}
           onBlur={() => {
-            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
+            // Don't signal keyboard close if blur was caused by attach button
+            if (!suppressBlurRef.current) {
+              window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
+            }
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
