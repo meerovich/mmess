@@ -165,8 +165,14 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     didScrollRef.current = conversationId;
 
     const doScroll = () => {
-      if (unreadDividerRef.current) {
-        unreadDividerRef.current.scrollIntoView({ block: 'center' });
+      if (unreadDividerRef.current && listRef.current) {
+        // Use manual scrollTop calculation instead of scrollIntoView
+        // which behaves inconsistently on iOS Safari.
+        const listRect = listRef.current.getBoundingClientRect();
+        const dividerRect = unreadDividerRef.current.getBoundingClientRect();
+        const offset = dividerRect.top - listRect.top + listRef.current.scrollTop;
+        // Position divider ~1/3 from top of viewport for better context
+        listRef.current.scrollTop = offset - listRect.height * 0.3;
         isAtBottomRef.current = false;
       } else {
         scrollToBottom();
@@ -174,13 +180,10 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       }
     };
 
-    // Double rAF ensures React has flushed DOM updates. Fallback setTimeout
-    // handles edge cases where rAF fires before layout is complete (iOS Safari).
+    // Triple delay: rAF → rAF → setTimeout to ensure DOM is fully rendered
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        doScroll();
-        // Safety net: retry after 100ms in case divider wasn't in DOM yet
-        setTimeout(doScroll, 100);
+        setTimeout(doScroll, 50);
       });
     });
   }, [isInitialLoading, messages.length, conversationId, scrollToBottom]);
