@@ -458,11 +458,7 @@
 /* Long-press context menu (WhatsApp-style, mobile) */
 .longPressOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  height: 100dvh;
+  inset: 0;
   z-index: 99999;
   background: rgba(0, 0, 0, 0.4);
   touch-action: none;
