@@ -310,7 +310,7 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
     const fs = await import('fs');
     const path = await import('path');
     const uploadDir = process.env.UPLOAD_DIR ?? '/data/uploads';
-    const filePath = path.default.join(uploadDir, file.storage_path);
+    const filePath = path.default.join(uploadDir, file.storage_name);
 
     return reply
       .type(file.mimetype)
