@@ -462,6 +462,11 @@
   inset: 0;
   z-index: 200;
   background: rgba(0, 0, 0, 0.3);
+  /* Block ALL touch interactions (scroll, swipe) behind the overlay */
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+  overscroll-behavior: contain;
+  overflow: hidden;
 }
 
 .longPressMenu {

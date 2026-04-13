@@ -215,7 +215,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
     setBubbleShiftY(0);
-    document.body.style.overflow = '';
   }, []);
 
   // How much to shift the bubble up so the menu fits below
@@ -241,8 +240,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       setTimeout(() => {
         setBubbleShiftY(0); // no translateY shift needed — we scrolled instead
         setShowLongPressMenu(true);
-        // Block all scrolling while menu is open
-        document.body.style.overflow = 'hidden';
         if (navigator.vibrate) navigator.vibrate(30);
       }, 150);
     }, 500);
@@ -516,7 +513,15 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
       {/* Long-press context menu (WhatsApp-style: overlay + message on top + menu below) */}
       {showLongPressMenu && !message.is_deleted && (
-        <div className={styles.longPressOverlay} onClick={() => { closeLongPressMenu(); }}>
+        <div
+          className={styles.longPressOverlay}
+          onClick={() => { closeLongPressMenu(); }}
+          ref={(el) => {
+            if (el) {
+              el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+            }
+          }}
+        >
           <div
             className={styles.longPressMenu}
             style={(() => {
