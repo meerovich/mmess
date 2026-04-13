@@ -106,6 +106,14 @@
   color: var(--color-text-primary);
   word-break: break-word;
   line-height: 1.45;
+  /* Let touch events pass through text to the bubble's native listener.
+     Without this, iOS Safari intercepts touch on text nodes for selection. */
+  pointer-events: none;
+}
+
+/* Re-enable pointer-events on links so they remain clickable */
+.content :global(a) {
+  pointer-events: auto;
 }
 
 /* Markdown rendered elements inside .content */
