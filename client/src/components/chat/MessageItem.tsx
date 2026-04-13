@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
@@ -239,6 +240,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       // Show menu after scroll settles
       setTimeout(() => {
         setBubbleShiftY(0); // no translateY shift needed — we scrolled instead
+        // Dismiss keyboard before showing menu
+        if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
         setShowLongPressMenu(true);
         if (navigator.vibrate) navigator.vibrate(30);
       }, 150);
@@ -511,8 +514,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu (WhatsApp-style: overlay + message on top + menu below) */}
-      {showLongPressMenu && !message.is_deleted && (
+      {/* Long-press context menu — rendered via Portal to cover entire screen including input bar */}
+      {showLongPressMenu && !message.is_deleted && createPortal(
         <div
           className={styles.longPressOverlay}
           onClick={() => { closeLongPressMenu(); }}
@@ -527,7 +530,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             style={(() => {
               const rect = bubbleRef.current?.getBoundingClientRect();
               if (!rect) return {};
-              // Menu always below the (possibly shifted) bubble
               return {
                 position: 'fixed' as const,
                 left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
@@ -552,7 +554,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               </button>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}
