@@ -55,15 +55,16 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: 18px;
   position: relative;
-  user-select: none;
-  -webkit-user-select: none;
+  /* NOTE: user-select removed — it blocks touch events on iOS Safari.
+     Copy button provides the copy functionality instead. */
 }
 
-/* Ensure ALL children inside bubble allow vertical pan only —
-   prevents browser from consuming horizontal touch on content/links/images */
+/* All elements inside bubble: only allow vertical pan (browser handles scroll),
+   horizontal gestures go to our JS swipe handler */
 .bubble,
 .bubble * {
   touch-action: pan-y;
+  -webkit-touch-callout: none; /* prevent iOS long-press callout on links/images */
 }
 
 .bubbleHighlighted {
@@ -131,7 +132,9 @@
   background: var(--color-surface-secondary);
   padding: var(--space-sm);
   border-radius: 6px;
-  overflow-x: auto;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
   margin: 0.4em 0;
   font-size: 0.85em;
 }
