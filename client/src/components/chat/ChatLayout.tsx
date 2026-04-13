@@ -95,13 +95,21 @@ export function ChatLayout() {
     const vv = window.visualViewport;
     if (!vv) return;
 
+    // Capture initial viewport height (before keyboard opens).
+    // Used to detect keyboard: if vv.height shrinks significantly, keyboard is open.
+    const initialHeight = vv.height;
+
     const setVH = () => {
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
         layoutRef.current.style.transform = `translateY(${vv.offsetTop}px)`;
-        // paddingBottom managed by mmess-keyboard event (focus/blur)
+
+        // Detect keyboard from actual viewport height change (reliable on iOS).
+        // File picker / action sheet don't shrink visualViewport — only keyboard does.
+        const keyboardOpen = vv.height < initialHeight * 0.85;
+        layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
 
       // Force window back to top
@@ -112,27 +120,13 @@ export function ChatLayout() {
 
     // Set initial
     setVH();
-    // Ensure safe-area padding is applied on mount (before any keyboard events)
-    if (layoutRef.current) {
-      layoutRef.current.style.paddingBottom = '';
-    }
 
     vv.addEventListener('resize', setVH);
     vv.addEventListener('scroll', setVH);
 
-    // Toggle safe-area padding based on keyboard state (focus/blur from MessageInput)
-    const onKeyboard = (e: Event) => {
-      const open = (e as CustomEvent).detail?.open;
-      if (layoutRef.current) {
-        layoutRef.current.style.paddingBottom = open ? '0' : '';
-      }
-    };
-    window.addEventListener('mmess-keyboard', onKeyboard);
-
     return () => {
       vv.removeEventListener('resize', setVH);
       vv.removeEventListener('scroll', setVH);
-      window.removeEventListener('mmess-keyboard', onKeyboard);
     };
   }, []);
 

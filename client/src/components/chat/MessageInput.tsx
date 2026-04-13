@@ -367,9 +367,8 @@ export function MessageInput({
           className={styles.attachBtn}
           onMouseDown={e => e.preventDefault()}
           onClick={() => {
-            // Manually signal keyboard close (blur won't fire because preventDefault)
-            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
-            // Blur textarea so iOS knows keyboard should close
+            // Blur textarea so iOS keyboard closes; visualViewport resize
+            // handler in ChatLayout will restore safe-area padding automatically.
             textareaRef.current?.blur();
             fileInputRef.current?.click();
           }}
@@ -397,12 +396,8 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onFocus={() => {
             window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
-            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: true } }));
             setTimeout(() => window.scrollTo(0, 0), 100);
             setTimeout(() => window.scrollTo(0, 0), 300);
-          }}
-          onBlur={() => {
-            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
