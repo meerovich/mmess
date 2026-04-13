@@ -154,10 +154,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       return;
     }
 
-    // Only swipe right (positive dx) — clamp between 0 and 80px
+    // Only swipe right (positive dx) — no cap, allow unlimited distance
     if (dx > 10) {
       touchRef.current.swiping = true;
-      setSwipeX(Math.min(dx, 80));
+      setSwipeX(dx);
     }
   }, []);
 
@@ -236,7 +236,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
     handleTouchMove(e);
-    if (touchRef.current?.swiping) handleLongPressEnd();
+    // Cancel long-press on ANY finger movement (scroll or swipe)
+    handleLongPressEnd();
   }, [handleTouchMove, handleLongPressEnd]);
 
   const onTouchEnd = useCallback(() => {

@@ -149,18 +149,28 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
     for (const row of userConversations) {
       const convId = row.conversation.id;
       const lastReadId = row.participant.last_read_message_id;
+      const myUserId = userId;
 
       let count: number;
 
       if (lastReadId === null) {
-        // No read record — count all messages in conversation
-        const [result] = await db
-          .select({ count: sql<string>`COUNT(*)` })
-          .from(messages)
-          .where(eq(messages.conversation_id, convId));
-        count = parseInt(result?.count ?? '0', 10);
+        // No read record — count messages from OTHER users only.
+        // If the user never opened the chat, show unread count.
+        // But if the conversation has no last_message, it's empty → 0.
+        if (!row.conversation.last_message_id) {
+          count = 0;
+        } else {
+          const [result] = await db
+            .select({ count: sql<string>`COUNT(*)` })
+            .from(messages)
+            .where(and(
+              eq(messages.conversation_id, convId),
+              sql`${messages.sender_id} != ${myUserId}::uuid`
+            ));
+          count = parseInt(result?.count ?? '0', 10);
+        }
       } else {
-        // Count messages after last read message (by created_at of the last read message)
+        // Count messages from OTHER users after last read message
         const [lastReadMsg] = await db
           .select({ created_at: messages.created_at })
           .from(messages)
@@ -176,7 +186,8 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
             .where(
               and(
                 eq(messages.conversation_id, convId),
-                gt(messages.created_at, lastReadMsg.created_at)
+                gt(messages.created_at, lastReadMsg.created_at),
+                sql`${messages.sender_id} != ${myUserId}::uuid`
               )
             );
           count = parseInt(result?.count ?? '0', 10);
