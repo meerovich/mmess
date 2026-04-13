@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+
 import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
@@ -213,24 +213,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Save bubble's parent + next sibling to restore position on close
-  const savedParentRef = useRef<HTMLElement | null>(null);
-  const savedNextRef = useRef<Node | null>(null);
-  const savedStyleRef = useRef('');
+  // Menu position: saved when long-press fires
+  const [menuTop, setMenuTop] = useState(0);
+  const [menuLeft, setMenuLeft] = useState(0);
+  const [menuWidth, setMenuWidth] = useState(220);
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
-    // Move bubble back to its original DOM position
-    const el = bubbleRef.current;
-    if (el && savedParentRef.current) {
-      el.style.cssText = savedStyleRef.current;
-      if (savedNextRef.current) {
-        savedParentRef.current.insertBefore(el, savedNextRef.current);
-      } else {
-        savedParentRef.current.appendChild(el);
-      }
-      savedParentRef.current = null;
-    }
   }, []);
 
   const handleLongPressStart = useCallback(() => {
@@ -238,23 +227,18 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       if (!bubbleRef.current) return;
 
-      const el = bubbleRef.current;
-      const rect = el.getBoundingClientRect();
+      const rect = bubbleRef.current.getBoundingClientRect();
+      const menuH = 160;
+      const spaceBelow = window.innerHeight - rect.bottom;
 
-      // Save original position in DOM
-      savedParentRef.current = el.parentElement;
-      savedNextRef.current = el.nextSibling;
-      savedStyleRef.current = el.style.cssText;
-
-      // Style for fixed positioning at top
-      el.style.position = 'fixed';
-      el.style.top = '56px';
-      el.style.left = rect.left + 'px';
-      el.style.width = rect.width + 'px';
-      el.style.zIndex = '100001';
-      el.style.maxWidth = 'none';
-      el.style.margin = '0';
-      el.style.transition = 'none';
+      // Position menu below if fits, above if not
+      if (spaceBelow >= menuH + 8) {
+        setMenuTop(rect.bottom + 4);
+      } else {
+        setMenuTop(rect.top - menuH - 4);
+      }
+      setMenuLeft(Math.max(8, Math.min(rect.left, window.innerWidth - 220)));
+      setMenuWidth(Math.min(rect.width, 220));
 
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
@@ -527,34 +511,26 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Telegram-style: opaque overlay + real bubble moved into overlay + menu below */}
-      {showLongPressMenu && !message.is_deleted && createPortal(
-        <div
-          className={styles.longPressOverlay}
-          onClick={() => { closeLongPressMenu(); }}
-          ref={(el) => {
-            if (el) {
-              el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-              // Move the REAL bubble DOM node into this overlay
-              if (bubbleRef.current && !el.contains(bubbleRef.current)) {
-                el.insertBefore(bubbleRef.current, el.firstChild);
-              }
-            }
-          }}
-        >
-          {/* Menu below the bubble (which is now inside this overlay) */}
+      {/* Context menu: semi-transparent overlay + fixed menu near bubble.
+           No DOM manipulation, no Portal — simple and iOS-safe. */}
+      {showLongPressMenu && !message.is_deleted && (
+        <>
+          <div
+            className={styles.longPressOverlay}
+            onClick={() => { closeLongPressMenu(); }}
+            ref={(el) => {
+              if (el) el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+            }}
+          />
           <div
             className={styles.longPressMenu}
-            style={(() => {
-              const rect = bubbleRef.current?.getBoundingClientRect();
-              if (!rect) return {};
-              return {
-                position: 'fixed' as const,
-                left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
-                top: rect.bottom + 4,
-                minWidth: Math.min(rect.width, 220),
-              };
-            })()}
+            style={{
+              position: 'fixed',
+              left: menuLeft,
+              top: menuTop,
+              minWidth: menuWidth,
+              zIndex: 100000,
+            }}
             onClick={e => e.stopPropagation()}
           >
             <button className={styles.longPressItem} onClick={() => { handleReply(); closeLongPressMenu(); }}>
@@ -572,8 +548,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               </button>
             )}
           </div>
-        </div>,
-        document.body
+        </>
       )}
 
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}

@@ -464,11 +464,8 @@
   height: 100vh;
   height: 100dvh;
   z-index: 99999;
-  background: var(--color-surface);
+  background: rgba(0, 0, 0, 0.4);
   touch-action: none;
-  -webkit-overflow-scrolling: none;
-  overscroll-behavior: contain;
-  overflow: hidden;
 }
 
 .longPressMenu {
