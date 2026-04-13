@@ -246,8 +246,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     }
   }, []);
 
-  // Register native touch listeners with { passive: false } so e.preventDefault()
-  // actually works. React's synthetic touch events are passive and silently ignore it.
+  // Refs for stable callbacks in native listeners (avoid re-registering on every render)
+  const onReplyRef = useRef(onReply);
+  onReplyRef.current = onReply;
+  const messageRef = useRef(message);
+  messageRef.current = message;
+  const swipeXRef = useRef(swipeX);
+  swipeXRef.current = swipeX;
+
+  // Register native touch listeners ONCE with { passive: false } so e.preventDefault()
+  // works on iOS. React synthetic touch events are passive and silently ignore it.
   useEffect(() => {
     const el = bubbleRef.current;
     if (!el) return;
@@ -260,7 +268,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     };
 
     const onMove = (e: TouchEvent) => {
-      handleLongPressEnd(); // cancel long-press on any movement
+      handleLongPressEnd();
       if (!touchRef.current) return;
       const touch = e.touches[0];
       const dx = touch.clientX - touchRef.current.startX;
@@ -272,7 +280,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       }
 
       if (dx > 10) {
-        e.preventDefault(); // works because { passive: false }
+        e.preventDefault();
         touchRef.current.swiping = true;
         setSwipeX(dx);
       }
@@ -280,8 +288,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
     const onEnd = () => {
       handleLongPressEnd();
-      if (touchRef.current?.swiping && swipeX >= SWIPE_THRESHOLD) {
-        onReply?.(message);
+      if (touchRef.current?.swiping && swipeXRef.current >= SWIPE_THRESHOLD) {
+        onReplyRef.current?.(messageRef.current);
       }
       touchRef.current = null;
       setSwipeX(0);
@@ -297,7 +305,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       el.removeEventListener('touchend', onEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [message, onReply, swipeX, handleLongPressStart, handleLongPressEnd]);
+  }, [handleLongPressStart, handleLongPressEnd]);
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
 
