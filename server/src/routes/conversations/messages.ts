@@ -77,6 +77,7 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
         sender_id: messages.sender_id,
         content: messages.content,
         reply_to_id: messages.reply_to_id,
+        forwarded_from_id: messages.forwarded_from_id,
         is_deleted: messages.is_deleted,
         edited_at: messages.edited_at,
         created_at: messages.created_at,
@@ -182,6 +183,39 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       }
     }
 
+    // Fetch forwarded_from messages (original sender info)
+    const forwardedFromIds = pageMessages
+      .map((m) => m.forwarded_from_id)
+      .filter((id): id is string => id !== null);
+
+    const forwardedFromMap = new Map<string, { id: string; sender: { id: string; username: string }; content_preview: string | null }>();
+
+    if (forwardedFromIds.length > 0) {
+      const forwardedMessages = await db
+        .select({
+          id: messages.id,
+          sender_id: messages.sender_id,
+          content: messages.content,
+          sender_username: users.username,
+        })
+        .from(messages)
+        .innerJoin(users, eq(messages.sender_id, users.id))
+        .where(
+          sql`${messages.id} = ANY(ARRAY[${sql.join(
+            forwardedFromIds.map((id) => sql`${id}::uuid`),
+            sql`, `
+          )}])`
+        );
+
+      for (const fm of forwardedMessages) {
+        forwardedFromMap.set(fm.id, {
+          id: fm.id,
+          sender: { id: fm.sender_id, username: fm.sender_username },
+          content_preview: fm.content?.slice(0, 100) ?? null,
+        });
+      }
+    }
+
     // Build response — reverse to oldest-first order (DESC query was newest-first)
     const orderedMessages = [...pageMessages].reverse();
 
@@ -191,6 +225,8 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       sender_id: m.sender_id,
       content: m.content,
       reply_to_id: m.reply_to_id,
+      forwarded_from_id: m.forwarded_from_id ?? null,
+      forwarded_from: m.forwarded_from_id ? (forwardedFromMap.get(m.forwarded_from_id) ?? null) : null,
       is_deleted: m.is_deleted,
       edited_at: m.edited_at ? m.edited_at.toISOString() : null,
       created_at: m.created_at.toISOString(),
