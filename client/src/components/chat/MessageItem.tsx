@@ -212,28 +212,39 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  const closeLongPressMenu = useCallback(() => {
+    setShowLongPressMenu(false);
+    setBubbleShiftY(0);
+    document.body.style.overflow = '';
+  }, []);
+
   // How much to shift the bubble up so the menu fits below
   const [bubbleShiftY, setBubbleShiftY] = useState(0);
 
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       setMenuPos(longPressPosRef.current);
-      // 3 menu items (~52px each) + padding + safe area
       const menuHeight = 200;
-      const margin = 40; // extra space for safe area + breathing room
-      let shift = 0;
+      const margin = 40;
+
+      // If menu won't fit below, scroll the message up first
       if (bubbleRef.current) {
         const rect = bubbleRef.current.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom;
         if (spaceBelow < menuHeight + margin) {
-          shift = menuHeight + margin - spaceBelow;
-          // Don't shift more than bubble top allows (keep bubble visible)
-          shift = Math.min(shift, rect.top - 60);
+          // Scroll the bubble to top-third of screen so menu fits below
+          bubbleRef.current.scrollIntoView({ block: 'start', behavior: 'smooth' });
         }
       }
-      setBubbleShiftY(shift);
-      setShowLongPressMenu(true);
-      if (navigator.vibrate) navigator.vibrate(30);
+
+      // Show menu after scroll settles
+      setTimeout(() => {
+        setBubbleShiftY(0); // no translateY shift needed — we scrolled instead
+        setShowLongPressMenu(true);
+        // Block all scrolling while menu is open
+        document.body.style.overflow = 'hidden';
+        if (navigator.vibrate) navigator.vibrate(30);
+      }, 150);
     }, 500);
   }, []);
 
@@ -505,7 +516,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
       {/* Long-press context menu (WhatsApp-style: overlay + message on top + menu below) */}
       {showLongPressMenu && !message.is_deleted && (
-        <div className={styles.longPressOverlay} onClick={() => { setShowLongPressMenu(false); setBubbleShiftY(0); }}>
+        <div className={styles.longPressOverlay} onClick={() => { closeLongPressMenu(); }}>
           <div
             className={styles.longPressMenu}
             style={(() => {
@@ -521,16 +532,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             })()}
             onClick={e => e.stopPropagation()}
           >
-            <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
+            <button className={styles.longPressItem} onClick={() => { handleReply(); closeLongPressMenu(); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
               {t('chat.reply')}
             </button>
-            <button className={styles.longPressItem} onClick={() => { setForwardMessage(message); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
+            <button className={styles.longPressItem} onClick={() => { setForwardMessage(message); closeLongPressMenu(); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
               {t('chat.forward')}
             </button>
             {message.content && (
-              <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); setShowLongPressMenu(false); setBubbleShiftY(0); }}>
+              <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); closeLongPressMenu(); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                 {t('chat.copy')}
               </button>
