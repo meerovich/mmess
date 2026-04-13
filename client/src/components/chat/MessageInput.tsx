@@ -405,6 +405,7 @@ export function MessageInput({
         <button
           className={styles.sendBtn}
           onClick={handleSend}
+          onMouseDown={e => e.preventDefault()}
           disabled={isDisabled}
           aria-label={t('chat.sendMessage')}
         >

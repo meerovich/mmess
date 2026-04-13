@@ -112,6 +112,10 @@ export function ChatLayout() {
 
     // Set initial
     setVH();
+    // Ensure safe-area padding is applied on mount (before any keyboard events)
+    if (layoutRef.current) {
+      layoutRef.current.style.paddingBottom = '';
+    }
 
     vv.addEventListener('resize', setVH);
     vv.addEventListener('scroll', setVH);
