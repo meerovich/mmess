@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["server", "client"],
+  "workspaces": [
+    "server",
+    "client"
+  ],
   "scripts": {
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -13,6 +16,7 @@
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
+    "playwright": "^1.59.1",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0"
   }

@@ -217,9 +217,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [menuTop, setMenuTop] = useState(0);
   const [menuLeft, setMenuLeft] = useState(0);
   const [menuWidth, setMenuWidth] = useState(220);
+  const [bubbleShiftY, setBubbleShiftY] = useState(0);
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
+    setBubbleShiftY(0);
   }, []);
 
   const handleLongPressStart = useCallback(() => {
@@ -228,17 +230,37 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       if (!bubbleRef.current) return;
 
       const rect = bubbleRef.current.getBoundingClientRect();
+      const viewport = window.visualViewport;
+      const viewportTop = viewport?.offsetTop ?? 0;
+      const viewportLeft = viewport?.offsetLeft ?? 0;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const viewportWidth = viewport?.width ?? window.innerWidth;
+      const viewportBottom = viewportTop + viewportHeight;
+      const viewportRight = viewportLeft + viewportWidth;
       const menuH = 160;
-      const spaceBelow = window.innerHeight - rect.bottom;
+      const desiredMenuWidth = Math.min(rect.width, 220);
+      const horizontalMargin = 8;
+      const verticalGap = 4;
+      const verticalMargin = 8;
+      const spaceBelow = viewportBottom - rect.bottom;
+      const placeBelow = spaceBelow >= menuH + verticalMargin;
+      const unclampedTop = placeBelow
+        ? rect.bottom + verticalGap
+        : rect.top - menuH - verticalGap;
+      const nextMenuTop = Math.max(
+        viewportTop + verticalMargin,
+        Math.min(unclampedTop, viewportBottom - menuH - verticalMargin)
+      );
+      const nextMenuLeft = Math.max(
+        viewportLeft + horizontalMargin,
+        Math.min(rect.left, viewportRight - desiredMenuWidth - horizontalMargin)
+      );
+      const overflowBelow = rect.bottom + verticalGap + menuH + verticalMargin - viewportBottom;
 
-      // Position menu below if fits, above if not
-      if (spaceBelow >= menuH + 8) {
-        setMenuTop(rect.bottom + 4);
-      } else {
-        setMenuTop(rect.top - menuH - 4);
-      }
-      setMenuLeft(Math.max(8, Math.min(rect.left, window.innerWidth - 220)));
-      setMenuWidth(Math.min(rect.width, 220));
+      setMenuTop(nextMenuTop);
+      setMenuLeft(nextMenuLeft);
+      setMenuWidth(desiredMenuWidth);
+      setBubbleShiftY(placeBelow ? Math.max(0, overflowBelow) : 0);
 
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
@@ -518,9 +540,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           <div
             className={styles.longPressOverlay}
             onClick={() => { closeLongPressMenu(); }}
-            ref={(el) => {
-              if (el) el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-            }}
+            onTouchMove={e => e.preventDefault()}
           />
           <div
             className={styles.longPressMenu}
