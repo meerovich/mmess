@@ -164,15 +164,23 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     if (didScrollRef.current === conversationId) return;
     didScrollRef.current = conversationId;
 
+    const doScroll = () => {
+      if (unreadDividerRef.current) {
+        unreadDividerRef.current.scrollIntoView({ block: 'center' });
+        isAtBottomRef.current = false;
+      } else {
+        scrollToBottom();
+        isAtBottomRef.current = true;
+      }
+    };
+
+    // Double rAF ensures React has flushed DOM updates. Fallback setTimeout
+    // handles edge cases where rAF fires before layout is complete (iOS Safari).
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        if (unreadDividerRef.current) {
-          unreadDividerRef.current.scrollIntoView({ block: 'center' });
-          isAtBottomRef.current = false;
-        } else {
-          scrollToBottom();
-          isAtBottomRef.current = true;
-        }
+        doScroll();
+        // Safety net: retry after 100ms in case divider wasn't in DOM yet
+        setTimeout(doScroll, 100);
       });
     });
   }, [isInitialLoading, messages.length, conversationId, scrollToBottom]);
