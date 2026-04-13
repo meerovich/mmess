@@ -217,10 +217,17 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [menuLeft, setMenuLeft] = useState(0);
   const [menuWidth, setMenuWidth] = useState(220);
   const [bubbleShiftY, setBubbleShiftY] = useState(0);
+  const [bubbleSpotlight, setBubbleSpotlight] = useState<{
+    top: number;
+    right: number;
+    bottom: number;
+    left: number;
+  } | null>(null);
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
     setBubbleShiftY(0);
+    setBubbleSpotlight(null);
   }, []);
 
   const handleLongPressStart = useCallback(() => {
@@ -236,21 +243,27 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const viewportWidth = viewport?.width ?? window.innerWidth;
       const viewportBottom = viewportTop + viewportHeight;
       const viewportRight = viewportLeft + viewportWidth;
+      const inputArea = document.querySelector('[data-chat-input-area="true"]') as HTMLElement | null;
+      const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
       const menuH = message.content ? 176 : 120;
       const desiredMenuWidth = Math.min(rect.width, 220);
       const horizontalMargin = 8;
       const verticalGap = 4;
       const verticalMargin = 8;
+      const spotlightPadding = 10;
+      const menuBottomLimit = Math.min(viewportBottom - verticalMargin, inputTop - verticalGap);
       // Keep the menu below the bubble. If there isn't enough room,
-      // temporarily lift the bubble just enough so the menu fully fits.
+      // temporarily lift the bubble just enough so the menu fully fits
+      // above the composer / bottom panel.
       const shiftForMenu = Math.max(
         0,
-        rect.bottom + verticalGap + menuH + verticalMargin - viewportBottom
+        rect.bottom + verticalGap + menuH - menuBottomLimit
       );
+      const shiftedBubbleTop = rect.top - shiftForMenu;
       const shiftedBubbleBottom = rect.bottom - shiftForMenu;
       const nextMenuTop = Math.max(
         viewportTop + verticalMargin,
-        Math.min(shiftedBubbleBottom + verticalGap, viewportBottom - menuH - verticalMargin)
+        Math.min(shiftedBubbleBottom + verticalGap, menuBottomLimit - menuH)
       );
       const nextMenuLeft = Math.max(
         viewportLeft + horizontalMargin,
@@ -261,6 +274,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       setMenuLeft(nextMenuLeft);
       setMenuWidth(desiredMenuWidth);
       setBubbleShiftY(shiftForMenu);
+      setBubbleSpotlight({
+        top: Math.max(viewportTop, shiftedBubbleTop - spotlightPadding),
+        right: Math.min(viewportRight, rect.right + spotlightPadding),
+        bottom: Math.min(viewportBottom, shiftedBubbleBottom + spotlightPadding),
+        left: Math.max(viewportLeft, rect.left - spotlightPadding),
+      });
 
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
@@ -339,11 +358,61 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     showLongPressMenu && !message.is_deleted && typeof document !== 'undefined'
       ? createPortal(
           <>
-            <div
-              className={styles.longPressOverlay}
-              onClick={() => { closeLongPressMenu(); }}
-              onTouchMove={e => e.preventDefault()}
-            />
+            {bubbleSpotlight ? (
+              <>
+                <div
+                  className={styles.longPressOverlay}
+                  style={{
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: bubbleSpotlight.top,
+                  }}
+                  onClick={() => { closeLongPressMenu(); }}
+                  onTouchMove={e => e.preventDefault()}
+                />
+                <div
+                  className={styles.longPressOverlay}
+                  style={{
+                    top: bubbleSpotlight.top,
+                    left: 0,
+                    width: bubbleSpotlight.left,
+                    height: Math.max(0, bubbleSpotlight.bottom - bubbleSpotlight.top),
+                  }}
+                  onClick={() => { closeLongPressMenu(); }}
+                  onTouchMove={e => e.preventDefault()}
+                />
+                <div
+                  className={styles.longPressOverlay}
+                  style={{
+                    top: bubbleSpotlight.top,
+                    left: bubbleSpotlight.right,
+                    right: 0,
+                    height: Math.max(0, bubbleSpotlight.bottom - bubbleSpotlight.top),
+                  }}
+                  onClick={() => { closeLongPressMenu(); }}
+                  onTouchMove={e => e.preventDefault()}
+                />
+                <div
+                  className={styles.longPressOverlay}
+                  style={{
+                    top: bubbleSpotlight.bottom,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                  }}
+                  onClick={() => { closeLongPressMenu(); }}
+                  onTouchMove={e => e.preventDefault()}
+                />
+              </>
+            ) : (
+              <div
+                className={styles.longPressOverlay}
+                style={{ inset: 0 }}
+                onClick={() => { closeLongPressMenu(); }}
+                onTouchMove={e => e.preventDefault()}
+              />
+            )}
             <div
               className={styles.longPressMenu}
               style={{

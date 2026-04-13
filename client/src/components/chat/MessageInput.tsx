@@ -325,6 +325,7 @@ export function MessageInput({
   return (
     <div
       className={`${styles.inputArea} ${isDragging ? styles.dragOver : ''}`}
+      data-chat-input-area="true"
       aria-dropeffect={isDragging ? 'copy' : undefined}
       onTouchMove={(e) => {
         // Prevent iOS from dragging the input area (rubber-band bounce)
