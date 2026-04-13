@@ -50,9 +50,9 @@ app.register(avatarRoutes);
 const APP_VERSION = process.env.APP_VERSION ?? 'dev';
 
 // Minimum client version compatible with this API. Bump only when a server
-// Bump this whenever a client deploy adds important UX features that users
-// should pick up. The reload banner appears if client version < this value.
-const MIN_CLIENT_VERSION = process.env.MIN_CLIENT_VERSION ?? '1.4.7';
+// MIN_CLIENT_VERSION always equals APP_VERSION — every deploy requires reload.
+// This ensures users always run the latest client build.
+const MIN_CLIENT_VERSION = APP_VERSION;
 
 app.get('/health', async (_request, _reply) => {
   return {

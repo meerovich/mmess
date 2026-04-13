@@ -112,7 +112,17 @@ A self-hosted HTTPS messenger with real-time WebSocket communication, designed f
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
-Conventions not yet established. Will populate as patterns emerge during development.
+### Versioning & Deploy (MANDATORY)
+1. **Every deploy MUST increment the version** (semver patch minimum: 1.4.9 → 1.4.10)
+2. **minClientVersion always equals APP_VERSION** — server health forces reload for ANY version mismatch. Users always run the latest client.
+3. **Deploy flow** (from Windows):
+   - Build client: `VITE_APP_VERSION=X.Y.Z npx vite build`
+   - Tar + upload: `tar -czf ... && pscp ...`
+   - On VPS: extract dist, `sed` version in package.json
+   - If server code changed: `docker compose build api` + recreate api+caddy
+   - If client-only: `docker compose restart caddy`
+4. **Never reuse a version number** — even for small CSS fixes
+5. **After deploy**: send notification to miha via bot API with changelog
 <!-- GSD:conventions-end -->
 
 <!-- GSD:architecture-start source:ARCHITECTURE.md -->
