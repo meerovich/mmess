@@ -365,7 +365,14 @@ export function MessageInput({
         {/* Paperclip button (D-27) */}
         <button
           className={styles.attachBtn}
-          onClick={() => fileInputRef.current?.click()}
+          onMouseDown={e => e.preventDefault()}
+          onClick={() => {
+            // Manually signal keyboard close (blur won't fire because preventDefault)
+            window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
+            // Blur textarea so iOS knows keyboard should close
+            textareaRef.current?.blur();
+            fileInputRef.current?.click();
+          }}
           disabled={uploadState.status === 'uploading'}
           aria-label={t('chat.attachFile')}
           aria-disabled={uploadState.status === 'uploading'}
