@@ -55,6 +55,8 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: 18px;
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .bubble.own {

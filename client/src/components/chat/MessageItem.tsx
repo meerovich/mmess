@@ -288,6 +288,15 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
                 </button>
+                {message.content && (
+                  <button
+                    className={styles.inlineReplyBtn}
+                    onClick={() => navigator.clipboard.writeText(message.content!)}
+                    aria-label={t('chat.copy')}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  </button>
+                )}
               </>
             )}
             {timestamp}
