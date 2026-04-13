@@ -59,12 +59,20 @@
      Copy button provides the copy functionality instead. */
 }
 
-/* All elements inside bubble: only allow vertical pan (browser handles scroll),
-   horizontal gestures go to our JS swipe handler */
-.bubble,
+/* All elements inside bubble: pass touch through to bubble's native listener.
+   pointer-events: none prevents iOS Safari from intercepting touch on text/images.
+   touch-action: pan-y ensures browser only handles vertical scroll. */
 .bubble * {
+  pointer-events: none;
   touch-action: pan-y;
-  -webkit-touch-callout: none; /* prevent iOS long-press callout on links/images */
+  -webkit-touch-callout: none;
+}
+
+/* Re-enable pointer events on interactive elements */
+.bubble button,
+.bubble a,
+.bubble :global(a) {
+  pointer-events: auto;
 }
 
 .bubbleHighlighted {
@@ -106,14 +114,6 @@
   color: var(--color-text-primary);
   word-break: break-word;
   line-height: 1.45;
-  /* Let touch events pass through text to the bubble's native listener.
-     Without this, iOS Safari intercepts touch on text nodes for selection. */
-  pointer-events: none;
-}
-
-/* Re-enable pointer-events on links so they remain clickable */
-.content :global(a) {
-  pointer-events: auto;
 }
 
 /* Markdown rendered elements inside .content */
