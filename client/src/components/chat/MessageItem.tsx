@@ -220,14 +220,17 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
       setMenuPos(longPressPosRef.current);
-      const menuHeight = 180;
-      const margin = 20;
+      // 3 menu items (~52px each) + padding + safe area
+      const menuHeight = 200;
+      const margin = 40; // extra space for safe area + breathing room
       let shift = 0;
       if (bubbleRef.current) {
         const rect = bubbleRef.current.getBoundingClientRect();
         const spaceBelow = window.innerHeight - rect.bottom;
         if (spaceBelow < menuHeight + margin) {
           shift = menuHeight + margin - spaceBelow;
+          // Don't shift more than bubble top allows (keep bubble visible)
+          shift = Math.min(shift, rect.top - 60);
         }
       }
       setBubbleShiftY(shift);
