@@ -213,21 +213,40 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  // Saved original styles to restore when menu closes
+  const savedBubbleStyleRef = useRef('');
+
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
-    setBubbleShiftY(0);
+    // Restore original bubble styles
+    if (bubbleRef.current) {
+      bubbleRef.current.style.cssText = savedBubbleStyleRef.current;
+    }
   }, []);
-
-  // How much to shift the bubble up so the menu fits below
-  const [bubbleShiftY, setBubbleShiftY] = useState(0);
 
   const handleLongPressStart = useCallback(() => {
     longPressTimerRef.current = setTimeout(() => {
-      setMenuPos(longPressPosRef.current);
       if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+      if (!bubbleRef.current) return;
 
-      // Simply show menu — positioning logic handles above/below in JSX
-      setBubbleShiftY(0);
+      const el = bubbleRef.current;
+      const rect = el.getBoundingClientRect();
+
+      // Save original inline styles
+      savedBubbleStyleRef.current = el.style.cssText;
+
+      // Move original bubble to fixed position at top of screen
+      // Leave enough room: header ~48px + padding
+      const topPos = 56;
+      el.style.position = 'fixed';
+      el.style.top = topPos + 'px';
+      el.style.left = rect.left + 'px';
+      el.style.width = rect.width + 'px';
+      el.style.zIndex = '100001';
+      el.style.maxWidth = 'none';
+      el.style.margin = '0';
+      el.style.transition = 'none';
+
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
@@ -499,55 +518,25 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
-      {/* Long-press context menu — Portal with cloned bubble snapshot above overlay */}
+      {/* Telegram-style: opaque overlay (Portal) + menu below fixed-positioned original bubble */}
       {showLongPressMenu && !message.is_deleted && createPortal(
         <div
           className={styles.longPressOverlay}
           onClick={() => { closeLongPressMenu(); }}
           ref={(el) => {
-            if (el) {
-              el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
-            }
+            if (el) el.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
           }}
         >
-          {/* Cloned bubble above overlay — exact size from original */}
-          {(() => {
-            const rect = bubbleRef.current?.getBoundingClientRect();
-            if (!rect) return null;
-            return (
-              <div
-                style={{
-                  position: 'fixed',
-                  left: rect.left,
-                  top: rect.top,
-                  width: rect.width,
-                  height: rect.height,
-                  zIndex: 100001,
-                  pointerEvents: 'none',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{ width: rect.width, height: rect.height }}
-                  dangerouslySetInnerHTML={{ __html: bubbleRef.current?.innerHTML ?? '' }}
-                  className={`${styles.bubble} ${isOwn ? styles.own : styles.other}`}
-                />
-              </div>
-            );
-          })()}
-          {/* Menu below or above bubble depending on space */}
+          {/* Menu below the bubble (which is now position:fixed at top) */}
           <div
             className={styles.longPressMenu}
             style={(() => {
               const rect = bubbleRef.current?.getBoundingClientRect();
               if (!rect) return {};
-              const menuH = 160; // 3 items ~52px each
-              const spaceBelow = window.innerHeight - rect.bottom;
-              const placeBelow = spaceBelow >= menuH + 8;
               return {
                 position: 'fixed' as const,
                 left: Math.max(8, Math.min(rect.left, window.innerWidth - 220)),
-                top: placeBelow ? rect.bottom + 4 : rect.top - menuH - 4,
+                top: rect.bottom + 4,
                 minWidth: Math.min(rect.width, 220),
               };
             })()}
