@@ -192,7 +192,7 @@ export function MessageInput({
     // Mention detection: find @query at cursor
     const cursor = e.target.selectionStart;
     const textBefore = newValue.slice(0, cursor);
-    const atMatch = textBefore.match(/@(\w*)$/);
+    const atMatch = textBefore.match(/@([\w\s]*)$/);
     if (atMatch) {
       setMentionQuery(atMatch[1]);
       setMentionStart(cursor - atMatch[0].length);

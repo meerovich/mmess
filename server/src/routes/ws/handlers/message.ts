@@ -293,17 +293,17 @@ export async function handleMessageSend(
       }
     }
 
-    // @mention push: notify mentioned users who are online (they might not be
-    // looking at this chat). Skip users who already got an offline push above.
-    if (content) {
-      const mentionedNames = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
-      if (mentionedNames.length > 0) {
-        const allParticipants = await db.select({ id: users.id, username: users.username })
-          .from(users)
-          .where(sql`${users.username} = ANY(ARRAY[${sql.join(mentionedNames.map(n => sql`${n}`), sql`, `)}])`);
-        for (const mentioned of allParticipants) {
-          if (mentioned.id !== userId && !pushedUserIds.has(mentioned.id)) {
-            sendPushToUser(db, mentioned.id, {
+    // @mention push: check if any conversation participant is @mentioned in content.
+    // Handles usernames with spaces by checking each participant name against the text.
+    if (content && content.includes('@')) {
+      const convParticipants = await db.select({ id: users.id, username: users.username })
+        .from(users)
+        .innerJoin(conversation_participants, eq(conversation_participants.user_id, users.id))
+        .where(eq(conversation_participants.conversation_id, payload.conversation_id));
+      for (const p of convParticipants) {
+        if (p.id !== userId && !pushedUserIds.has(p.id)) {
+          if (content.includes(`@${p.username}`)) {
+            sendPushToUser(db, p.id, {
               title: `${senderName} mentioned you`,
               body,
               tag: `mention-${payload.conversation_id}`,

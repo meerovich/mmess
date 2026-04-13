@@ -18,7 +18,7 @@ import type { Message, Participant } from '../../types/chat';
 marked.setOptions({ breaks: true, gfm: true });
 
 /** Render markdown to HTML string, stripping outer <p> for single-line messages. */
-function renderMarkdown(text: string): string {
+function renderMarkdown(text: string, participantNames?: string[]): string {
   const html = marked.parse(text, { async: false }) as string;
   // Strip wrapping <p>...</p> if the entire output is a single paragraph
   const trimmed = html.trim();
@@ -26,8 +26,21 @@ function renderMarkdown(text: string): string {
   if (result.startsWith('<p>') && result.endsWith('</p>') && result.indexOf('<p>', 1) === -1) {
     result = result.slice(3, -4);
   }
-  // Highlight @mentions
-  result = result.replace(/@(\w+)/g, '<span class="mmess-mention">@$1</span>');
+  // Highlight @mentions — match full participant names (may contain spaces)
+  if (participantNames && participantNames.length > 0) {
+    // Sort by length descending so longer names match first
+    const sorted = [...participantNames].sort((a, b) => b.length - a.length);
+    for (const name of sorted) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      result = result.replace(
+        new RegExp(`@${escaped}`, 'gi'),
+        `<span class="mmess-mention">@${name}</span>`
+      );
+    }
+  } else {
+    // Fallback: simple word match
+    result = result.replace(/@(\w+)/g, '<span class="mmess-mention">@$1</span>');
+  }
   return result;
 }
 
@@ -238,7 +251,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             {message.content && (
               <div
                 className={styles.content}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, conversation?.participants.map(p => p.username)) }}
               />
             )}
           </>
@@ -267,6 +280,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                   aria-label={t('chat.reply')}
                 >
                   ↩
+                </button>
+                <button
+                  className={styles.inlineReplyBtn}
+                  onClick={() => setForwardMessage(message)}
+                  aria-label={t('chat.forward')}
+                >
+                  ↗
                 </button>
               </>
             )}
