@@ -80,6 +80,7 @@ export const messages = pgTable(
     content: text('content'),
     file_id: uuid('file_id').references(() => files.id, { onDelete: 'set null' }),
     reply_to_id: uuid('reply_to_id'), // self-reference for quoted replies
+    forwarded_from_id: uuid('forwarded_from_id'), // original message for forwarding
     is_deleted: boolean('is_deleted').notNull().default(false),
     edited_at: timestamp('edited_at', { withTimezone: true }),
     ...timestamps(),

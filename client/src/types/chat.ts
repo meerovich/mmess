@@ -26,6 +26,12 @@ export interface Message {
   content: string | null;
   reply_to_id: string | null;
   reply_to: ReplyTo | null;
+  forwarded_from_id?: string | null;
+  forwarded_from?: {
+    id: string;
+    sender: { id: string; username: string } | null;
+    content_preview: string | null;
+  } | null;
   is_deleted: boolean;
   edited_at: string | null;
   created_at: string;

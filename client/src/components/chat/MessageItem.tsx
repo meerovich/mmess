@@ -9,6 +9,7 @@ import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar, AddReactionButton } from './ReactionBar';
 import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
+import { ForwardModal } from './ForwardModal';
 import styles from './MessageItem.module.css';
 import type { Message, Participant } from '../../types/chat';
 
@@ -21,10 +22,13 @@ function renderMarkdown(text: string): string {
   const html = marked.parse(text, { async: false }) as string;
   // Strip wrapping <p>...</p> if the entire output is a single paragraph
   const trimmed = html.trim();
-  if (trimmed.startsWith('<p>') && trimmed.endsWith('</p>') && trimmed.indexOf('<p>', 1) === -1) {
-    return trimmed.slice(3, -4);
+  let result = trimmed;
+  if (result.startsWith('<p>') && result.endsWith('</p>') && result.indexOf('<p>', 1) === -1) {
+    result = result.slice(3, -4);
   }
-  return trimmed;
+  // Highlight @mentions
+  result = result.replace(/@(\w+)/g, '<span class="mmess-mention">@$1</span>');
+  return result;
 }
 
 interface MessageItemProps {
@@ -112,6 +116,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
 
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
@@ -183,6 +188,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         {/* Reply preview */}
         {message.reply_to && (
           <ReplyPreview replyTo={message.reply_to} />
+        )}
+
+        {/* Forwarded header (Telegram-style) */}
+        {message.forwarded_from && (
+          <div className={styles.forwardedHeader}>
+            {t('chat.forwardedFrom', { name: message.forwarded_from.sender?.username ?? '?' })}
+          </div>
         )}
 
         {/* Message content */}
@@ -304,6 +316,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
 
+      {/* Forward modal */}
+      {forwardMessage && (
+        <ForwardModal
+          message={forwardMessage}
+          onClose={() => setForwardMessage(null)}
+        />
+      )}
+
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}
       {isHovered && !message.is_deleted && (
         <div className={`${styles.menuWrapper} ${isOwn ? styles.menuWrapperOwn : ''}`}>
@@ -313,6 +333,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             aria-label={t('chat.reply')}
           >
             ↩
+          </button>
+          <button
+            className={styles.menuBtn}
+            onClick={() => setForwardMessage(message)}
+            aria-label={t('chat.forward')}
+          >
+            ↗
           </button>
 
           {canEditDelete && (

@@ -40,6 +40,8 @@ export function MessageInput({
   const [value, setValue] = useState(() => localStorage.getItem(draftKey) ?? '');
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [isDragging, setIsDragging] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionStart, setMentionStart] = useState(0);
 
   // Save draft to localStorage on every change (debounced implicitly by React batching)
   useEffect(() => {
@@ -167,9 +169,36 @@ export function MessageInput({
     ta.style.height = `${Math.min(ta.scrollHeight, 150)}px`;
   }, [value]);
 
+  // Get conversation participants for mention autocomplete
+  const conversation = state.conversations.find(c => c.id === conversationId);
+  const participants = conversation?.participants.filter(p => p.user_id !== user?.id) ?? [];
+
+  const mentionCandidates = mentionQuery !== null
+    ? participants.filter(p => p.username.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5)
+    : [];
+
+  const handleMentionSelect = (username: string) => {
+    const before = value.slice(0, mentionStart);
+    const after = value.slice(mentionStart + (mentionQuery?.length ?? 0) + 1); // +1 for @
+    setValue(`${before}@${username} ${after}`);
+    setMentionQuery(null);
+    textareaRef.current?.focus();
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     setValue(newValue);
+
+    // Mention detection: find @query at cursor
+    const cursor = e.target.selectionStart;
+    const textBefore = newValue.slice(0, cursor);
+    const atMatch = textBefore.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setMentionStart(cursor - atMatch[0].length);
+    } else {
+      setMentionQuery(null);
+    }
 
     if (newValue.length > 0) {
       // Send typing:start on first keystroke
@@ -346,6 +375,21 @@ export function MessageInput({
           onCancel={handleCancelUpload}
           onRetry={handleRetry}
         />
+      )}
+
+      {/* Mention autocomplete dropdown */}
+      {mentionCandidates.length > 0 && (
+        <div className={styles.mentionDropdown}>
+          {mentionCandidates.map(p => (
+            <button
+              key={p.user_id}
+              className={styles.mentionItem}
+              onMouseDown={e => { e.preventDefault(); handleMentionSelect(p.username); }}
+            >
+              @{p.username}
+            </button>
+          ))}
+        </div>
       )}
 
       <div className={styles.row}>

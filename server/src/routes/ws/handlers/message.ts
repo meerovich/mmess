@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
 import { messages, conversations, conversation_participants, files, users } from '../../../db/schema.js';
@@ -80,11 +80,36 @@ async function enrichMessage(
         thumbnail_url: null,
       };
 
+  // Forwarded-from — populate original message sender info
+  let forwarded_from: Record<string, unknown> | null = null;
+  if (row.forwarded_from_id) {
+    const [original] = await db
+      .select({
+        id: messages.id,
+        sender_id: messages.sender_id,
+        content: messages.content,
+      })
+      .from(messages)
+      .where(eq(messages.id, row.forwarded_from_id));
+    if (original) {
+      const [origSender] = await db
+        .select({ id: users.id, username: users.username })
+        .from(users)
+        .where(eq(users.id, original.sender_id));
+      forwarded_from = {
+        id: original.id,
+        sender: origSender ?? null,
+        content_preview: original.content?.slice(0, 100) ?? null,
+      };
+    }
+  }
+
   return {
     ...row,
     sender: sender ?? null,
     reactions: [],
     reply_to,
+    forwarded_from,
     ...fileFields,
   };
 }
@@ -97,6 +122,7 @@ export async function handleMessageSend(
     conversation_id: string;
     content?: string;       // optional caption when file_id present (D-19)
     reply_to_id?: string;
+    forwarded_from_id?: string;
     file_id?: string;       // two-step upload flow
   },
   clientId: string
@@ -162,6 +188,16 @@ export async function handleMessageSend(
   }
 
   // Content OR file required
+  // Forwarded messages: copy content from original if not provided
+  if (payload.forwarded_from_id && !payload.content?.trim() && !payload.file_id) {
+    const [orig] = await db.select({ content: messages.content, file_id: messages.file_id })
+      .from(messages).where(eq(messages.id, payload.forwarded_from_id));
+    if (orig) {
+      if (orig.content) payload.content = orig.content;
+      if (orig.file_id) payload.file_id = orig.file_id;
+    }
+  }
+
   if (!payload.content?.trim() && !payload.file_id) {
     socket.send(JSON.stringify({ type: 'error', payload: { message: 'Message must have content or a file' }, id: clientId }));
     return;
@@ -176,6 +212,7 @@ export async function handleMessageSend(
         sender_id: userId,                            // always from JWT (D-07)
         content: payload.content?.trim() || null,     // null if no caption
         reply_to_id: payload.reply_to_id ?? null,
+        forwarded_from_id: payload.forwarded_from_id ?? null,
         file_id: payload.file_id ?? null,             // attach file to message
       })
       .returning();
@@ -241,8 +278,11 @@ export async function handleMessageSend(
       ? content.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120)
       : 'Sent a file';
 
+    // Track who already got a push (offline recipients)
+    const pushedUserIds = new Set<string>();
     for (const recipientId of recipientIds) {
       if (!isOnline(recipientId)) {
+        pushedUserIds.add(recipientId);
         sendPushToUser(db, recipientId, {
           title: senderName,
           body,
@@ -250,6 +290,28 @@ export async function handleMessageSend(
           url: `/chat/${payload.conversation_id}`,
           icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
         }).catch(() => { /* push failures are non-fatal */ });
+      }
+    }
+
+    // @mention push: notify mentioned users who are online (they might not be
+    // looking at this chat). Skip users who already got an offline push above.
+    if (content) {
+      const mentionedNames = [...content.matchAll(/@(\w+)/g)].map(m => m[1]);
+      if (mentionedNames.length > 0) {
+        const allParticipants = await db.select({ id: users.id, username: users.username })
+          .from(users)
+          .where(sql`${users.username} = ANY(ARRAY[${sql.join(mentionedNames.map(n => sql`${n}`), sql`, `)}])`);
+        for (const mentioned of allParticipants) {
+          if (mentioned.id !== userId && !pushedUserIds.has(mentioned.id)) {
+            sendPushToUser(db, mentioned.id, {
+              title: `${senderName} mentioned you`,
+              body,
+              tag: `mention-${payload.conversation_id}`,
+              url: `/chat/${payload.conversation_id}`,
+              icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
+            }).catch(() => {});
+          }
+        }
       }
     }
   }
