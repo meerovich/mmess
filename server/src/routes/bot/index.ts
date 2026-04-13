@@ -295,4 +295,26 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
 
     return { ok: true, read_count: unread.length };
   });
+
+  // GET /bot/file/:fileId — download a file from the bot conversation (for Claude to view screenshots)
+  fastify.get<{ Params: { fileId: string }; Querystring: { secret?: string } }>('/bot/file/:fileId', async (request, reply) => {
+    if (!checkSecret(request.query.secret)) {
+      return reply.code(401).send({ error: 'Invalid secret' });
+    }
+
+    const [file] = await db.select().from(files).where(eq(files.id, request.params.fileId)).limit(1);
+    if (!file) {
+      return reply.code(404).send({ error: 'File not found' });
+    }
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const uploadDir = process.env.UPLOAD_DIR ?? '/data/uploads';
+    const filePath = path.default.join(uploadDir, file.storage_path);
+
+    return reply
+      .type(file.mimetype)
+      .header('Content-Disposition', `inline; filename="${file.original_name}"`)
+      .send(fs.default.createReadStream(filePath));
+  });
 }

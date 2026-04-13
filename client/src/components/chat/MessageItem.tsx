@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
@@ -243,24 +243,58 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     }
   }, []);
 
-  // Cancel long-press if swiping
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    handleTouchStart(e);
-    const touch = e.touches[0];
-    longPressPosRef.current = { x: touch.clientX, y: touch.clientY };
-    handleLongPressStart();
-  }, [handleTouchStart, handleLongPressStart]);
+  // Register native touch listeners with { passive: false } so e.preventDefault()
+  // actually works. React's synthetic touch events are passive and silently ignore it.
+  useEffect(() => {
+    const el = bubbleRef.current;
+    if (!el) return;
 
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    handleTouchMove(e);
-    // Cancel long-press on ANY finger movement (scroll or swipe)
-    handleLongPressEnd();
-  }, [handleTouchMove, handleLongPressEnd]);
+    const onStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      touchRef.current = { startX: touch.clientX, startY: touch.clientY, swiping: false };
+      longPressPosRef.current = { x: touch.clientX, y: touch.clientY };
+      handleLongPressStart();
+    };
 
-  const onTouchEnd = useCallback(() => {
-    handleTouchEnd();
-    handleLongPressEnd();
-  }, [handleTouchEnd, handleLongPressEnd]);
+    const onMove = (e: TouchEvent) => {
+      handleLongPressEnd(); // cancel long-press on any movement
+      if (!touchRef.current) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchRef.current.startX;
+      const dy = touch.clientY - touchRef.current.startY;
+
+      if (!touchRef.current.swiping && Math.abs(dy) > Math.abs(dx)) {
+        touchRef.current = null;
+        return;
+      }
+
+      if (dx > 10) {
+        e.preventDefault(); // works because { passive: false }
+        touchRef.current.swiping = true;
+        setSwipeX(dx);
+      }
+    };
+
+    const onEnd = () => {
+      handleLongPressEnd();
+      if (touchRef.current?.swiping && swipeX >= SWIPE_THRESHOLD) {
+        onReply?.(message);
+      }
+      touchRef.current = null;
+      setSwipeX(0);
+    };
+
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: false });
+    el.addEventListener('touchend', onEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchmove', onMove);
+      el.removeEventListener('touchend', onEnd);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message, onReply, swipeX, handleLongPressStart, handleLongPressEnd]);
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
 
@@ -299,9 +333,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               ? { transform: `translateY(-${bubbleShiftY}px)`, transition: 'transform 0.2s ease-out' }
               : { transition: 'transform 0.2s ease-out' }
         }
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       >
         {/* Sender name for group chats — show if not grouped and not own */}
         {!isOwn && !isGrouped && conversation?.type === 'group' && (
