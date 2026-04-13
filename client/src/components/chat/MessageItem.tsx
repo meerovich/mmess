@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { format } from 'date-fns';
 import { marked } from 'marked';
 import { useAuth } from '../../contexts/AuthContext';
@@ -130,6 +130,45 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [isHovered, setIsHovered] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
+  const [swipeX, setSwipeX] = useState(0);
+  const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
+  const itemRef = useRef<HTMLDivElement>(null);
+
+  // WhatsApp-style swipe-to-reply gesture
+  const SWIPE_THRESHOLD = 60;
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    touchRef.current = { startX: touch.clientX, startY: touch.clientY, swiping: false };
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchRef.current) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchRef.current.startX;
+    const dy = touch.clientY - touchRef.current.startY;
+
+    // If vertical scroll is dominant, don't swipe
+    if (!touchRef.current.swiping && Math.abs(dy) > Math.abs(dx)) {
+      touchRef.current = null;
+      return;
+    }
+
+    // Only swipe right (positive dx) — clamp between 0 and 80px
+    if (dx > 10) {
+      touchRef.current.swiping = true;
+      setSwipeX(Math.min(dx, 80));
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchRef.current?.swiping && swipeX >= SWIPE_THRESHOLD) {
+      // Trigger reply
+      onReply?.(message);
+    }
+    touchRef.current = null;
+    setSwipeX(0);
+  }, [swipeX, message, onReply]);
 
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
@@ -166,16 +205,56 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     onReply?.(message);
   };
 
+  // Long-press context menu (WhatsApp-style, mobile)
+  const [showLongPressMenu, setShowLongPressMenu] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleLongPressStart = useCallback(() => {
+    longPressTimerRef.current = setTimeout(() => {
+      setShowLongPressMenu(true);
+      // Vibrate if supported
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 500);
+  }, []);
+
+  const handleLongPressEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
+  // Cancel long-press if swiping
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    handleTouchStart(e);
+    handleLongPressStart();
+  }, [handleTouchStart, handleLongPressStart]);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    handleTouchMove(e);
+    if (touchRef.current?.swiping) handleLongPressEnd();
+  }, [handleTouchMove, handleLongPressEnd]);
+
+  const onTouchEnd = useCallback(() => {
+    handleTouchEnd();
+    handleLongPressEnd();
+  }, [handleTouchEnd, handleLongPressEnd]);
+
   const timestamp = format(new Date(message.created_at), 'HH:mm');
 
   return (
     <div
+      ref={itemRef}
       className={`${styles.item} ${isOwn ? styles.own : ''}`}
+      style={swipeX > 0 ? { transform: `translateX(${swipeX}px)`, transition: swipeX === 0 ? 'transform 0.2s' : 'none' } : undefined}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setShowMenu(false);
       }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
     >
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
@@ -351,6 +430,28 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           message={forwardMessage}
           onClose={() => setForwardMessage(null)}
         />
+      )}
+
+      {/* Long-press context menu (mobile) */}
+      {showLongPressMenu && !message.is_deleted && (
+        <div className={styles.longPressOverlay} onClick={() => setShowLongPressMenu(false)}>
+          <div className={styles.longPressMenu} onClick={e => e.stopPropagation()}>
+            <button className={styles.longPressItem} onClick={() => { handleReply(); setShowLongPressMenu(false); }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
+              {t('chat.reply')}
+            </button>
+            <button className={styles.longPressItem} onClick={() => { setForwardMessage(message); setShowLongPressMenu(false); }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
+              {t('chat.forward')}
+            </button>
+            {message.content && (
+              <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); setShowLongPressMenu(false); }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                {t('chat.copy')}
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}

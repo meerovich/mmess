@@ -431,3 +431,45 @@
     display: inline-flex;
   }
 }
+
+/* Long-press context menu (WhatsApp-style, mobile) */
+.longPressOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.longPressMenu {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.longPressItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-md);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.longPressItem:last-child {
+  border-bottom: none;
+}
+
+.longPressItem:active {
+  background: var(--color-surface-secondary);
+}
