@@ -397,15 +397,24 @@ export function MessageInput({
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           onFocus={() => {
+            // Cancel any pending blur timer
+            if ((window as any).__mmessBlurTimer) {
+              clearTimeout((window as any).__mmessBlurTimer);
+              (window as any).__mmessBlurTimer = null;
+            }
             window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
             window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: true } }));
             setTimeout(() => window.scrollTo(0, 0), 100);
             setTimeout(() => window.scrollTo(0, 0), 300);
           }}
           onBlur={() => {
-            // Do NOT dispatch keyboard-close on blur. iOS fires blur before
-            // click on attach/send buttons, causing layout jump. Padding stays
-            // at 0 until user navigates away from the chat view.
+            // Delayed keyboard-close: wait 2s so attach/send button actions
+            // complete without layout jump. If user refocuses within 2s, the
+            // timer is cancelled by the next focus event.
+            const timer = setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
+            }, 2000);
+            (window as any).__mmessBlurTimer = timer;
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
