@@ -403,10 +403,9 @@ export function MessageInput({
             setTimeout(() => window.scrollTo(0, 0), 300);
           }}
           onBlur={() => {
-            // Don't signal keyboard close if blur was caused by attach button
-            if (!suppressBlurRef.current) {
-              window.dispatchEvent(new CustomEvent('mmess-keyboard', { detail: { open: false } }));
-            }
+            // Do NOT dispatch keyboard-close on blur. iOS fires blur before
+            // click on attach/send buttons, causing layout jump. Padding stays
+            // at 0 until user navigates away from the chat view.
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}
