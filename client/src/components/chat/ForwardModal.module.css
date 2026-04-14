@@ -20,6 +20,11 @@
   gap: var(--space-sm);
 }
 
+.modalMobile {
+  align-self: flex-start;
+  margin-top: calc(env(safe-area-inset-top) + 12px);
+}
+
 .title {
   font-size: var(--text-heading);
   font-weight: 600;
@@ -92,4 +97,17 @@
 
 .cancelButton:hover {
   background: var(--color-surface-secondary);
+}
+
+@media (max-width: 767px) {
+  .overlay {
+    align-items: flex-start;
+    justify-content: stretch;
+    padding: calc(env(safe-area-inset-top) + 12px) 12px 12px;
+    overflow-y: auto;
+  }
+
+  .modal {
+    max-width: none;
+  }
 }

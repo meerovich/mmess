@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
@@ -31,8 +32,47 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
   const { t } = useTranslation();
   const sendWs = useSendMessage();
   const [filter, setFilter] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [viewportMetrics, setViewportMetrics] = useState(() => ({
+    offsetTop: 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  }));
 
   const currentUserId = user?.id ?? '';
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateMetrics = () => {
+      setViewportMetrics({
+        offsetTop: vv.offsetTop,
+        height: vv.height,
+      });
+    };
+
+    updateMetrics();
+    vv.addEventListener('resize', updateMetrics);
+    vv.addEventListener('scroll', updateMetrics);
+    return () => {
+      vv.removeEventListener('resize', updateMetrics);
+      vv.removeEventListener('scroll', updateMetrics);
+    };
+  }, []);
+
+  useEffect(() => {
+    const focusInput = () => inputRef.current?.focus({ preventScroll: true });
+    if (isMobile) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimeout(focusInput, 50);
+        });
+      });
+      return;
+    }
+    focusInput();
+  }, [isMobile]);
 
   const filtered = useMemo(() => {
     const q = filter.toLowerCase();
@@ -90,17 +130,29 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
     onClose();
   };
 
-  return (
+  const keyboardBottomInset = typeof window !== 'undefined'
+    ? Math.max(0, window.innerHeight - (viewportMetrics.offsetTop + viewportMetrics.height))
+    : 0;
+
+  const modal = (
     <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+      <div
+        className={`${styles.modal} ${isMobile ? styles.modalMobile : ''}`}
+        style={isMobile ? {
+          marginTop: viewportMetrics.offsetTop,
+          maxHeight: Math.max(220, viewportMetrics.height - 24),
+          marginBottom: keyboardBottomInset,
+        } : undefined}
+        onClick={e => e.stopPropagation()}
+      >
         <h2 className={styles.title}>{t('chat.forwardTo')}</h2>
         <input
+          ref={inputRef}
           className={styles.searchInput}
           type="text"
           placeholder={t('chat.searchConversation')}
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          autoFocus
         />
         <ul className={styles.list}>
           {filtered.map(conv => {
@@ -122,4 +174,6 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : null;
 }
