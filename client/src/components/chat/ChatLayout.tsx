@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
 import { NotificationBanner } from './NotificationBanner';
 import { registerPushSubscription } from '../../lib/pushSubscription';
 import { useTranslation } from '../../lib/i18n';
+import {
+  clearNotificationTarget,
+  parseNotificationTargetUrl,
+  readNotificationTarget,
+  writeNotificationTarget,
+} from '../../lib/notificationTarget';
 import styles from './ChatLayout.module.css';
 
 interface ChatLayoutContextValue {
@@ -14,8 +20,6 @@ interface ChatLayoutContextValue {
 }
 
 const ChatLayoutContext = createContext<ChatLayoutContextValue | null>(null);
-const NOTIFICATION_NAV_KEY = 'mmess:notification-target';
-
 export function useChatLayout(): ChatLayoutContextValue {
   const ctx = useContext(ChatLayoutContext);
   if (!ctx) throw new Error('useChatLayout must be used within ChatLayout');
@@ -24,10 +28,13 @@ export function useChatLayout(): ChatLayoutContextValue {
 
 export function ChatLayout() {
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
   const { dispatch } = useChat();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
+  const previousPathRef = useRef(location.pathname);
   const { t } = useTranslation();
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('mmess-sidebar-width');
@@ -72,18 +79,35 @@ export function ChatLayout() {
     if (!('serviceWorker' in navigator)) return;
 
     const handleBotNavigation = (event: MessageEvent) => {
-      const payload = event.data as { type?: string; url?: string } | null;
+      const payload = event.data as {
+        type?: string;
+        url?: string;
+        conversationId?: string;
+        messageId?: string;
+        replace?: boolean;
+      } | null;
       if (payload?.type !== 'mmess:notification-open' || !payload.url) return;
 
-      const nextPath = payload.url.startsWith('http')
-        ? new URL(payload.url).pathname
-        : payload.url;
-      sessionStorage.setItem(NOTIFICATION_NAV_KEY, nextPath);
-      if (window.location.pathname !== nextPath) {
-        window.location.assign(nextPath);
+      const parsedTarget = parseNotificationTargetUrl(payload.url) ?? {
+        path: payload.url.startsWith('http')
+          ? `${new URL(payload.url).pathname}${new URL(payload.url).search}${new URL(payload.url).hash}`
+          : payload.url,
+        conversationId: payload.conversationId,
+        messageId: payload.messageId,
+        replace: payload.replace ?? true,
+      };
+      writeNotificationTarget({
+        ...parsedTarget,
+        conversationId: payload.conversationId ?? parsedTarget.conversationId,
+        messageId: payload.messageId ?? parsedTarget.messageId,
+        replace: payload.replace ?? parsedTarget.replace ?? true,
+      });
+      const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (currentPath !== parsedTarget.path) {
+        window.location.replace(parsedTarget.path);
         return;
       }
-      navigate(nextPath);
+      navigate(parsedTarget.path, { replace: payload.replace ?? parsedTarget.replace ?? true });
     };
 
     navigator.serviceWorker.addEventListener('message', handleBotNavigation);
@@ -91,16 +115,39 @@ export function ChatLayout() {
   }, [navigate]);
 
   useEffect(() => {
-    const pendingPath = sessionStorage.getItem(NOTIFICATION_NAV_KEY);
-    if (!pendingPath) return;
+    const urlNotificationTarget = parseNotificationTargetUrl(window.location.href);
+    if (urlNotificationTarget?.messageId) {
+      writeNotificationTarget(urlNotificationTarget);
+      window.history.replaceState(window.history.state, '', urlNotificationTarget.path);
+    }
 
-    if (window.location.pathname === pendingPath) {
-      sessionStorage.removeItem(NOTIFICATION_NAV_KEY);
+    const pendingTarget = readNotificationTarget();
+    if (!pendingTarget?.path) return;
+
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentPath === pendingTarget.path) {
+      if (!pendingTarget.messageId) {
+        clearNotificationTarget();
+      }
       return;
     }
 
-    window.location.replace(pendingPath);
+    window.location.replace(pendingTarget.path);
   }, []);
+
+  useEffect(() => {
+    const previousPath = previousPathRef.current;
+    const isReturningToListViaNativeBack =
+      location.pathname === '/' &&
+      previousPath.startsWith('/chat/') &&
+      navigationType === 'POP';
+
+    if (isReturningToListViaNativeBack) {
+      window.history.pushState(window.history.state, '', location.pathname);
+    }
+
+    previousPathRef.current = location.pathname;
+  }, [location.pathname, navigationType]);
 
   // VERSION CHECK: periodically poll /api/health to detect server version upgrades.
   // Only show reload banner if client version is below server's minClientVersion.

@@ -291,6 +291,8 @@ export async function handleMessageSend(
           tag: payload.conversation_id,
           url: `/chat/${payload.conversation_id}`,
           icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
+          conversation_id: payload.conversation_id,
+          message_id: newMessage.id,
         }).catch(() => { /* push failures are non-fatal */ });
       }
     }
@@ -311,6 +313,8 @@ export async function handleMessageSend(
               tag: `mention-${payload.conversation_id}`,
               url: `/chat/${payload.conversation_id}`,
               icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
+              conversation_id: payload.conversation_id,
+              message_id: newMessage.id,
             }).catch(() => {});
           }
         }

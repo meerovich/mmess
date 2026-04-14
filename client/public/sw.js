@@ -1,6 +1,8 @@
 // Service Worker for Web Push Notifications
 // This file runs in a separate thread and can receive push events even when
 // the main page is not open or the screen is locked.
+const NOTIFICATION_CONVERSATION_PARAM = 'mmessPushConversation';
+const NOTIFICATION_MESSAGE_PARAM = 'mmessPushMessage';
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;
@@ -12,7 +14,15 @@ self.addEventListener('push', (event) => {
     payload = { title: 'New message', body: event.data.text() };
   }
 
-  const { title = 'mmess', body = '', tag, url, icon } = payload;
+  const {
+    title = 'mmess',
+    body = '',
+    tag,
+    url,
+    icon,
+    conversation_id,
+    message_id,
+  } = payload;
   // Resolve icon to absolute URL — relative paths don't work in push notifications
   const iconUrl = icon
     ? new URL(icon, self.location.origin).href
@@ -24,7 +34,11 @@ self.addEventListener('push', (event) => {
       icon: iconUrl,
       badge: new URL('/favicon.ico', self.location.origin).href,
       tag: tag || undefined, // dedup per conversation
-      data: { url: url || '/' },
+      data: {
+        url: url || '/',
+        conversationId: conversation_id || undefined,
+        messageId: message_id || undefined,
+      },
       // Require interaction on mobile so the notification stays visible
       requireInteraction: true,
     })
@@ -36,8 +50,25 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   const path = event.notification.data?.url || '/';
-  // Build absolute URL from SW origin + relative path
-  const targetUrl = new URL(path, self.location.origin).href;
+  const conversationId = event.notification.data?.conversationId;
+  const messageId = event.notification.data?.messageId;
+  // Build absolute URL from SW origin + relative path. Include the target ids
+  // in the URL as well so newly opened iOS standalone windows can recover the
+  // destination even when there is no already-running client to postMessage.
+  const targetUrl = new URL(path, self.location.origin);
+  if (conversationId) {
+    targetUrl.searchParams.set(NOTIFICATION_CONVERSATION_PARAM, conversationId);
+  }
+  if (messageId) {
+    targetUrl.searchParams.set(NOTIFICATION_MESSAGE_PARAM, messageId);
+  }
+  const messagePayload = {
+    type: 'mmess:notification-open',
+    url: targetUrl.href,
+    conversationId,
+    messageId,
+    replace: true,
+  };
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
@@ -52,24 +83,26 @@ self.addEventListener('notificationclick', (event) => {
             return pathname === '/' || pathname.startsWith('/chat/');
           }) ?? sameOriginClients[0];
 
-        await Promise.all(
-          sameOriginClients.map(async (client) => {
-            client.postMessage({ type: 'mmess:notification-open', url: targetUrl });
-            if (typeof client.navigate === 'function') {
-              try {
-                await client.navigate(targetUrl);
-              } catch {
-                // Some mobile WebKit builds reject navigate() for background tabs.
-              }
-            }
-          })
-        );
+        preferredClient.postMessage(messagePayload);
+        try {
+          await preferredClient.focus();
+        } catch {
+          // Keep going — navigate/openWindow below is still useful.
+        }
 
-        await preferredClient.focus();
-        return;
+        if (typeof preferredClient.navigate === 'function') {
+          try {
+            await preferredClient.navigate(targetUrl.href);
+            return;
+          } catch {
+            // Some mobile WebKit builds reject navigate() for background tabs.
+          }
+        }
+
+        return self.clients.openWindow(targetUrl.href);
       }
       // No existing window — open a new one pointing directly to the chat
-      return self.clients.openWindow(targetUrl);
+      return self.clients.openWindow(targetUrl.href);
     })
   );
 });

@@ -4,8 +4,10 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-md) + env(safe-area-inset-bottom));
+  scroll-padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
   gap: var(--space-sm);
+  position: relative;
 }
 
 .sentinel {
@@ -17,6 +19,22 @@
   font-size: var(--text-label);
   color: var(--color-text-muted);
   padding: var(--space-sm);
+}
+
+.syncOverlay {
+  position: sticky;
+  top: var(--space-sm);
+  align-self: center;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  backdrop-filter: blur(8px);
 }
 
 .unreadDivider {

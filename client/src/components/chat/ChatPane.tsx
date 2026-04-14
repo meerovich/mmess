@@ -37,7 +37,7 @@ export function ChatPane() {
   const handleBack = () => {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
     setShowChat(false);
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   if (!activeConversationId) {
@@ -137,6 +137,11 @@ function InvitationAwareInput({
   const { dispatch } = useChat();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setInvitationError(null);
+  }, [conversationId]);
 
   const refreshConversations = async () => {
     try {
@@ -168,21 +173,37 @@ function InvitationAwareInput({
   if (myParticipant?.status === 'pending') {
     const handleAccept = async () => {
       setLoading(true);
+      setInvitationError(null);
       try {
-        await apiFetch(`/api/conversations/${conversationId}/accept`, { method: 'POST' });
+        const res = await apiFetch(`/api/conversations/${conversationId}/accept`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error ?? 'Failed to accept invitation');
+        }
         dispatch({ type: 'INVITATION_ACCEPTED', conversationId, userId: currentUserId });
         await refreshConversations();
-      } catch { /* ignore */ }
-      setLoading(false);
+      } catch (err) {
+        setInvitationError(err instanceof Error ? err.message : t('chat.accept'));
+      } finally {
+        setLoading(false);
+      }
     };
     const handleDecline = async () => {
       setLoading(true);
+      setInvitationError(null);
       try {
-        await apiFetch(`/api/conversations/${conversationId}/decline`, { method: 'POST' });
+        const res = await apiFetch(`/api/conversations/${conversationId}/decline`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error ?? 'Failed to decline invitation');
+        }
         dispatch({ type: 'INVITATION_DECLINED', conversationId, userId: currentUserId });
         await refreshConversations();
-      } catch { /* ignore */ }
-      setLoading(false);
+      } catch (err) {
+        setInvitationError(err instanceof Error ? err.message : t('chat.decline'));
+      } finally {
+        setLoading(false);
+      }
     };
 
     return (
@@ -196,6 +217,7 @@ function InvitationAwareInput({
             {t('chat.decline')}
           </button>
         </div>
+        {invitationError && <span className={styles.invitationError}>{invitationError}</span>}
       </div>
     );
   }

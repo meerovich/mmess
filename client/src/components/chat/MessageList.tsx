@@ -3,6 +3,10 @@ import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { apiFetch } from '../../lib/api';
+import {
+  clearNotificationTarget,
+  readNotificationTarget,
+} from '../../lib/notificationTarget';
 import { MessageItem } from './MessageItem';
 import { Spinner } from '../common/Spinner';
 import { useTranslation } from '../../lib/i18n';
@@ -33,9 +37,22 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   const [openReadCursor, setOpenReadCursor] = useState<string | null>(null);
   const [showDivider, setShowDivider] = useState(true);
   const loadedConversationIdsRef = useRef<Set<string>>(new Set());
+  const [pendingNotificationMessageId, setPendingNotificationMessageId] = useState<string | null>(null);
+  const pendingTargetRef = useRef<HTMLDivElement>(null);
+  const setTrackedMessageRef = useCallback((element: HTMLDivElement | null, messageId: string, isLast: boolean) => {
+    if (messageId === pendingNotificationMessageId) {
+      pendingTargetRef.current = element;
+    }
+    if (isLast) {
+      lastMessageRef.current = element;
+    }
+  }, [pendingNotificationMessageId]);
 
   const messages: Message[] = state.messages[conversationId] ?? [];
   const pagination = messagePagination[conversationId];
+  const hasPendingNotificationTarget =
+    pendingNotificationMessageId !== null &&
+    !messages.some(message => message.id === pendingNotificationMessageId);
 
   // We track "is the user currently at the bottom of the list" via a ref that
   // is updated on every scroll event. Reading the value AFTER React has
@@ -119,7 +136,22 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
     setOpenReadCursor(me?.last_read_message_id ?? null);
     setShowDivider(true);
     didScrollRef.current = null; // reset so scroll fires for new conversation
+    const notificationTarget = readNotificationTarget();
+    if (notificationTarget?.conversationId === conversationId && notificationTarget.messageId) {
+      setPendingNotificationMessageId(notificationTarget.messageId);
+    } else {
+      setPendingNotificationMessageId(null);
+    }
   }, [conversationId, state.conversations, user?.id]);
+
+  useEffect(() => {
+    if (!pendingNotificationMessageId) return;
+    if (!messages.some(message => message.id === pendingNotificationMessageId)) return;
+
+    clearNotificationTarget();
+    setPendingNotificationMessageId(null);
+    didScrollRef.current = null;
+  }, [messages, pendingNotificationMessageId]);
 
   // Initial load when conversationId changes.
   // The list is hidden (opacity: 0) until messages are loaded AND scroll
@@ -170,13 +202,66 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       });
   }, [conversationId, dispatch, state.messages]);
 
+  useEffect(() => {
+    if (!hasPendingNotificationTarget || !pendingNotificationMessageId) return;
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 6;
+
+    const pollForTarget = async () => {
+      if (cancelled || attempts >= maxAttempts) return;
+      attempts += 1;
+
+      try {
+        const res = await apiFetch(`/api/conversations/${conversationId}/messages?limit=50`);
+        if (!res.ok) return;
+        const data: { messages: Message[]; hasMore: boolean; nextCursor: string | null } = await res.json();
+
+        if (cancelled) return;
+        dispatch({
+          type: 'SET_MESSAGES',
+          conversationId,
+          messages: data.messages ?? [],
+          hasMore: data.hasMore ?? false,
+          nextCursor: data.nextCursor ?? null,
+        });
+
+        if ((data.messages ?? []).some(message => message.id === pendingNotificationMessageId)) {
+          return;
+        }
+      } catch {
+        // Best effort polling while notification target is still syncing.
+      }
+
+      if (!cancelled) {
+        window.setTimeout(pollForTarget, 500);
+      }
+    };
+
+    const timer = window.setTimeout(pollForTarget, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [conversationId, dispatch, hasPendingNotificationTarget, pendingNotificationMessageId]);
+
   // Scroll to correct position after initial load renders the list.
   // Fires when isInitialLoading transitions from true to false AND messages exist.
   useLayoutEffect(() => {
-    if (isInitialLoading || messages.length === 0) return;
+    if (isInitialLoading || messages.length === 0 || hasPendingNotificationTarget) return;
     if (didScrollRef.current === conversationId) return;
     if (!listRef.current) return;
     didScrollRef.current = conversationId;
+
+    if (pendingTargetRef.current) {
+      const listRect = listRef.current.getBoundingClientRect();
+      const targetRect = pendingTargetRef.current.getBoundingClientRect();
+      const offset = targetRect.top - listRect.top + listRef.current.scrollTop;
+      listRef.current.scrollTop = Math.max(0, offset - listRect.height * 0.3);
+      isAtBottomRef.current = false;
+      return;
+    }
 
     if (unreadDividerRef.current) {
       // Use manual scrollTop calculation instead of scrollIntoView
@@ -192,7 +277,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
 
     listRef.current.scrollTop = listRef.current.scrollHeight;
     isAtBottomRef.current = true;
-  }, [isInitialLoading, messages.length, conversationId, openReadCursor, showDivider]);
+  }, [conversationId, hasPendingNotificationTarget, isInitialLoading, messages.length, openReadCursor, showDivider]);
 
   // Auto-scroll on new messages if the user was already at the bottom. We
   // read `isAtBottomRef.current` which reflects state from the LAST scroll
@@ -322,7 +407,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   // Own sent messages are never marked as "unread" — the divider only appears
   // before the first message from someone else that the current user hasn't read.
   const firstUnreadIdx = (() => {
-    if (!openReadCursor || !showDivider || !user?.id) return -1;
+    if (!openReadCursor || !showDivider || !user?.id || hasPendingNotificationTarget) return -1;
     const cursorIdx = messages.findIndex(m => m.id === openReadCursor);
     if (cursorIdx === -1) return -1;
     // Find first message after cursor that is NOT from the current user
@@ -362,6 +447,11 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
       ref={listRef}
       className={styles.list}
     >
+      {hasPendingNotificationTarget && (
+        <div className={styles.syncOverlay}>
+          <Spinner />
+        </div>
+      )}
       <div ref={sentinelRef} className={styles.sentinel} />
       {isLoadingMore && <div className={styles.loadingMore}>{t('chat.loadingOlder')}</div>}
       {groupedMessages.map(({ msg, isGrouped }, idx) => (
@@ -372,7 +462,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
             </div>
           )}
           <div
-            ref={idx === groupedMessages.length - 1 ? lastMessageRef : undefined}
+            ref={(element) => setTrackedMessageRef(element, msg.id, idx === groupedMessages.length - 1)}
           >
             <MessageItem
               message={msg}

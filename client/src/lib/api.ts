@@ -10,11 +10,25 @@ export class AuthError extends Error {}
 let isRefreshing = false;
 let refreshQueue: Array<() => void> = [];
 
+function buildHeaders(options: RequestInit): HeadersInit {
+  const headers = new Headers(options.headers ?? {});
+  const hasBody = options.body !== undefined && options.body !== null;
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+
+  // Do not force JSON content-type on empty-body POSTs: Fastify treats
+  // "Content-Type: application/json" + empty body as a 400 parse error.
+  if (!headers.has('Content-Type') && hasBody && !isFormData) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return headers;
+}
+
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const response = await fetch(url, {
     ...options,
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: buildHeaders(options),
   });
 
   if (response.status !== 401) return response;
@@ -42,7 +56,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     return fetch(url, {
       ...options,
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers: buildHeaders(options),
     });
   } finally {
     isRefreshing = false;

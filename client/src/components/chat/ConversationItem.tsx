@@ -119,9 +119,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     }
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
-    // Push (not replace) so browser swipe-back has a history entry to go back to.
-    // ChatLayout.useEffect on urlConversationId handles the state sync.
-    navigate(`/chat/${conversation.id}`);
+    const isReplacingExistingChat = window.location.pathname.startsWith('/chat/');
+    // List -> chat should create one back-stack entry to return to the list.
+    // Chat -> chat should replace, otherwise iOS swipe-back can walk through
+    // previously viewed chats instead of stopping at the list.
+    navigate(`/chat/${conversation.id}`, { replace: isReplacingExistingChat });
   }
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {

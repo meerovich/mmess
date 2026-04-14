@@ -129,6 +129,13 @@
   gap: var(--space-sm);
 }
 
+.invitationError {
+  width: 100%;
+  text-align: center;
+  color: var(--color-destructive);
+  font-size: var(--text-label);
+}
+
 .acceptBtn {
   background: var(--color-accent);
   color: var(--color-on-accent);

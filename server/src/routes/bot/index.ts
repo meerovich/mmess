@@ -108,6 +108,8 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
             tag: convId,
             url: `/chat/${convId}`,
             icon: `/api/avatar/${encodeURIComponent(botUser.username)}.png`,
+            conversation_id: convId,
+            message_id: msg.id,
           }).catch(() => {});
         }
       }
