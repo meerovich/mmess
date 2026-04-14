@@ -481,12 +481,20 @@
   z-index: 100002;
 }
 
+.longPressReactionTray {
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 85%, white 15%);
+  border-radius: 999px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
 .longPressReactionsRow {
-  display: flex;
-  gap: var(--space-xs);
-  padding: var(--space-sm);
-  border-bottom: 1px solid var(--color-border);
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  align-items: center;
 }
 
 .longPressReactionBtn {
@@ -501,6 +509,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  margin: 0 auto;
 }
 
 .longPressReactionBtn:active {

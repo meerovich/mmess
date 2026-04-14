@@ -48,6 +48,22 @@ function renderMarkdown(text: string, participantNames?: string[]): string {
   return result;
 }
 
+function getSafeAreaInsetTop(): number {
+  if (typeof document === 'undefined') return 0;
+
+  const probe = document.createElement('div');
+  probe.style.position = 'fixed';
+  probe.style.top = '0';
+  probe.style.left = '0';
+  probe.style.paddingTop = 'env(safe-area-inset-top)';
+  probe.style.visibility = 'hidden';
+  probe.style.pointerEvents = 'none';
+  document.body.appendChild(probe);
+  const inset = Number.parseFloat(window.getComputedStyle(probe).paddingTop || '0');
+  probe.remove();
+  return Number.isFinite(inset) ? inset : 0;
+}
+
 interface MessageItemProps {
   message: Message;
   isGrouped?: boolean;
@@ -230,6 +246,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [menuTop, setMenuTop] = useState(0);
   const [menuLeft, setMenuLeft] = useState(0);
   const [menuWidth, setMenuWidth] = useState(220);
+  const [reactionsTop, setReactionsTop] = useState(0);
+  const [reactionsLeft, setReactionsLeft] = useState(0);
+  const [reactionsWidth, setReactionsWidth] = useState(316);
   const [bubbleShiftY, setBubbleShiftY] = useState(0);
   const [overlayBubbleRect, setOverlayBubbleRect] = useState<{
     top: number;
@@ -241,6 +260,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     setShowLongPressMenu(false);
     setBubbleShiftY(0);
     setOverlayBubbleRect(null);
+    setReactionsTop(0);
+    setReactionsLeft(0);
   }, []);
 
   const handleLongPressStart = useCallback(() => {
@@ -256,12 +277,15 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const viewportWidth = viewport?.width ?? window.innerWidth;
       const viewportBottom = viewportTop + viewportHeight;
       const viewportRight = viewportLeft + viewportWidth;
+      const safeTop = viewportTop + getSafeAreaInsetTop() + 8;
       const inputArea = document.querySelector('[data-chat-input-area="true"]') as HTMLElement | null;
       const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
       const actionCount = 2 + Number(Boolean(message.content)) + (canEditDelete ? 2 : 0);
-      const menuH = 64 + actionCount * 52;
+      const menuH = actionCount * 52;
       const horizontalMargin = 8;
       const desiredMenuWidth = Math.max(160, Math.min(280, viewportWidth - horizontalMargin * 2));
+      const desiredReactionsWidth = Math.max(280, Math.min(316, viewportWidth - horizontalMargin * 2));
+      const reactionsH = 56;
       const verticalGap = 4;
       const verticalMargin = 8;
       const menuBottomLimit = Math.min(viewportBottom - verticalMargin, inputTop - verticalGap);
@@ -282,10 +306,25 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         viewportLeft + horizontalMargin,
         Math.min(rect.left, viewportRight - desiredMenuWidth - horizontalMargin)
       );
+      const nextReactionsLeft = Math.max(
+        viewportLeft + horizontalMargin,
+        Math.min(
+          rect.left + rect.width / 2 - desiredReactionsWidth / 2,
+          viewportRight - desiredReactionsWidth - horizontalMargin
+        )
+      );
+      const preferredReactionsTop = shiftedBubbleTop - reactionsH - verticalGap;
+      const nextReactionsTop =
+        preferredReactionsTop >= safeTop
+          ? preferredReactionsTop
+          : safeTop;
 
       setMenuTop(nextMenuTop);
       setMenuLeft(nextMenuLeft);
       setMenuWidth(desiredMenuWidth);
+      setReactionsTop(nextReactionsTop);
+      setReactionsLeft(nextReactionsLeft);
+      setReactionsWidth(desiredReactionsWidth);
       setBubbleShiftY(shiftForMenu);
       setOverlayBubbleRect({
         top: shiftedBubbleTop,
@@ -508,12 +547,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               </div>
             )}
             <div
-              className={styles.longPressMenu}
+              className={styles.longPressReactionTray}
               style={{
                 position: 'fixed',
-                left: menuLeft,
-                top: menuTop,
-                width: menuWidth,
+                left: reactionsLeft,
+                top: reactionsTop,
+                width: reactionsWidth,
                 zIndex: 100002,
               }}
               onClick={e => e.stopPropagation()}
@@ -531,6 +570,19 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                   </button>
                 ))}
               </div>
+            </div>
+            <div
+              className={styles.longPressMenu}
+              style={{
+                position: 'fixed',
+                left: menuLeft,
+                top: menuTop,
+                width: menuWidth,
+                zIndex: 100002,
+              }}
+              onClick={e => e.stopPropagation()}
+              onTouchMove={e => e.stopPropagation()}
+            >
               <button className={styles.longPressItem} onClick={() => { handleReply(); closeLongPressMenu(); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
                 {t('chat.reply')}
