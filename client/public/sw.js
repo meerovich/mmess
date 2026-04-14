@@ -53,19 +53,19 @@ self.addEventListener('notificationclick', (event) => {
           }) ?? sameOriginClients[0];
 
         await Promise.all(
-          sameOriginClients.map(client =>
-            client.postMessage({ type: 'mmess:notification-open', url: path })
-          )
+          sameOriginClients.map(async (client) => {
+            client.postMessage({ type: 'mmess:notification-open', url: targetUrl });
+            if (typeof client.navigate === 'function') {
+              try {
+                await client.navigate(targetUrl);
+              } catch {
+                // Some mobile WebKit builds reject navigate() for background tabs.
+              }
+            }
+          })
         );
 
         await preferredClient.focus();
-        if (typeof preferredClient.navigate === 'function') {
-          try {
-            await preferredClient.navigate(targetUrl);
-          } catch {
-            // Message handoff above is the primary navigation path.
-          }
-        }
         return;
       }
       // No existing window — open a new one pointing directly to the chat

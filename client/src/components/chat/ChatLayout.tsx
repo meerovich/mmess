@@ -14,6 +14,7 @@ interface ChatLayoutContextValue {
 }
 
 const ChatLayoutContext = createContext<ChatLayoutContextValue | null>(null);
+const NOTIFICATION_NAV_KEY = 'mmess:notification-target';
 
 export function useChatLayout(): ChatLayoutContextValue {
   const ctx = useContext(ChatLayoutContext);
@@ -77,12 +78,29 @@ export function ChatLayout() {
       const nextPath = payload.url.startsWith('http')
         ? new URL(payload.url).pathname
         : payload.url;
+      sessionStorage.setItem(NOTIFICATION_NAV_KEY, nextPath);
+      if (window.location.pathname !== nextPath) {
+        window.location.assign(nextPath);
+        return;
+      }
       navigate(nextPath);
     };
 
     navigator.serviceWorker.addEventListener('message', handleBotNavigation);
     return () => navigator.serviceWorker.removeEventListener('message', handleBotNavigation);
   }, [navigate]);
+
+  useEffect(() => {
+    const pendingPath = sessionStorage.getItem(NOTIFICATION_NAV_KEY);
+    if (!pendingPath) return;
+
+    if (window.location.pathname === pendingPath) {
+      sessionStorage.removeItem(NOTIFICATION_NAV_KEY);
+      return;
+    }
+
+    window.location.replace(pendingPath);
+  }, []);
 
   // VERSION CHECK: periodically poll /api/health to detect server version upgrades.
   // Only show reload banner if client version is below server's minClientVersion.
