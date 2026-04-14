@@ -27,19 +27,32 @@ const initialReducerState: ChatReducerState = {
   messagePagination: {},
 };
 
+function getConversationSortTimestamp(conversation: Conversation): number {
+  const stamp = conversation.last_message?.created_at ?? conversation.updated_at;
+  return new Date(stamp).getTime();
+}
+
+function sortConversations(conversations: Conversation[]): Conversation[] {
+  return [...conversations].sort((a, b) => {
+    const diff = getConversationSortTimestamp(b) - getConversationSortTimestamp(a);
+    if (diff !== 0) return diff;
+    return a.id.localeCompare(b.id);
+  });
+}
+
 function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerState {
   switch (action.type) {
     case 'SET_CONVERSATIONS':
-      return { ...state, conversations: action.conversations };
+      return { ...state, conversations: sortConversations(action.conversations) };
 
     case 'UPSERT_CONVERSATION': {
       const idx = state.conversations.findIndex(c => c.id === action.conversation.id);
       if (idx === -1) {
-        return { ...state, conversations: [action.conversation, ...state.conversations] };
+        return { ...state, conversations: sortConversations([action.conversation, ...state.conversations]) };
       }
       const updated = [...state.conversations];
       updated[idx] = action.conversation;
-      return { ...state, conversations: updated };
+      return { ...state, conversations: sortConversations(updated) };
     }
 
     case 'SET_ACTIVE_CONVERSATION':
@@ -79,33 +92,54 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
           ],
         },
         // Update conversation's last_message so the sidebar shows the new message
-        conversations: state.conversations.map((c: Conversation) =>
-          c.id === action.conversationId
-            ? {
-                ...c,
-                last_message: {
-                  id: addedMsg.id,
-                  content: addedMsg.content,
-                  sender_id: addedMsg.sender_id,
-                  created_at: addedMsg.created_at,
-                },
-                updated_at: addedMsg.created_at,
-              }
-            : c
+        conversations: sortConversations(
+          state.conversations.map((c: Conversation) =>
+            c.id === action.conversationId
+              ? {
+                  ...c,
+                  last_message: {
+                    id: addedMsg.id,
+                    content: addedMsg.content,
+                    sender_id: addedMsg.sender_id,
+                    created_at: addedMsg.created_at,
+                  },
+                  updated_at: addedMsg.created_at,
+                }
+              : c
+          )
         ),
       };
     }
 
-    case 'OPTIMISTIC_MESSAGE_CONFIRM':
+    case 'OPTIMISTIC_MESSAGE_CONFIRM': {
+      const updatedMessages = (state.messages[action.conversationId] ?? []).map(m =>
+        m.id === action.tempId ? { ...action.serverMessage, status: 'sent' as const } : m
+      );
+      const confirmed = updatedMessages.find(m => m.id === action.serverMessage.id) ?? action.serverMessage;
       return {
         ...state,
         messages: {
           ...state.messages,
-          [action.conversationId]: (state.messages[action.conversationId] ?? []).map(m =>
-            m.id === action.tempId ? { ...action.serverMessage, status: 'sent' } : m
-          ),
+          [action.conversationId]: updatedMessages,
         },
+        conversations: sortConversations(
+          state.conversations.map(c =>
+            c.id === action.conversationId
+              ? {
+                  ...c,
+                  last_message: {
+                    id: confirmed.id,
+                    content: confirmed.content,
+                    sender_id: confirmed.sender_id,
+                    created_at: confirmed.created_at,
+                  },
+                  updated_at: confirmed.created_at,
+                }
+              : c
+          )
+        ),
       };
+    }
 
     case 'OPTIMISTIC_MESSAGE_FAIL':
       return {
@@ -143,6 +177,17 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
             m.id === action.message.id ? { ...m, ...action.message } : m
           ),
         },
+        conversations: state.conversations.map(c =>
+          c.id === convId && c.last_message?.id === action.message.id
+            ? {
+                ...c,
+                last_message: {
+                  ...c.last_message,
+                  content: action.message.content,
+                },
+              }
+            : c
+        ),
       };
     }
 
@@ -267,11 +312,11 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
     case 'CONVERSATION_UPDATED': {
       const idx = state.conversations.findIndex(c => c.id === action.conversation.id);
       if (idx === -1) {
-        return { ...state, conversations: [action.conversation, ...state.conversations] };
+        return { ...state, conversations: sortConversations([action.conversation, ...state.conversations]) };
       }
       const updated = [...state.conversations];
       updated[idx] = action.conversation;
-      return { ...state, conversations: updated };
+      return { ...state, conversations: sortConversations(updated) };
     }
 
     case 'INVITATION_ACCEPTED': {

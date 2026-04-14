@@ -88,21 +88,8 @@
   text-overflow: ellipsis;
 }
 
-.headerAvatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-accent-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.headerMenu {
   flex-shrink: 0;
-}
-
-.avatarInitial {
-  font-size: var(--text-body);
-  font-weight: 600;
-  color: var(--color-accent);
 }
 
 .headerSubtitle {

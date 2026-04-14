@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiFetch } from '../../lib/api';
 import { useTranslation } from '../../lib/i18n';
 import { ConversationItem } from './ConversationItem';
 import { NewChatModal } from './NewChatModal';
@@ -17,6 +18,7 @@ export function ConversationList() {
   const [showNewChat, setShowNewChat] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [resolvedVersion, setResolvedVersion] = useState(__APP_VERSION__);
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+K / Cmd+K focuses search input (D-14)
@@ -29,6 +31,20 @@ export function ConversationList() {
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (__APP_VERSION__ !== 'dev') {
+      setResolvedVersion(__APP_VERSION__);
+      return;
+    }
+
+    apiFetch('/api/health')
+      .then(res => res.ok ? res.json() : null)
+      .then((data: { version?: string } | null) => {
+        if (data?.version) setResolvedVersion(data.version);
+      })
+      .catch(() => {});
   }, []);
 
   // Client-side filter (D-10, D-11)
@@ -119,8 +135,8 @@ export function ConversationList() {
         <div className={styles.footer}>
           <UserMenu />
           <span className={styles.footerName}>{user.username}</span>
-          <span className={styles.versionLabel} title={`Build ${__APP_VERSION__}`}>
-            v{__APP_VERSION__}
+          <span className={styles.versionLabel} title={`Build ${resolvedVersion}`}>
+            v{resolvedVersion}
           </span>
           <ThemeToggle />
         </div>

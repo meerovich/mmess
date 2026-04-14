@@ -50,6 +50,13 @@
       "when": 1776260400000,
       "tag": "0006_forwarded_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776268800000,
+      "tag": "0007_profile_status",
+      "breakpoints": true
     }
   ]
 }

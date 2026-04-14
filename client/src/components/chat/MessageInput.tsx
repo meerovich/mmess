@@ -300,7 +300,7 @@ export function MessageInput({
           sender: {
             id: user.id,
             username: user.username,
-            avatar_url: null,
+            avatar_url: user.avatar_url,
           },
           reactions: [],
           status: 'sending',

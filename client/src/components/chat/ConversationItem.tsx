@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
-import { formatDistanceToNow, format, isThisYear } from 'date-fns';
+import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
@@ -15,17 +15,15 @@ interface ConversationItemProps {
   conversation: Conversation;
 }
 
-function formatTime(dateStr: string, locale: 'ru' | 'en'): string {
+function formatTime(dateStr: string, locale: 'ru' | 'en', t: (key: string) => string): string {
   const date = new Date(dateStr);
-  const dateFnsLocale = locale === 'ru' ? ru : enUS;
-  const diffHours = (Date.now() - date.getTime()) / (1000 * 60 * 60);
-  if (diffHours < 24) {
-    return formatDistanceToNow(date, { locale: dateFnsLocale });
+  if (isToday(date)) {
+    return format(date, 'HH:mm');
   }
-  if (isThisYear(date)) {
-    return format(date, 'dd/MM');
+  if (isYesterday(date)) {
+    return t('time.yesterday');
   }
-  return format(date, 'dd/MM/yy');
+  return format(date, 'dd.MM.yy', { locale: locale === 'ru' ? ru : enUS });
 }
 
 export function ConversationItem({ conversation }: ConversationItemProps) {
@@ -55,6 +53,10 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     conversation.type === 'direct' && user
       ? (conversation.participants.find(p => p.user_id !== user.id)?.username ?? conversation.name ?? t('chat.unknown'))
       : (conversation.name ?? t('sidebar.newGroup'));
+  const displayAvatarUrl =
+    conversation.type === 'direct' && user
+      ? (conversation.participants.find(p => p.user_id !== user.id)?.avatar_url ?? null)
+      : conversation.avatar_url;
 
   // Strip markdown syntax for sidebar preview: remove **bold**, *italic*,
   // `code`, [links](url), # headers, etc. — show clean plain text.
@@ -66,7 +68,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         .slice(0, 50)
     : null;
 
-  const timeStr = conversation.updated_at ? formatTime(conversation.updated_at, locale) : '';
+  const timeStr = conversation.updated_at ? formatTime(conversation.updated_at, locale, t) : '';
 
   // Check for draft text in localStorage
   const draft = typeof window !== 'undefined'
@@ -178,7 +180,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
       >
       <div className={styles.avatarWrapper}>
-        <Avatar name={displayName} size="sm" />
+        <Avatar name={displayName} avatarUrl={displayAvatarUrl} size="sm" />
         {presenceTargetId && (
           <span
             className={`${styles.onlineDot} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}

@@ -9,6 +9,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
 import { GroupSettingsModal } from './GroupSettingsModal';
+import { UserMenu } from './UserMenu';
 import styles from './ChatPane.module.css';
 import type { Conversation, Message } from '../../types/chat';
 
@@ -84,11 +85,7 @@ export function ChatPane() {
             </span>
           )}
         </div>
-        <div className={styles.headerAvatar}>
-          <span className={styles.avatarInitial}>
-            {conversationName.charAt(0).toUpperCase()}
-          </span>
-        </div>
+        <UserMenu placement="down" align="right" className={styles.headerMenu} />
       </header>
 
       <MessageList

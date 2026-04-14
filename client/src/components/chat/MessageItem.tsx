@@ -14,6 +14,7 @@ import { ReactionBar, AddReactionButton, LONG_PRESS_REACTION_EMOJIS } from './Re
 import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
 import { ForwardModal } from './ForwardModal';
+import { Avatar } from '../common/Avatar';
 import styles from './MessageItem.module.css';
 import type { Message, Participant } from '../../types/chat';
 
@@ -291,6 +292,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     left: number;
     width: number;
   } | null>(null);
+  const swipeActionKind = isOwn && receiptVisualState ? 'receipts' : 'reply';
 
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
@@ -439,7 +441,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     const onEnd = () => {
       handleLongPressEnd();
       if (touchRef.current?.swiping && swipeXRef.current >= SWIPE_THRESHOLD) {
-        onReplyRef.current?.(messageRef.current);
+        if (swipeActionKind === 'receipts') {
+          setShowReceiptDetails(true);
+        } else {
+          onReplyRef.current?.(messageRef.current);
+        }
       }
       touchRef.current = null;
       setSwipeX(0);
@@ -455,7 +461,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       el.removeEventListener('touchend', onEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleLongPressStart, handleLongPressEnd]);
+  }, [handleLongPressStart, handleLongPressEnd, swipeActionKind]);
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
   const bubbleContent = (
@@ -688,14 +694,27 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         setShowMenu(false);
       }}
     >
+      <div
+        className={`${styles.swipeCue} ${swipeX > 0 ? styles.swipeCueVisible : ''} ${isOwn ? styles.swipeCueOwn : styles.swipeCueOther}`}
+        aria-hidden="true"
+      >
+        <span className={styles.swipeCueIcon}>{swipeActionKind === 'receipts' ? '✓✓' : '↩'}</span>
+        <span className={styles.swipeCueText}>
+          {swipeActionKind === 'receipts' ? t('time.readLabel') : t('chat.reply')}
+        </span>
+      </div>
+
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
         <div className={styles.avatarWrapper}>
           <div
             className={`${styles.avatar} ${isGrouped ? styles.avatarHidden : ''}`}
-            style={{ background: senderPalette.avatarBg }}
           >
-            <span>{message.sender.username.charAt(0).toUpperCase()}</span>
+            <Avatar
+              name={message.sender.username}
+              avatarUrl={message.sender.avatar_url}
+              size="sm"
+            />
           </div>
           {!isGrouped && (
             <span
