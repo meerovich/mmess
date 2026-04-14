@@ -109,6 +109,21 @@ Creates timestamped backups in `./backups/`. Keeps the last 7 of each type.
 
 Replaces the current database and uploads with the specified dated backup.
 
+### Secrets
+
+Реальные секреты хранятся вне git:
+
+- локально в `.env.secrets`
+- на VPS в `/opt/mmess/.env.production`
+
+Шаблон значений лежит в `.env.secrets.example`, а подробные правила описаны в [SECRETS.md](E:/dev/mmess/SECRETS.md).
+
+Перед деплоем стоит прогонять проверку:
+
+```bash
+npm run check:secrets -- .env.production
+```
+
 ### TLS certificate renewal
 
 Caddy handles certificate renewal automatically. No manual action required.

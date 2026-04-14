@@ -14,6 +14,7 @@
 - `APP_VERSION` на сервере и `VITE_APP_VERSION` у клиента должны совпадать.
 - `/api/health` всегда должен отдавать одинаковые `version` и `minClientVersion`.
 - Даже для client-only фиксов после выкладки нужно проверить `/api/health`.
+- Перед деплоем secrets проверяются через `npm run check:secrets -- <env-file>`.
 
 ## Git Rules
 
@@ -32,6 +33,13 @@
 - Последний выкаченный hotfix: `1.6.26`
 - Long-press UI на мобильных уже разделён на отдельный reaction tray и action menu.
 - Reaction tray теперь поддерживает дополнительные emoji через горизонтальный scroll внутри панели без видимого scrollbar.
+
+## Secret Policy
+
+- Реальные секреты не хранятся в git и не попадают в `BOT_CONTEXT.md`.
+- Локальный секретный файл: `.env.secrets`
+- Продовый секретный файл: `/opt/mmess/.env.production`
+- Резервную копию секретов хранить отдельно вне репозитория.
 
 ## Open Work Notes
 

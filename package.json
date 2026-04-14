@@ -8,6 +8,7 @@
     "client"
   ],
   "scripts": {
+    "check:secrets": "node scripts/check-secrets.mjs",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
