@@ -125,7 +125,9 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         messages: {
           ...state.messages,
           [action.conversationId]: convMsgs.map(m =>
-            m.id === action.messageId ? { ...m, status: 'delivered' as const } : m
+            m.id === action.messageId
+              ? { ...m, status: 'delivered' as const, delivered_at: action.deliveredAt ?? m.delivered_at ?? null }
+              : m
           ),
         },
       };

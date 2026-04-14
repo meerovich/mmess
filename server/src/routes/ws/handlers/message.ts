@@ -256,11 +256,13 @@ export async function handleMessageSend(
   const recipientIds = participantIds.filter(id => id !== userId);
   const anyDelivered = recipientIds.some(id => isOnline(id));
   if (anyDelivered) {
+    const deliveredAt = new Date().toISOString();
     socket.send(JSON.stringify({
       type: 'message:delivered',
       payload: {
         conversation_id: payload.conversation_id,
         message_id: newMessage.id,
+        delivered_at: deliveredAt,
       },
     }));
   }

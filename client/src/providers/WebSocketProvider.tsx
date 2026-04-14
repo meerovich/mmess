@@ -136,6 +136,7 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           type: 'MESSAGE_DELIVERED',
           conversationId: msg.payload.conversation_id as string,
           messageId: msg.payload.message_id as string,
+          deliveredAt: (msg.payload.delivered_at as string | null | undefined) ?? null,
         });
       }
       break;

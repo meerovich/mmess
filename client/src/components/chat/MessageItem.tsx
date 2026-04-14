@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 
 import { format } from 'date-fns';
@@ -71,85 +71,75 @@ interface MessageItemProps {
   onEdit?: (message: Message) => void;
 }
 
-function ReadReceipt({
-  message,
-  currentUserId,
-  participants,
-  t,
-}: {
-  message: Message;
-  currentUserId: string;
-  participants: Participant[];
-  t: (key: string, params?: Record<string, string>) => string;
-}) {
-  if (message.sender_id !== currentUserId) return null;
+type ReceiptVisualState = 'sending' | 'sent' | 'delivered' | 'read';
 
-  // D-06: No separate spinner — optimistic insert shows single check immediately
-  if (message.status === 'sending') {
-    return (
-      <span className={`${styles.receipt} ${styles.sent}`} title={t('time.sending')}>
-        &#10003;
-      </span>
-    );
-  }
+function formatReceiptTimestamp(timestamp: string, locale: 'ru' | 'en'): string {
+  return format(new Date(timestamp), locale === 'ru' ? 'dd.MM.yyyy HH:mm' : 'MM/dd/yyyy HH:mm');
+}
+
+function getReceiptVisualState(
+  message: Message,
+  currentUserId: string,
+  participants: Participant[],
+): ReceiptVisualState | null {
+  if (message.sender_id !== currentUserId) return null;
+  if (message.status === 'sending') return 'sending';
 
   const otherParticipants = participants.filter(p => p.user_id !== currentUserId);
-
-  // D-02: In group chats, ALL participants must have read for blue double check
   const isAllRead =
     otherParticipants.length > 0 &&
     otherParticipants.every(p =>
       p.last_read_at != null && p.last_read_at >= message.created_at
     );
 
-  // D-01: delivered = at least one recipient socket received message:new
-  const isDelivered = message.status === 'delivered' || isAllRead;
+  if (isAllRead) return 'read';
+  if (message.status === 'delivered') return 'delivered';
+  return 'sent';
+}
 
-  // D-03: Tooltip shows list of names who have read
-  const readNames: string[] = otherParticipants
-    .filter(p => p.last_read_at != null && p.last_read_at >= message.created_at)
-    .map(p => p.username);
-  const tooltipText = readNames.length > 0
-    ? t('time.readBy', { names: readNames.join(', ') })
-    : isDelivered
-      ? t('time.delivered')
-      : t('time.sent');
+function ReadReceipt({
+  state,
+  onClick,
+}: {
+  state: ReceiptVisualState | null;
+  onClick?: () => void;
+}) {
+  if (!state) return null;
 
-  // D-05: WhatsApp-style — single gray check (sent), double gray check (delivered), double blue check (read)
-  if (isAllRead) {
-    return (
-      <span className={`${styles.receipt} ${styles.allRead}`} title={tooltipText}>
-        &#10003;&#10003;
-      </span>
-    );
-  }
+  const className =
+    state === 'read'
+      ? `${styles.receipt} ${styles.allRead}`
+      : state === 'delivered'
+        ? `${styles.receipt} ${styles.delivered}`
+        : `${styles.receipt} ${styles.sent}`;
+  const symbol = state === 'delivered' || state === 'read' ? '\u2713\u2713' : '\u2713';
 
-  if (isDelivered) {
-    return (
-      <span className={`${styles.receipt} ${styles.delivered}`} title={tooltipText}>
-        &#10003;&#10003;
-      </span>
-    );
-  }
-
-  // Sent (single gray check)
   return (
-    <span className={`${styles.receipt} ${styles.sent}`} title={tooltipText}>
-      &#10003;
-    </span>
+    <button
+      type="button"
+      className={styles.receiptButton}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      aria-label="message receipt details"
+    >
+      <span className={className}>{symbol}</span>
+    </button>
   );
 }
 
 export function MessageItem({ message, isGrouped = false, onReply, onEdit }: MessageItemProps) {
   const { user } = useAuth();
   const { state } = useChat();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const sendWs = useSendMessage();
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
+  const [showReceiptDetails, setShowReceiptDetails] = useState(false);
   const [swipeX, setSwipeX] = useState(0);
   const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
@@ -204,6 +194,52 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
   const conversation = state.conversations.find(c => c.id === message.conversation_id);
   const currentParticipant = conversation?.participants.find(p => p.user_id === currentUserId);
+  const otherParticipants = useMemo(
+    () => (conversation?.participants ?? []).filter(p => p.user_id !== currentUserId),
+    [conversation?.participants, currentUserId]
+  );
+  const receiptVisualState = getReceiptVisualState(message, currentUserId, conversation?.participants ?? []);
+  const readParticipants = useMemo(
+    () => otherParticipants.filter(p => p.last_read_at != null && p.last_read_at >= message.created_at),
+    [message.created_at, otherParticipants]
+  );
+  const deliveredDetails = message.delivered_at
+    ? formatReceiptTimestamp(message.delivered_at, locale)
+    : null;
+  const receiptDetailRows = useMemo(() => {
+    if (!isOwn) return [];
+
+    const rows: Array<{ label: string; value: string }> = [];
+    rows.push({
+      label: t('time.delivered'),
+      value: deliveredDetails ?? t('time.pendingReceipt'),
+    });
+
+    if (conversation?.type === 'group') {
+      if (readParticipants.length === 0) {
+        rows.push({ label: t('time.readLabel'), value: t('time.pendingReceipt') });
+      } else {
+        readParticipants.forEach(participant => {
+          rows.push({
+            label: participant.username,
+            value: participant.last_read_at
+              ? formatReceiptTimestamp(participant.last_read_at, locale)
+              : t('time.pendingReceipt'),
+          });
+        });
+      }
+    } else {
+      const firstReader = readParticipants[0];
+      rows.push({
+        label: t('time.readLabel'),
+        value: firstReader?.last_read_at
+          ? formatReceiptTimestamp(firstReader.last_read_at, locale)
+          : t('time.pendingReceipt'),
+      });
+    }
+
+    return rows;
+  }, [conversation?.type, deliveredDetails, isOwn, locale, readParticipants, t]);
 
   // D-21: edit/delete menu only in group chats with correct permissions
   const canEditDelete =
@@ -336,6 +372,23 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
   }, [canEditDelete, message.content]);
+
+  useEffect(() => {
+    if (!showReceiptDetails) return;
+
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (!itemRef.current?.contains(event.target as Node)) {
+        setShowReceiptDetails(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [showReceiptDetails]);
 
   const handleLongPressEnd = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -489,12 +542,22 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             <span className={styles.edited}>{t('chat.edited')}</span>
           )}
           {isOwn && (
-            <ReadReceipt
-              message={message}
-              currentUserId={currentUserId}
-              participants={conversation?.participants ?? []}
-              t={t}
-            />
+            <>
+              <ReadReceipt
+                state={receiptVisualState}
+                onClick={() => setShowReceiptDetails(prev => !prev)}
+              />
+              {showReceiptDetails && receiptVisualState && (
+                <div className={styles.receiptPopover} onClick={(e) => e.stopPropagation()}>
+                  {receiptDetailRows.map((row, idx) => (
+                    <div key={`${row.label}-${idx}`} className={styles.receiptPopoverRow}>
+                      <span className={styles.receiptPopoverLabel}>{row.label}</span>
+                      <span className={styles.receiptPopoverValue}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </span>
       </div>

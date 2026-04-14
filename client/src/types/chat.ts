@@ -38,6 +38,7 @@ export interface Message {
   sender: MessageSender;
   reactions: MessageReaction[];
   status?: MessageStatus; // optimistic UI — undefined means confirmed
+  delivered_at?: string | null;
   // File attachment (Phase 5 — FILE-01, FILE-02)
   file_id?: string | null;
   file_name?: string | null;
@@ -120,7 +121,7 @@ export type ChatAction =
   | { type: 'SET_TYPING_USERS'; conversationId: string; typers: { userId: string; username: string }[] }
   | { type: 'MARK_READ'; conversationId: string; messageId: string }
   | { type: 'INCREMENT_UNREAD'; conversationId: string }
-  | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string }
+  | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string; deliveredAt?: string | null }
   | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string; messageId?: string }
   | { type: 'WS_STATUS'; status: 'connected' | 'disconnected' | 'reconnecting' }
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }

@@ -220,6 +220,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
+  position: relative;
 }
 
 .edited {
@@ -253,6 +254,16 @@
   letter-spacing: -2px;
 }
 
+.receiptButton {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
 .sent {
   color: var(--color-text-muted);
 }
@@ -263,6 +274,40 @@
 
 .allRead {
   color: var(--color-accent);
+}
+
+.receiptPopover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  min-width: 180px;
+  max-width: 240px;
+  padding: var(--space-sm);
+  border-radius: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  z-index: 20;
+}
+
+.receiptPopoverRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.receiptPopoverLabel {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.receiptPopoverValue {
+  font-size: var(--text-body);
+  color: var(--color-text-primary);
 }
 
 /* Reply preview inside bubble */
