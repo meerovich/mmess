@@ -76,6 +76,28 @@ services:
     environment:
       DOMAIN: ${DOMAIN:-localhost}
 
+  codex-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    command: ["node", "dist/bot/worker.js"]
+    environment:
+      MMESS_API_BASE_URL: http://api:3000
+      MMESS_WS_URL: ws://api:3000/ws
+      CODEX_BOT_EMAIL: ${CODEX_BOT_EMAIL:-codex@chatboris.local}
+      CODEX_BOT_PASSWORD: ${CODEX_BOT_PASSWORD:-ClaudeBot2026!}
+      CODEX_BOT_USERNAME: ${CODEX_BOT_USERNAME:-Codex Bot}
+      CODEX_TARGET_USERNAME: ${CODEX_TARGET_USERNAME:-miha}
+      CODEX_BOT_SYSTEM_PROMPT: ${CODEX_BOT_SYSTEM_PROMPT:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    networks:
+      - internal
+
 networks:
   internal:
     driver: bridge
