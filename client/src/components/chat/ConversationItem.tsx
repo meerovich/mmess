@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from 'react';
 import { formatDistanceToNow, format, isThisYear } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -5,6 +6,7 @@ import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
 import { useChatLayout } from './ChatLayout';
+import { useSendMessage } from '../../providers/WebSocketProvider';
 import { Avatar } from '../common/Avatar';
 import type { Conversation } from '../../types/chat';
 import styles from './ConversationItem.module.css';
@@ -31,7 +33,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
+  const sendWs = useSendMessage();
   const { t, locale } = useTranslation();
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const [didSwipeMarkRead, setDidSwipeMarkRead] = useState(false);
+  const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
 
   const isActive = conversation.id === state.activeConversationId;
 
@@ -69,6 +75,8 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
 
   const unreadCount = conversation.unread_count;
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
+  const canMarkRead = unreadCount > 0 && Boolean(conversation.last_message?.id);
+  const SWIPE_THRESHOLD = 88;
 
   // Read receipt status for the last outgoing message in conversation list.
   // Show check (sent) / double-check (delivered/read) with color for read state.
@@ -84,7 +92,31 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     outgoingStatus = allRead ? 'read' : 'sent';
   }
 
+  const markConversationRead = useCallback(() => {
+    if (!user?.id || !conversation.last_message?.id || unreadCount === 0) return;
+
+    sendWs({
+      type: 'read:mark',
+      payload: {
+        conversation_id: conversation.id,
+        message_id: conversation.last_message.id,
+      },
+    });
+    dispatch({ type: 'MARK_READ', conversationId: conversation.id, messageId: conversation.last_message.id });
+    dispatch({
+      type: 'UPDATE_PARTICIPANT_READ',
+      conversationId: conversation.id,
+      userId: user.id,
+      lastReadAt: new Date().toISOString(),
+      messageId: conversation.last_message.id,
+    });
+  }, [conversation.id, conversation.last_message?.id, dispatch, sendWs, unreadCount, user?.id]);
+
   function handleClick() {
+    if (didSwipeMarkRead) {
+      setDidSwipeMarkRead(false);
+      return;
+    }
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
     // Push (not replace) so browser swipe-back has a history entry to go back to.
@@ -92,15 +124,57 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     navigate(`/chat/${conversation.id}`);
   }
 
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    touchRef.current = { startX: touch.clientX, startY: touch.clientY, swiping: false };
+    setDidSwipeMarkRead(false);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    if (!touchRef.current || !canMarkRead) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - touchRef.current.startX;
+    const dy = touch.clientY - touchRef.current.startY;
+
+    if (!touchRef.current.swiping && Math.abs(dy) > Math.abs(dx)) {
+      touchRef.current = null;
+      setSwipeOffset(0);
+      return;
+    }
+
+    if (dx < -10) {
+      e.preventDefault();
+      touchRef.current.swiping = true;
+      setSwipeOffset(Math.max(dx, -120));
+    }
+  }, [canMarkRead]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (touchRef.current?.swiping && swipeOffset <= -SWIPE_THRESHOLD) {
+      markConversationRead();
+      setDidSwipeMarkRead(true);
+    }
+    touchRef.current = null;
+    setSwipeOffset(0);
+  }, [markConversationRead, swipeOffset]);
+
   return (
-    <div
-      className={`${styles.item} ${isActive ? styles.active : ''}`}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && handleClick()}
-      aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
-    >
+    <div className={styles.swipeShell}>
+      <div className={`${styles.swipeAction} ${canMarkRead && swipeOffset < 0 ? styles.swipeActionVisible : ''}`}>
+        {t('chat.markRead')}
+      </div>
+      <div
+        className={`${styles.item} ${isActive ? styles.active : ''}`}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && handleClick()}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={swipeOffset !== 0 ? { transform: `translateX(${swipeOffset}px)` } : undefined}
+        aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
+      >
       <div className={styles.avatarWrapper}>
         <Avatar name={displayName} size="sm" />
         {presenceTargetId && (
@@ -147,6 +221,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
             </span>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
