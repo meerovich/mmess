@@ -19,6 +19,13 @@ interface MessageListProps {
   onEdit?: (message: Message) => void;
 }
 
+const INITIAL_SKELETON_ROWS = [
+  { side: 'incoming', width: '74%', lines: ['long', 'medium'] },
+  { side: 'outgoing', width: '58%', lines: ['medium', 'short'] },
+  { side: 'incoming', width: '82%', lines: ['long', 'long', 'short'] },
+  { side: 'outgoing', width: '46%', lines: ['medium'] },
+];
+
 export function MessageList({ conversationId, onReply, onEdit }: MessageListProps) {
   const { state, dispatch, messagePagination } = useChat();
   const { user } = useAuth();
@@ -436,8 +443,34 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
 
   if (isInitialLoading) {
     return (
-      <div className={styles.list}>
-        <Spinner />
+      <div className={`${styles.list} ${styles.initialLoading}`} aria-busy="true">
+        <div className={styles.initialLoadingTrack}>
+          {INITIAL_SKELETON_ROWS.map((row, idx) => (
+            <div
+              key={`${row.side}-${idx}`}
+              className={`${styles.skeletonRow} ${row.side === 'outgoing' ? styles.skeletonRowOutgoing : styles.skeletonRowIncoming}`}
+            >
+              <div
+                className={`${styles.skeletonBubble} ${row.side === 'outgoing' ? styles.skeletonBubbleOutgoing : styles.skeletonBubbleIncoming}`}
+                style={{ width: row.width }}
+              >
+                {row.lines.map((line, lineIdx) => (
+                  <span
+                    key={`${line}-${lineIdx}`}
+                    className={`${styles.skeletonLine} ${
+                      line === 'short'
+                        ? styles.skeletonLineShort
+                        : line === 'medium'
+                          ? styles.skeletonLineMedium
+                          : styles.skeletonLineLong
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          <Spinner size={24} />
+        </div>
       </div>
     );
   }

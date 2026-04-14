@@ -117,9 +117,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       setDidSwipeMarkRead(false);
       return;
     }
+    const isReplacingExistingChat = window.location.pathname.startsWith('/chat/');
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
     setShowChat(true);
-    const isReplacingExistingChat = window.location.pathname.startsWith('/chat/');
     // List -> chat should create one back-stack entry to return to the list.
     // Chat -> chat should replace, otherwise iOS swipe-back can walk through
     // previously viewed chats instead of stopping at the list.

@@ -143,7 +143,11 @@ export function ChatLayout() {
       navigationType === 'POP';
 
     if (isReturningToListViaNativeBack) {
-      window.history.pushState(window.history.state, '', location.pathname);
+      const timer = window.setTimeout(() => {
+        window.history.pushState(window.history.state, '', location.pathname);
+      }, 220);
+      previousPathRef.current = location.pathname;
+      return () => window.clearTimeout(timer);
     }
 
     previousPathRef.current = location.pathname;
