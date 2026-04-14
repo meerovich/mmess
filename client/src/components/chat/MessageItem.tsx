@@ -260,8 +260,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
       const actionCount = 2 + Number(Boolean(message.content)) + (canEditDelete ? 2 : 0);
       const menuH = 64 + actionCount * 52;
-      const desiredMenuWidth = Math.min(rect.width, 220);
       const horizontalMargin = 8;
+      const desiredMenuWidth = Math.max(160, Math.min(280, viewportWidth - horizontalMargin * 2));
       const verticalGap = 4;
       const verticalMargin = 8;
       const menuBottomLimit = Math.min(viewportBottom - verticalMargin, inputTop - verticalGap);
@@ -513,7 +513,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 position: 'fixed',
                 left: menuLeft,
                 top: menuTop,
-                minWidth: menuWidth,
+                width: menuWidth,
                 zIndex: 100002,
               }}
               onClick={e => e.stopPropagation()}
