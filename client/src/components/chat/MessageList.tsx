@@ -293,6 +293,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
                 conversationId,
                 userId: user.id,
                 lastReadAt: new Date().toISOString(),
+                messageId: lastMessage.id,
               });
             }
           }, 500);

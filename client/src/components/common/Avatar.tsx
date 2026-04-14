@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { getAvatarPalette } from '../../lib/avatarColor';
 import styles from './Avatar.module.css';
 
 interface AvatarProps {
@@ -23,14 +24,13 @@ export function Avatar({ name, size = 'md', avatarUrl }: AvatarProps) {
   }
 
   // Fallback: initials circle (unchanged behavior)
-  const hue = (name.charCodeAt(0) * 137) % 360;
-  const bg = `hsl(${hue}, 60%, 65%)`;
+  const palette = getAvatarPalette(name);
   const initial = name.charAt(0).toUpperCase();
 
   return (
     <div
       className={`${styles.avatar} ${styles[size]}`}
-      style={{ background: bg }}
+      style={{ background: palette.avatarBg }}
       aria-hidden="true"
     >
       {initial}

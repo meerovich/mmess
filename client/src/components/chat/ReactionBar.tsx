@@ -5,7 +5,7 @@ import styles from './ReactionBar.module.css';
 import type { MessageReaction } from '../../types/chat';
 
 // Row 1: 7 most frequent reactions + ▼ expand button (8 cells)
-const TOP_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
+export const QUICK_REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏'];
 // Rows 2-4: 8 emojis each (fills all cells below including the ▼ column)
 const MORE_EMOJIS = [
   ['🎉', '🤔', '👎', '😡', '🥰', '😎', '🙏', '💯'],
@@ -22,16 +22,16 @@ interface ReactionBarProps {
 
 // Exported separately for use in timestamp row (MessageItem).
 // Telegram-style: + button → 7 frequent emojis + ▼ expand → 3 more rows.
-export function AddReactionButton({ messageId, conversationId }: {
+export function AddReactionButton({ messageId, conversationId, variant = 'inline' }: {
   messageId: string;
   conversationId: string;
+  variant?: 'inline' | 'menu';
 }) {
   const sendWs = useSendMessage();
   const [showPicker, setShowPicker] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-
   // Recalculate picker position when viewport resizes (keyboard open/close)
   React.useEffect(() => {
     if (!showPicker || !btnRef.current) return;
@@ -95,7 +95,7 @@ export function AddReactionButton({ messageId, conversationId }: {
         onTouchMove={(e) => e.stopPropagation()}
       >
         <div className={styles.quickPickerRow}>
-          {TOP_EMOJIS.map(emoji => (
+          {QUICK_REACTION_EMOJIS.map(emoji => (
             <button key={emoji} className={styles.quickEmojiBtn} onClick={() => handleEmojiClick(emoji)}>
               {emoji}
             </button>
@@ -126,7 +126,7 @@ export function AddReactionButton({ messageId, conversationId }: {
     <>
       <button
         ref={btnRef}
-        className={`${styles.inlineAddBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
+        className={`${variant === 'menu' ? styles.menuAddBtn : styles.inlineAddBtn} ${showPicker ? styles.addReactionBtnOpen : ''}`}
         onClick={handleToggle}
         aria-label="Add reaction"
       >

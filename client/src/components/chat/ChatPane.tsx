@@ -138,6 +138,17 @@ function InvitationAwareInput({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
+  const refreshConversations = async () => {
+    try {
+      const res = await apiFetch('/api/conversations');
+      if (!res.ok) return;
+      const conversations = await res.json() as Conversation[];
+      dispatch({ type: 'SET_CONVERSATIONS', conversations });
+    } catch {
+      // Best-effort refresh to reconcile invitation state.
+    }
+  };
+
   if (!conversation || conversation.type !== 'direct') {
     return (
       <MessageInput
@@ -160,6 +171,7 @@ function InvitationAwareInput({
       try {
         await apiFetch(`/api/conversations/${conversationId}/accept`, { method: 'POST' });
         dispatch({ type: 'INVITATION_ACCEPTED', conversationId, userId: currentUserId });
+        await refreshConversations();
       } catch { /* ignore */ }
       setLoading(false);
     };
@@ -168,6 +180,7 @@ function InvitationAwareInput({
       try {
         await apiFetch(`/api/conversations/${conversationId}/decline`, { method: 'POST' });
         dispatch({ type: 'INVITATION_DECLINED', conversationId, userId: currentUserId });
+        await refreshConversations();
       } catch { /* ignore */ }
       setLoading(false);
     };

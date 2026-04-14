@@ -40,12 +40,33 @@ self.addEventListener('notificationclick', (event) => {
   const targetUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      // If a window with our app is already open, focus it and navigate to the chat
-      for (const client of clients) {
-        if (new URL(client.url).origin === self.location.origin) {
-          return client.focus().then(() => client.navigate(targetUrl));
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      const sameOriginClients = clients.filter(
+        client => new URL(client.url).origin === self.location.origin
+      );
+
+      if (sameOriginClients.length > 0) {
+        const preferredClient =
+          sameOriginClients.find(client => {
+            const pathname = new URL(client.url).pathname;
+            return pathname === '/' || pathname.startsWith('/chat/');
+          }) ?? sameOriginClients[0];
+
+        await Promise.all(
+          sameOriginClients.map(client =>
+            client.postMessage({ type: 'mmess:notification-open', url: path })
+          )
+        );
+
+        await preferredClient.focus();
+        if (typeof preferredClient.navigate === 'function') {
+          try {
+            await preferredClient.navigate(targetUrl);
+          } catch {
+            // Message handoff above is the primary navigation path.
+          }
         }
+        return;
       }
       // No existing window — open a new one pointing directly to the chat
       return self.clients.openWindow(targetUrl);

@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { getAvatarPalette } from '../../lib/avatarColor';
+import { replaceTextEmoticons } from '../../lib/chatText';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
@@ -321,6 +323,7 @@ export function MessageInput({
     (value.trim().length === 0 && uploadState.status !== 'ready') ||
     uploadState.status === 'uploading' ||
     uploadState.status === 'error';
+  const replyPalette = replyTo ? getAvatarPalette(replyTo.sender.username) : null;
 
   return (
     <div
@@ -337,10 +340,16 @@ export function MessageInput({
     >
       {/* Reply strip */}
       {replyTo && (
-        <div className={styles.replyStrip}>
+        <div
+          className={styles.replyStrip}
+          style={replyPalette ? {
+            '--reply-accent': replyPalette.accent,
+            '--reply-tint': replyPalette.tint,
+          } as React.CSSProperties : undefined}
+        >
           <span>{t('chat.replyingTo', { name: replyTo.sender.username })}</span>
           <span className={styles.replyPreviewText}>
-            {(replyTo.content ?? '').slice(0, 80)}
+            {replaceTextEmoticons(replyTo.content ?? '').slice(0, 80)}
           </span>
           <button
             className={styles.stripCancelBtn}

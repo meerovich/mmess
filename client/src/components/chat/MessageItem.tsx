@@ -3,12 +3,14 @@ import { createPortal } from 'react-dom';
 
 import { format } from 'date-fns';
 import { marked } from 'marked';
+import { getAvatarPalette } from '../../lib/avatarColor';
+import { replaceTextEmoticons } from '../../lib/chatText';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
-import { ReactionBar, AddReactionButton } from './ReactionBar';
+import { ReactionBar, AddReactionButton, QUICK_REACTION_EMOJIS } from './ReactionBar';
 import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
 import { ForwardModal } from './ForwardModal';
@@ -21,7 +23,7 @@ marked.setOptions({ breaks: true, gfm: true });
 
 /** Render markdown to HTML string, stripping outer <p> for single-line messages. */
 function renderMarkdown(text: string, participantNames?: string[]): string {
-  const html = marked.parse(text, { async: false }) as string;
+  const html = marked.parse(replaceTextEmoticons(text), { async: false }) as string;
   // Strip wrapping <p>...</p> if the entire output is a single paragraph
   const trimmed = html.trim();
   let result = trimmed;
@@ -175,6 +177,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
   const currentUserId = user?.id ?? '';
   const isOwn = message.sender_id === currentUserId;
+  const senderPalette = getAvatarPalette(message.sender.username);
+  const forwardedPalette = message.forwarded_from?.sender?.username
+    ? getAvatarPalette(message.forwarded_from.sender.username)
+    : null;
 
   // Presence dot on sender avatar (D-20)
   const senderPresence = state.presenceByUser[message.sender_id];
@@ -206,6 +212,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const handleReply = () => {
     setShowMenu(false);
     onReply?.(message);
+  };
+
+  const handleLongPressReaction = (emoji: string) => {
+    sendWs({
+      type: 'reaction:add',
+      payload: { message_id: message.id, emoji, conversation_id: message.conversation_id },
+    });
+    closeLongPressMenu();
   };
 
   // Long-press context menu (WhatsApp-style, mobile)
@@ -244,7 +258,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const viewportRight = viewportLeft + viewportWidth;
       const inputArea = document.querySelector('[data-chat-input-area="true"]') as HTMLElement | null;
       const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
-      const menuH = message.content ? 176 : 120;
+      const actionCount = 2 + Number(Boolean(message.content)) + (canEditDelete ? 2 : 0);
+      const menuH = 64 + actionCount * 52;
       const desiredMenuWidth = Math.min(rect.width, 220);
       const horizontalMargin = 8;
       const verticalGap = 4;
@@ -281,7 +296,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
-  }, [message.content]);
+  }, [canEditDelete, message.content]);
 
   const handleLongPressEnd = useCallback(() => {
     if (longPressTimerRef.current) {
@@ -354,7 +369,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const bubbleContent = (
     <>
       {!isOwn && !isGrouped && conversation?.type === 'group' && (
-        <div className={styles.senderName}>{message.sender.username}</div>
+        <div className={styles.senderName} style={{ color: senderPalette.accent }}>
+          {message.sender.username}
+        </div>
       )}
 
       {message.reply_to && (
@@ -362,7 +379,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       )}
 
       {message.forwarded_from && (
-        <div className={styles.forwardedHeader}>
+        <div
+          className={styles.forwardedHeader}
+          style={forwardedPalette ? {
+            '--reply-accent': forwardedPalette.accent,
+            '--reply-tint': forwardedPalette.tint,
+          } as React.CSSProperties : undefined}
+        >
           {t('chat.forwardedFrom', { name: message.forwarded_from.sender?.username ?? '?' })}
         </div>
       )}
@@ -422,34 +445,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         )}
         <span className={styles.timestampSpacer} />
         <span className={styles.timestampTime}>
-          {!message.is_deleted && (
-            <>
-              <AddReactionButton messageId={message.id} conversationId={message.conversation_id} />
-              <button
-                className={styles.inlineReplyBtn}
-                onClick={handleReply}
-                aria-label={t('chat.reply')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
-              </button>
-              <button
-                className={styles.inlineReplyBtn}
-                onClick={() => setForwardMessage(message)}
-                aria-label={t('chat.forward')}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
-              </button>
-              {message.content && (
-                <button
-                  className={styles.inlineReplyBtn}
-                  onClick={() => navigator.clipboard.writeText(message.content!)}
-                  aria-label={t('chat.copy')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              )}
-            </>
-          )}
           {timestamp}
           {message.edited_at && !message.is_deleted && (
             <span className={styles.edited}>{t('chat.edited')}</span>
@@ -524,6 +519,18 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               onClick={e => e.stopPropagation()}
               onTouchMove={e => e.stopPropagation()}
             >
+              <div className={styles.longPressReactionsRow}>
+                {QUICK_REACTION_EMOJIS.map(emoji => (
+                  <button
+                    key={emoji}
+                    className={styles.longPressReactionBtn}
+                    onClick={() => handleLongPressReaction(emoji)}
+                    aria-label={`React ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
               <button className={styles.longPressItem} onClick={() => { handleReply(); closeLongPressMenu(); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>
                 {t('chat.reply')}
@@ -537,6 +544,18 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                   {t('chat.copy')}
                 </button>
+              )}
+              {canEditDelete && (
+                <>
+                  <button className={styles.longPressItem} onClick={() => { handleEdit(); closeLongPressMenu(); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 113 3L7 19l-4 1 1-4Z"/></svg>
+                    {t('chat.edit')}
+                  </button>
+                  <button className={styles.longPressItem} onClick={() => { setShowDeleteConfirm(true); closeLongPressMenu(); }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2"/><path d="M19 6l-1 14a1 1 0 01-1 1H7a1 1 0 01-1-1L5 6"/></svg>
+                    {t('chat.deleteMessage')}
+                  </button>
+                </>
               )}
             </div>
           </>,
@@ -557,7 +576,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (
         <div className={styles.avatarWrapper}>
-          <div className={`${styles.avatar} ${isGrouped ? styles.avatarHidden : ''}`}>
+          <div
+            className={`${styles.avatar} ${isGrouped ? styles.avatarHidden : ''}`}
+            style={{ background: senderPalette.avatarBg }}
+          >
             <span>{message.sender.username.charAt(0).toUpperCase()}</span>
           </div>
           {!isGrouped && (
@@ -604,6 +626,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}
       {isHovered && !message.is_deleted && (
         <div className={`${styles.menuWrapper} ${isOwn ? styles.menuWrapperOwn : ''}`}>
+          <AddReactionButton
+            messageId={message.id}
+            conversationId={message.conversation_id}
+            variant="menu"
+          />
           <button
             className={styles.menuBtn}
             onClick={handleReply}
@@ -618,6 +645,15 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
           </button>
+          {message.content && (
+            <button
+              className={styles.menuBtn}
+              onClick={() => navigator.clipboard.writeText(message.content!)}
+              aria-label={t('chat.copy')}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          )}
 
           {canEditDelete && (
             <div className={styles.overflowMenu}>

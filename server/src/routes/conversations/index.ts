@@ -7,7 +7,7 @@ import {
   message_reads,
   users,
 } from '../../db/schema.js';
-import { eq, desc, and, gt, isNull, sql } from 'drizzle-orm';
+import { eq, desc, and, isNull, sql } from 'drizzle-orm';
 
 export default async function conversationsListRoutes(fastify: FastifyInstance) {
   fastify.get('/conversations', {
@@ -142,57 +142,32 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       }
     }
 
-    // Compute unread counts per conversation
-    // For each user-conversation pair: COUNT messages after last_read_message_id
+    // Compute unread counts from message_reads, which is the canonical read
+    // ledger. This avoids cursor edge-cases and keeps counts correct even when
+    // multiple messages share the same timestamp.
     const unreadCounts = new Map<string, number>();
 
     for (const row of userConversations) {
       const convId = row.conversation.id;
-      const lastReadId = row.participant.last_read_message_id;
       const myUserId = userId;
-
-      let count: number;
-
-      if (lastReadId === null) {
-        // No read record — count messages from OTHER users only.
-        // If the user never opened the chat, show unread count.
-        // But if the conversation has no last_message, it's empty → 0.
-        if (!row.conversation.last_message_id) {
-          count = 0;
-        } else {
-          const [result] = await db
-            .select({ count: sql<string>`COUNT(*)` })
-            .from(messages)
-            .where(and(
-              eq(messages.conversation_id, convId),
-              sql`${messages.sender_id} != ${myUserId}::uuid`
-            ));
-          count = parseInt(result?.count ?? '0', 10);
-        }
-      } else {
-        // Count messages from OTHER users after last read message
-        const [lastReadMsg] = await db
-          .select({ created_at: messages.created_at })
-          .from(messages)
-          .where(eq(messages.id, lastReadId))
-          .limit(1);
-
-        if (!lastReadMsg) {
-          count = 0;
-        } else {
-          const [result] = await db
-            .select({ count: sql<string>`COUNT(*)` })
-            .from(messages)
-            .where(
-              and(
-                eq(messages.conversation_id, convId),
-                gt(messages.created_at, lastReadMsg.created_at),
-                sql`${messages.sender_id} != ${myUserId}::uuid`
-              )
-            );
-          count = parseInt(result?.count ?? '0', 10);
-        }
-      }
+      const [result] = await db
+        .select({ count: sql<string>`COUNT(*)` })
+        .from(messages)
+        .leftJoin(
+          message_reads,
+          and(
+            eq(message_reads.message_id, messages.id),
+            eq(message_reads.user_id, myUserId)
+          )
+        )
+        .where(
+          and(
+            eq(messages.conversation_id, convId),
+            sql`${messages.sender_id} != ${myUserId}::uuid`,
+            isNull(message_reads.message_id)
+          )
+        );
+      const count = parseInt(result?.count ?? '0', 10);
 
       unreadCounts.set(convId, count);
     }

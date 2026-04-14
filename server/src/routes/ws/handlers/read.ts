@@ -1,4 +1,4 @@
-import { and, eq, lte } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
 import { message_reads, messages, conversation_participants } from '../../../db/schema.js';
@@ -25,20 +25,18 @@ export async function handleReadMark(
     .from(messages).where(eq(messages.id, payload.message_id));
   if (!markedMsg) return;
 
-  const unreadMessages = await db
-    .select({ id: messages.id })
-    .from(messages)
-    .where(and(
-      eq(messages.conversation_id, payload.conversation_id),
-      lte(messages.created_at, markedMsg.created_at)
-    ));
-
-  // Insert read receipts for each message up to and including the marked one
-  if (unreadMessages.length > 0) {
-    await db.insert(message_reads)
-      .values(unreadMessages.map(m => ({ message_id: m.id, user_id: userId, read_at: new Date() })))
-      .onConflictDoNothing();
-  }
+  await db.execute(sql`
+    INSERT INTO message_reads (message_id, user_id, read_at)
+    SELECT id, ${userId}::uuid, NOW()
+    FROM messages
+    WHERE conversation_id = ${payload.conversation_id}::uuid
+      AND created_at <= (
+        SELECT created_at
+        FROM messages
+        WHERE id = ${payload.message_id}::uuid
+      )
+    ON CONFLICT DO NOTHING
+  `);
 
   // Update last_read_message_id cursor
   await db.update(conversation_participants)

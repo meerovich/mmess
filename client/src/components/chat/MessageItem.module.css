@@ -98,11 +98,13 @@
 
 .forwardedHeader {
   font-size: var(--text-label);
-  color: var(--color-text-muted);
-  border-left: 3px solid var(--color-accent);
+  color: var(--reply-accent, var(--color-text-muted));
+  border-left: 3px solid var(--reply-accent, var(--color-accent));
   padding-left: var(--space-sm);
   margin-bottom: var(--space-xs);
   font-style: italic;
+  background: var(--reply-tint, transparent);
+  border-radius: 0 6px 6px 0;
 }
 
 .content {
@@ -267,10 +269,10 @@
 .replyPreview {
   display: flex;
   flex-direction: column;
-  border-left: 3px solid var(--color-accent);
+  border-left: 3px solid var(--reply-accent, var(--color-accent));
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-sm);
-  background: rgba(11, 87, 208, 0.08);
+  background: var(--reply-tint, rgba(11, 87, 208, 0.08));
   border-radius: 0 6px 6px 0;
   gap: 2px;
 }
@@ -278,7 +280,7 @@
 .replyPreviewSender {
   font-size: var(--text-body);
   font-weight: 600;
-  color: var(--color-accent);
+  color: var(--reply-accent, var(--color-accent));
 }
 
 .replyPreviewText {
@@ -477,6 +479,32 @@
   min-width: 200px;
   overflow: hidden;
   z-index: 100002;
+}
+
+.longPressReactionsRow {
+  display: flex;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  border-bottom: 1px solid var(--color-border);
+  justify-content: space-between;
+}
+
+.longPressReactionBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--color-reaction-bg);
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.longPressReactionBtn:active {
+  background: var(--color-reaction-bg-active);
 }
 
 .longPressItem {

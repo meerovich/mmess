@@ -114,6 +114,26 @@
   color: var(--color-accent);
 }
 
+.menuAddBtn {
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.menuAddBtn:hover,
+.menuAddBtn:active {
+  background: var(--color-reaction-bg-active);
+  color: var(--color-accent);
+}
+
 .pickerLoading {
   padding: var(--space-md);
   color: var(--color-text-muted);

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
@@ -23,6 +23,7 @@ export function useChatLayout(): ChatLayoutContextValue {
 
 export function ChatLayout() {
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
+  const navigate = useNavigate();
   const { dispatch } = useChat();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -65,6 +66,23 @@ export function ChatLayout() {
   useEffect(() => {
     registerPushSubscription();
   }, []);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const handleBotNavigation = (event: MessageEvent) => {
+      const payload = event.data as { type?: string; url?: string } | null;
+      if (payload?.type !== 'mmess:notification-open' || !payload.url) return;
+
+      const nextPath = payload.url.startsWith('http')
+        ? new URL(payload.url).pathname
+        : payload.url;
+      navigate(nextPath);
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleBotNavigation);
+    return () => navigator.serviceWorker.removeEventListener('message', handleBotNavigation);
+  }, [navigate]);
 
   // VERSION CHECK: periodically poll /api/health to detect server version upgrades.
   // Only show reload banner if client version is below server's minClientVersion.

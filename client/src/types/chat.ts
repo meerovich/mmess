@@ -119,8 +119,9 @@ export type ChatAction =
   | { type: 'REACTION_REMOVED'; messageId: string; conversationId: string; userId: string; emoji: string }
   | { type: 'SET_TYPING_USERS'; conversationId: string; typers: { userId: string; username: string }[] }
   | { type: 'MARK_READ'; conversationId: string; messageId: string }
+  | { type: 'INCREMENT_UNREAD'; conversationId: string }
   | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string }
-  | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string }
+  | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string; messageId?: string }
   | { type: 'WS_STATUS'; status: 'connected' | 'disconnected' | 'reconnecting' }
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
   | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }

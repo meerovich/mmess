@@ -199,10 +199,17 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         ),
       };
 
+    case 'INCREMENT_UNREAD':
+      return {
+        ...state,
+        conversations: state.conversations.map((c: Conversation) =>
+          c.id === action.conversationId
+            ? { ...c, unread_count: c.unread_count + 1 }
+            : c
+        ),
+      };
+
     case 'UPDATE_PARTICIPANT_READ': {
-      // Find the latest message in this conversation to set as last_read_message_id
-      const readMsgs = state.messages[action.conversationId];
-      const latestMsgId = readMsgs?.[readMsgs.length - 1]?.id ?? null;
       return {
         ...state,
         conversations: state.conversations.map((c: Conversation) => {
@@ -214,7 +221,7 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
                 ? {
                     ...p,
                     last_read_at: action.lastReadAt,
-                    last_read_message_id: latestMsgId ?? p.last_read_message_id,
+                    last_read_message_id: action.messageId ?? p.last_read_message_id,
                   }
                 : p
             ),

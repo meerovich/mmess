@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api';
 // Module-level references set by WebSocketProvider for use in handleIncoming
 let _currentUserId: string | null = null;
 let _navigate: ((to: string) => void) | null = null;
+let _activeConversationId: string | null = null;
 
 // Server→Client message envelope
 interface ServerMessage {
@@ -40,6 +41,16 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           conversationId: newMsg.conversation_id,
           message: { ...newMsg, status: 'sent' },
         });
+
+        const isActivelyViewingConversation =
+          _activeConversationId === newMsg.conversation_id &&
+          document.visibilityState === 'visible';
+        if (newMsg.sender_id !== _currentUserId && !isActivelyViewingConversation) {
+          dispatch({
+            type: 'INCREMENT_UNREAD',
+            conversationId: newMsg.conversation_id,
+          });
+        }
 
         // Browser notification: fire on every incoming message from another
         // user, regardless of tab visibility. Previously we gated on
@@ -136,13 +147,15 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           conversationId: msg.payload.conversation_id as string,
           userId: msg.payload.user_id as string,
           lastReadAt: msg.payload.read_at as string,
+          messageId: (msg.payload.message_id as string | undefined) ?? undefined,
         });
-        // Also zero unread count for this conversation (existing behavior)
-        dispatch({
-          type: 'MARK_READ',
-          conversationId: msg.payload.conversation_id as string,
-          messageId: (msg.payload.message_id as string) ?? '',
-        });
+        if (msg.payload.user_id === _currentUserId) {
+          dispatch({
+            type: 'MARK_READ',
+            conversationId: msg.payload.conversation_id as string,
+            messageId: (msg.payload.message_id as string) ?? '',
+          });
+        }
       }
       break;
     case 'conversation:new':
@@ -216,14 +229,18 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     _navigate = navigate;
   }, [user, navigate]);
 
+  useEffect(() => {
+    _activeConversationId = state.activeConversationId;
+  }, [state.activeConversationId]);
+
   // Re-fetch conversations + active conversation messages. Called on reconnect
   // and on visibility-change wake to guarantee delivery of missed messages.
   const replayMissedMessages = useCallback(() => {
     apiFetch('/api/conversations')
       .then(res => res.ok ? res.json() : null)
-      .then((data: { conversations: import('../types/chat').Conversation[] } | null) => {
-        if (data?.conversations) {
-          dispatch({ type: 'SET_CONVERSATIONS', conversations: data.conversations });
+      .then((data: import('../types/chat').Conversation[] | null) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_CONVERSATIONS', conversations: data });
         }
       })
       .catch(() => {});
@@ -273,6 +290,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       try {
         const envelope = JSON.parse(event.data as string) as ServerMessage;
         handleIncoming(envelope, dispatch);
+        if (
+          envelope.type === 'conversation:new' ||
+          envelope.type === 'conversation:updated' ||
+          envelope.type === 'invitation:accepted' ||
+          envelope.type === 'invitation:declined'
+        ) {
+          replayMissedMessages();
+        }
       } catch (e) {
         console.error('[WS] Failed to parse message', e);
       }

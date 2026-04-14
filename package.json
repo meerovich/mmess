@@ -1,6 +1,6 @@
 {
   "name": "mmess",
-  "version": "1.6.9",
+  "version": "1.6.16",
   "private": true,
   "type": "module",
   "workspaces": [
