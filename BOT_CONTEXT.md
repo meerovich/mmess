@@ -30,9 +30,10 @@
 
 ## Current Product State
 
-- Последний выкаченный hotfix: `1.6.26`
+- Последний выкаченный hotfix: `1.6.27`
 - Long-press UI на мобильных уже разделён на отдельный reaction tray и action menu.
 - Reaction tray теперь поддерживает дополнительные emoji через горизонтальный scroll внутри панели без видимого scrollbar.
+- Последний micro-hotfix: reaction tray и action menu используют одинаковый visual gap от сообщения.
 
 ## Secret Policy
 

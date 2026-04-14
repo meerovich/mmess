@@ -286,21 +286,21 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const desiredMenuWidth = Math.max(160, Math.min(280, viewportWidth - horizontalMargin * 2));
       const desiredReactionsWidth = Math.max(280, Math.min(316, viewportWidth - horizontalMargin * 2));
       const reactionsH = 56;
-      const verticalGap = 4;
+      const floatingGap = 8;
       const verticalMargin = 8;
-      const menuBottomLimit = Math.min(viewportBottom - verticalMargin, inputTop - verticalGap);
+      const menuBottomLimit = Math.min(viewportBottom - verticalMargin, inputTop - floatingGap);
       // Keep the menu below the bubble. If there isn't enough room,
       // temporarily lift the bubble just enough so the menu fully fits
       // above the composer / bottom panel.
       const shiftForMenu = Math.max(
         0,
-        rect.bottom + verticalGap + menuH - menuBottomLimit
+        rect.bottom + floatingGap + menuH - menuBottomLimit
       );
       const shiftedBubbleTop = rect.top - shiftForMenu;
       const shiftedBubbleBottom = rect.bottom - shiftForMenu;
       const nextMenuTop = Math.max(
         viewportTop + verticalMargin,
-        Math.min(shiftedBubbleBottom + verticalGap, menuBottomLimit - menuH)
+        Math.min(shiftedBubbleBottom + floatingGap, menuBottomLimit - menuH)
       );
       const nextMenuLeft = Math.max(
         viewportLeft + horizontalMargin,
@@ -313,7 +313,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           viewportRight - desiredReactionsWidth - horizontalMargin
         )
       );
-      const preferredReactionsTop = shiftedBubbleTop - reactionsH - verticalGap;
+      const preferredReactionsTop = shiftedBubbleTop - reactionsH - floatingGap;
       const nextReactionsTop =
         preferredReactionsTop >= safeTop
           ? preferredReactionsTop
