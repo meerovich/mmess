@@ -100,21 +100,15 @@ async function fetchRecentMessages(cookie: string, conversationId: string, limit
 }
 
 async function generateReply(history: InboxMessage[]): Promise<string> {
-  const input = [
-    {
-      role: 'system',
-      content: [{ type: 'input_text', text: SYSTEM_PROMPT }],
-    },
-    ...history.map(message => ({
-      role: message.sender?.username?.toLowerCase() === BOT_USERNAME ? 'assistant' : 'user',
-      content: [{
-        type: 'input_text',
-        text: message.file_id && !message.content
-          ? `[attachment: ${message.file_name ?? 'file'}]`
-          : (message.content ?? '').trim(),
-      }],
-    })),
-  ];
+  const transcript = history
+    .map(message => {
+      const speaker = message.sender?.username?.toLowerCase() === BOT_USERNAME ? 'assistant' : 'user';
+      const text = message.file_id && !message.content
+        ? `[attachment: ${message.file_name ?? 'file'}]`
+        : (message.content ?? '').trim();
+      return `${speaker}: ${text || '[empty]'}`;
+    })
+    .join('\n');
 
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -124,7 +118,8 @@ async function generateReply(history: InboxMessage[]): Promise<string> {
     },
     body: JSON.stringify({
       model: OPENAI_MODEL,
-      input,
+      instructions: SYSTEM_PROMPT,
+      input: transcript,
       max_output_tokens: 300,
     }),
   });
