@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSendMessage } from '../../providers/WebSocketProvider';
@@ -32,6 +32,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   // so the "unread" divider stays stable while new messages come in.
   const [openReadCursor, setOpenReadCursor] = useState<string | null>(null);
   const [showDivider, setShowDivider] = useState(true);
+  const loadedConversationIdsRef = useRef<Set<string>>(new Set());
 
   const messages: Message[] = state.messages[conversationId] ?? [];
   const pagination = messagePagination[conversationId];
@@ -105,35 +106,46 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   useEffect(() => {
     if (prevWsStatusRef.current === 'reconnecting' && state.wsStatus === 'connected') {
       didInitialLoadRef.current = null; // force re-fetch on next render
+      loadedConversationIdsRef.current.clear();
     }
     prevWsStatusRef.current = state.wsStatus;
   }, [state.wsStatus]);
 
   // Capture the current user's last_read_message_id when opening a conversation.
   // This determines where the "unread messages" divider is placed.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const conv = state.conversations.find(c => c.id === conversationId);
     const me = conv?.participants.find(p => p.user_id === user?.id);
     setOpenReadCursor(me?.last_read_message_id ?? null);
     setShowDivider(true);
     didScrollRef.current = null; // reset so scroll fires for new conversation
-  }, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversationId, state.conversations, user?.id]);
 
   // Initial load when conversationId changes.
   // The list is hidden (opacity: 0) until messages are loaded AND scroll
   // position is set — this prevents visible "jitter" (empty → content → scroll jump).
   useEffect(() => {
     if (!conversationId) return;
-    if (didInitialLoadRef.current === conversationId) {
+    const hasCachedConversation = Object.prototype.hasOwnProperty.call(state.messages, conversationId);
+    const alreadyLoaded = loadedConversationIdsRef.current.has(conversationId);
+
+    if (hasCachedConversation) {
       setIsInitialLoading(false);
+    } else {
+      setIsInitialLoading(true);
+    }
+
+    if (alreadyLoaded) {
+      didInitialLoadRef.current = conversationId;
       return;
     }
+
     didInitialLoadRef.current = conversationId;
-    setIsInitialLoading(true);
 
     apiFetch(`/api/conversations/${conversationId}/messages?limit=50`)
       .then(res => res.ok ? res.json() : { messages: [], hasMore: false, nextCursor: null })
       .then((data: { messages: Message[]; hasMore: boolean; nextCursor: string | null }) => {
+        loadedConversationIdsRef.current.add(conversationId);
         dispatch({
           type: 'SET_MESSAGES',
           conversationId,
@@ -146,6 +158,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
         setIsInitialLoading(false);
       })
       .catch(() => {
+        loadedConversationIdsRef.current.add(conversationId);
         dispatch({
           type: 'SET_MESSAGES',
           conversationId,
@@ -155,38 +168,31 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
         });
         setIsInitialLoading(false);
       });
-  }, [conversationId, dispatch, scrollToBottom]);
+  }, [conversationId, dispatch, state.messages]);
 
   // Scroll to correct position after initial load renders the list.
   // Fires when isInitialLoading transitions from true to false AND messages exist.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (isInitialLoading || messages.length === 0) return;
     if (didScrollRef.current === conversationId) return;
+    if (!listRef.current) return;
     didScrollRef.current = conversationId;
 
-    const doScroll = () => {
-      if (unreadDividerRef.current && listRef.current) {
-        // Use manual scrollTop calculation instead of scrollIntoView
-        // which behaves inconsistently on iOS Safari.
-        const listRect = listRef.current.getBoundingClientRect();
-        const dividerRect = unreadDividerRef.current.getBoundingClientRect();
-        const offset = dividerRect.top - listRect.top + listRef.current.scrollTop;
-        // Position divider ~1/3 from top of viewport for better context
-        listRef.current.scrollTop = offset - listRect.height * 0.3;
-        isAtBottomRef.current = false;
-      } else {
-        scrollToBottom();
-        isAtBottomRef.current = true;
-      }
-    };
+    if (unreadDividerRef.current) {
+      // Use manual scrollTop calculation instead of scrollIntoView
+      // which behaves inconsistently on iOS Safari.
+      const listRect = listRef.current.getBoundingClientRect();
+      const dividerRect = unreadDividerRef.current.getBoundingClientRect();
+      const offset = dividerRect.top - listRect.top + listRef.current.scrollTop;
+      // Position divider ~1/3 from top of viewport for better context
+      listRef.current.scrollTop = offset - listRect.height * 0.3;
+      isAtBottomRef.current = false;
+      return;
+    }
 
-    // Triple delay: rAF → rAF → setTimeout to ensure DOM is fully rendered
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        setTimeout(doScroll, 50);
-      });
-    });
-  }, [isInitialLoading, messages.length, conversationId, scrollToBottom]);
+    listRef.current.scrollTop = listRef.current.scrollHeight;
+    isAtBottomRef.current = true;
+  }, [isInitialLoading, messages.length, conversationId, openReadCursor, showDivider]);
 
   // Auto-scroll on new messages if the user was already at the bottom. We
   // read `isAtBottomRef.current` which reflects state from the LAST scroll

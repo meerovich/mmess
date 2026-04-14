@@ -478,8 +478,6 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onFocus={() => {
             window.dispatchEvent(new CustomEvent('mmess-scroll-bottom'));
-            setTimeout(() => window.scrollTo(0, 0), 100);
-            setTimeout(() => window.scrollTo(0, 0), 300);
           }}
           placeholder={t('chat.message')}
           aria-label={t('chat.message')}

@@ -68,6 +68,8 @@
   background: var(--color-surface);
   line-height: 1.5;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-user-drag: none;
   /* Re-enable text selection inside textarea (parent disables user-select) */
   -webkit-user-select: text;
   user-select: text;

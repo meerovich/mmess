@@ -145,37 +145,50 @@ export function ChatLayout() {
     // Used to detect keyboard: if vv.height shrinks significantly, keyboard is open.
     const initialHeight = vv.height;
 
+    let rafId: number | null = null;
+
     const setVH = () => {
+      rafId = null;
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
+      const keyboardOpen = vv.height < initialHeight * 0.85;
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
         // Only apply transform when offset > 0 (keyboard open).
         // translateY(0) creates a CSS stacking context that breaks position:fixed
         // for overlays (context menu, forward modal, etc.)
-        layoutRef.current.style.transform = vv.offsetTop > 0
+        layoutRef.current.style.transform = keyboardOpen && vv.offsetTop > 0
           ? `translateY(${vv.offsetTop}px)`
           : '';
 
-        const keyboardOpen = vv.height < initialHeight * 0.85;
         layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
 
-      // Force window back to top
-      if (window.scrollY !== 0) {
+      // Only correct window scroll while the keyboard is actively pushing the
+      // visual viewport. Running this on every viewport event causes visible
+      // "rubber-band" jerk on iOS during normal gestures.
+      if (keyboardOpen && window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
+    };
+
+    const scheduleSetVH = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(setVH);
     };
 
     // Set initial
     setVH();
 
-    vv.addEventListener('resize', setVH);
-    vv.addEventListener('scroll', setVH);
+    vv.addEventListener('resize', scheduleSetVH);
+    vv.addEventListener('scroll', scheduleSetVH);
 
     return () => {
-      vv.removeEventListener('resize', setVH);
-      vv.removeEventListener('scroll', setVH);
+      vv.removeEventListener('resize', scheduleSetVH);
+      vv.removeEventListener('scroll', scheduleSetVH);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
     };
   }, []);
 
