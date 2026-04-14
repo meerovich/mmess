@@ -21,6 +21,11 @@ interface MessageInputProps {
   onClearEdit?: () => void;
 }
 
+type AttachmentUploadState =
+  | { clientId: string; status: 'uploading'; file: File; progress: number; abortController: AbortController }
+  | { clientId: string; status: 'ready'; file: File; fileId: string; thumbnailUrl?: string }
+  | { clientId: string; status: 'error'; file: File; message: string };
+
 export function MessageInput({
   conversationId,
   replyTo = null,
@@ -40,7 +45,7 @@ export function MessageInput({
   // Draft persistence: restore draft from localStorage on conversation switch.
   const draftKey = `draft:${conversationId}`;
   const [value, setValue] = useState(() => localStorage.getItem(draftKey) ?? '');
-  const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
+  const [uploadStates, setUploadStates] = useState<AttachmentUploadState[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(0);
@@ -80,50 +85,70 @@ export function MessageInput({
     };
   }, [conversationId, sendWs]);
 
-  const handleFileSelect = useCallback((file: File) => {
-    // Client-side size check (D-01): 25 MB max
-    if (file.size > 25 * 1024 * 1024) {
-      setUploadState({ status: 'error', file, message: t('file.tooLarge') });
-      return;
-    }
+  const handleFilesSelect = useCallback((files: File[]) => {
+    files.forEach((file) => {
+      const clientId = nanoid();
 
-    const abortController = new AbortController();
-    setUploadState({ status: 'uploading', file, progress: 0, abortController });
-
-    uploadFile(
-      file,
-      (progress) => setUploadState(prev =>
-        prev.status === 'uploading' ? { ...prev, progress } : prev
-      ),
-      abortController.signal,
-    ).then((result) => {
-      setUploadState({
-        status: 'ready',
-        file,
-        fileId: result.id,
-        thumbnailUrl: result.thumbnail_url ?? undefined,
-      });
-    }).catch((err: Error) => {
-      if (err.name === 'AbortError') {
-        setUploadState({ status: 'idle' });
+      // Client-side size check (D-01): 25 MB max
+      if (file.size > 25 * 1024 * 1024) {
+        setUploadStates(prev => [...prev, { clientId, status: 'error', file, message: t('file.tooLarge') }]);
         return;
       }
-      setUploadState({ status: 'error', file, message: err.message || t('file.retry') });
+
+      const abortController = new AbortController();
+      setUploadStates(prev => [...prev, { clientId, status: 'uploading', file, progress: 0, abortController }]);
+
+      uploadFile(
+        file,
+        (progress) => setUploadStates(prev => prev.map(item =>
+          item.clientId === clientId && item.status === 'uploading'
+            ? { ...item, progress }
+            : item
+        )),
+        abortController.signal,
+      ).then((result) => {
+        setUploadStates(prev => prev.map(item =>
+          item.clientId === clientId
+            ? {
+                clientId,
+                status: 'ready',
+                file,
+                fileId: result.id,
+                thumbnailUrl: result.thumbnail_url ?? undefined,
+              }
+            : item
+        ));
+      }).catch((err: Error) => {
+        if (err.name === 'AbortError') {
+          setUploadStates(prev => prev.filter(item => item.clientId !== clientId));
+          return;
+        }
+        setUploadStates(prev => prev.map(item =>
+          item.clientId === clientId
+            ? { clientId, status: 'error', file, message: err.message || t('file.retry') }
+            : item
+        ));
+      });
     });
   }, [t]);
 
-  const handleCancelUpload = useCallback(() => {
-    if (uploadState.status === 'uploading') {
-      uploadState.abortController.abort();
-    }
-    setUploadState({ status: 'idle' });
-  }, [uploadState]);
+  const handleCancelUpload = useCallback((clientId: string) => {
+    setUploadStates(prev => {
+      const current = prev.find(item => item.clientId === clientId);
+      if (current?.status === 'uploading') {
+        current.abortController.abort();
+      }
+      return prev.filter(item => item.clientId !== clientId);
+    });
+  }, []);
 
-  const handleRetry = useCallback(() => {
-    if (uploadState.status === 'error') {
-      handleFileSelect(uploadState.file);
+  const handleRetry = useCallback((clientId: string) => {
+    const current = uploadStates.find(item => item.clientId === clientId);
+    if (current?.status === 'error') {
+      setUploadStates(prev => prev.filter(item => item.clientId !== clientId));
+      handleFilesSelect([current.file]);
     }
-  }, [uploadState, handleFileSelect]);
+  }, [handleFilesSelect, uploadStates]);
 
   // Drag-drop window event listeners
   useEffect(() => {
@@ -137,8 +162,8 @@ export function MessageInput({
     const handleDrop = (e: DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      const file = e.dataTransfer?.files[0];
-      if (file) handleFileSelect(file);
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length > 0) handleFilesSelect(files);
     };
     const handleDragOver = (e: DragEvent) => { e.preventDefault(); };
 
@@ -152,7 +177,7 @@ export function MessageInput({
       window.removeEventListener('drop', handleDrop);
       window.removeEventListener('dragover', handleDragOver);
     };
-  }, [handleFileSelect]);
+  }, [handleFilesSelect]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -229,8 +254,9 @@ export function MessageInput({
 
   const handleSend = () => {
     const trimmed = value.trim();
-    // Allow send when file is ready even with empty text (caption is optional)
-    if (!trimmed && uploadState.status !== 'ready') return;
+    const readyUploads = uploadStates.filter((item): item is Extract<AttachmentUploadState, { status: 'ready' }> => item.status === 'ready');
+    // Allow send when at least one file is ready even with empty text (caption is optional)
+    if (!trimmed && readyUploads.length === 0) return;
     if (!user) return;
 
     if (editMessage) {
@@ -246,59 +272,62 @@ export function MessageInput({
       onClearEdit?.();
       setValue('');
     } else {
-      // New message — optimistic UI
-      const tempId = nanoid();
-      const fileId = uploadState.status === 'ready' ? uploadState.fileId : undefined;
-      const thumbnailUrl = uploadState.status === 'ready' ? uploadState.thumbnailUrl : undefined;
-      const uploadFile_ = uploadState.status === 'ready' ? uploadState.file : null;
+      const uploadsToSend = readyUploads.length > 0 ? readyUploads : [null];
 
-      const optimisticMessage: Message = {
-        id: tempId,
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content: trimmed || null,
-        reply_to_id: replyTo?.id ?? null,
-        reply_to: replyTo
-          ? {
-              id: replyTo.id,
-              sender_id: replyTo.sender_id,
-              content: replyTo.content,
-            }
-          : null,
-        is_deleted: false,
-        edited_at: null,
-        created_at: new Date().toISOString(),
-        sender: {
-          id: user.id,
-          username: user.username,
-          avatar_url: null,
-        },
-        reactions: [],
-        status: 'sending',
-        // File fields
-        file_id: fileId ?? null,
-        file_name: uploadFile_ ? uploadFile_.name : null,
-        file_mime: uploadFile_ ? uploadFile_.type : null,
-        file_size: uploadFile_ ? uploadFile_.size : null,
-        is_image: uploadFile_ ? uploadFile_.type.startsWith('image/') : null,
-        thumbnail_url: thumbnailUrl ?? null,
-      };
+      uploadsToSend.forEach((readyUpload, index) => {
+        const tempId = nanoid();
+        const fileId = readyUpload?.fileId;
+        const thumbnailUrl = readyUpload?.thumbnailUrl;
+        const uploadFile_ = readyUpload?.file ?? null;
+        const isPrimaryMessage = index === 0;
 
-      dispatch({ type: 'OPTIMISTIC_MESSAGE_ADD', conversationId, message: optimisticMessage });
-
-      sendWs({
-        type: 'message:send',
-        id: tempId,
-        payload: {
+        const optimisticMessage: Message = {
+          id: tempId,
           conversation_id: conversationId,
-          content: trimmed || undefined,
-          reply_to_id: replyTo?.id ?? null,
-          file_id: fileId,
-        },
+          sender_id: user.id,
+          content: isPrimaryMessage ? (trimmed || null) : null,
+          reply_to_id: isPrimaryMessage ? (replyTo?.id ?? null) : null,
+          reply_to: isPrimaryMessage && replyTo
+            ? {
+                id: replyTo.id,
+                sender_id: replyTo.sender_id,
+                content: replyTo.content,
+              }
+            : null,
+          is_deleted: false,
+          edited_at: null,
+          created_at: new Date().toISOString(),
+          sender: {
+            id: user.id,
+            username: user.username,
+            avatar_url: null,
+          },
+          reactions: [],
+          status: 'sending',
+          file_id: fileId ?? null,
+          file_name: uploadFile_ ? uploadFile_.name : null,
+          file_mime: uploadFile_ ? uploadFile_.type : null,
+          file_size: uploadFile_ ? uploadFile_.size : null,
+          is_image: uploadFile_ ? uploadFile_.type.startsWith('image/') : null,
+          thumbnail_url: thumbnailUrl ?? null,
+        };
+
+        dispatch({ type: 'OPTIMISTIC_MESSAGE_ADD', conversationId, message: optimisticMessage });
+
+        sendWs({
+          type: 'message:send',
+          id: tempId,
+          payload: {
+            conversation_id: conversationId,
+            content: isPrimaryMessage ? (trimmed || undefined) : undefined,
+            reply_to_id: isPrimaryMessage ? (replyTo?.id ?? null) : null,
+            file_id: fileId,
+          },
+        });
       });
 
       // Clear upload state and reply
-      setUploadState({ status: 'idle' });
+      setUploadStates([]);
       onClearReply?.();
       setValue('');
     }
@@ -320,9 +349,8 @@ export function MessageInput({
 
   // Send is disabled when: no text AND no ready file; OR upload in progress; OR upload error
   const isDisabled =
-    (value.trim().length === 0 && uploadState.status !== 'ready') ||
-    uploadState.status === 'uploading' ||
-    uploadState.status === 'error';
+    (value.trim().length === 0 && !uploadStates.some(item => item.status === 'ready')) ||
+    uploadStates.some(item => item.status === 'uploading' || item.status === 'error');
   const replyPalette = replyTo ? getAvatarPalette(replyTo.sender.username) : null;
 
   return (
@@ -379,13 +407,14 @@ export function MessageInput({
       )}
 
       {/* Upload strip — shown when not idle */}
-      {uploadState.status !== 'idle' && (
+      {uploadStates.map((uploadState) => (
         <UploadStrip
+          key={uploadState.clientId}
           uploadState={uploadState as Exclude<UploadState, { status: 'idle' }>}
-          onCancel={handleCancelUpload}
-          onRetry={handleRetry}
+          onCancel={() => handleCancelUpload(uploadState.clientId)}
+          onRetry={() => handleRetry(uploadState.clientId)}
         />
-      )}
+      ))}
 
       {/* Mention autocomplete dropdown */}
       {mentionCandidates.length > 0 && (
@@ -407,11 +436,12 @@ export function MessageInput({
         <input
           ref={fileInputRef}
           type="file"
+          multiple
           style={{ display: 'none' }}
           aria-label={t('chat.attachFile')}
           onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) handleFileSelect(file);
+            const files = Array.from(e.target.files ?? []);
+            if (files.length > 0) handleFilesSelect(files);
             e.target.value = ''; // reset so same file can be re-selected
           }}
         />
@@ -426,9 +456,7 @@ export function MessageInput({
             textareaRef.current?.blur();
             fileInputRef.current?.click();
           }}
-          disabled={uploadState.status === 'uploading'}
           aria-label={t('chat.attachFile')}
-          aria-disabled={uploadState.status === 'uploading'}
           type="button"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
