@@ -29,9 +29,9 @@
 
 ## Current Product State
 
-- Последний выкаченный hotfix: `1.6.24`
-- Исправлено поведение long-press menu для узких изображений: меню остаётся стандартной ширины и сдвигается влево, чтобы помещаться в viewport.
-- Следующий UI hotfix в работе: отделить reaction tray от action menu в long-press режиме и позиционировать его как в Telegram.
+- Последний выкаченный hotfix: `1.6.26`
+- Long-press UI на мобильных уже разделён на отдельный reaction tray и action menu.
+- Reaction tray теперь поддерживает дополнительные emoji через горизонтальный scroll внутри панели без видимого scrollbar.
 
 ## Open Work Notes
 

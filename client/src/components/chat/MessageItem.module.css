@@ -489,12 +489,22 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+}
+
+.longPressReactionTray::-webkit-scrollbar {
+  display: none;
 }
 
 .longPressReactionsRow {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  display: flex;
   align-items: center;
+  gap: var(--space-xs);
+  min-width: max-content;
 }
 
 .longPressReactionBtn {
@@ -508,8 +518,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
   cursor: pointer;
-  margin: 0 auto;
 }
 
 .longPressReactionBtn:active {

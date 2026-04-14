@@ -12,6 +12,7 @@ const MORE_EMOJIS = [
   ['✅', '❌', '⭐', '🤝', '💪', '😏', '🙄', '😍'],
   ['🤣', '😤', '🥺', '💀', '🫡', '🤗', '😘', '🤩'],
 ];
+export const LONG_PRESS_REACTION_EMOJIS = [...QUICK_REACTION_EMOJIS, ...MORE_EMOJIS.flat()];
 
 interface ReactionBarProps {
   reactions: MessageReaction[];

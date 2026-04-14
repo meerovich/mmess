@@ -10,7 +10,7 @@ import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { ReplyPreview } from './ReplyPreview';
-import { ReactionBar, AddReactionButton, QUICK_REACTION_EMOJIS } from './ReactionBar';
+import { ReactionBar, AddReactionButton, LONG_PRESS_REACTION_EMOJIS } from './ReactionBar';
 import { FileCard } from './FileCard';
 import { Lightbox } from './Lightbox';
 import { ForwardModal } from './ForwardModal';
@@ -559,7 +559,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               onTouchMove={e => e.stopPropagation()}
             >
               <div className={styles.longPressReactionsRow}>
-                {QUICK_REACTION_EMOJIS.map(emoji => (
+                {LONG_PRESS_REACTION_EMOJIS.map(emoji => (
                   <button
                     key={emoji}
                     className={styles.longPressReactionBtn}
