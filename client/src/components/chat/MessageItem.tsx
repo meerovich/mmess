@@ -213,8 +213,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     () => otherParticipants.filter(p => p.last_read_at != null && p.last_read_at >= message.created_at),
     [message.created_at, otherParticipants]
   );
-  const deliveredDetails = message.delivered_at
-    ? formatReceiptTimestamp(message.delivered_at, locale)
+  const fallbackDeliveredAt = message.delivered_at ?? readParticipants[0]?.last_read_at ?? null;
+  const deliveredDetails = fallbackDeliveredAt
+    ? formatReceiptTimestamp(fallbackDeliveredAt, locale)
     : null;
   const receiptDetailRows = useMemo(() => {
     if (!isOwn) return [];

@@ -66,6 +66,20 @@ async function openSocket(cookie) {
   return ws;
 }
 
+async function markConversationRead(cookie, conversationId, messageId) {
+  const ws = await openSocket(cookie);
+  ws.send(JSON.stringify({
+    type: 'read:mark',
+    id: `codex-bot-chat-read-${messageId}`,
+    payload: {
+      conversation_id: conversationId,
+      message_id: messageId,
+    },
+  }));
+  await new Promise(resolve => setTimeout(resolve, 250));
+  ws.close();
+}
+
 async function sendMessage(text) {
   const cookie = await login();
   const conversation = await ensureMihaConversation(cookie);
@@ -118,8 +132,16 @@ async function fetchInbox(after, limit = 20) {
     ? messages.filter(message => new Date(message.created_at).getTime() > new Date(after).getTime())
     : messages;
 
+  const latestIncoming = [...filtered].reverse().find(message =>
+    message.sender?.username?.toLowerCase() !== BOT_USERNAME
+  );
+  if (latestIncoming?.id) {
+    await markConversationRead(cookie, conversation.id, latestIncoming.id);
+  }
+
   console.log(JSON.stringify({
     conversationId: conversation.id,
+    markedReadMessageId: latestIncoming?.id ?? null,
     messages: filtered,
   }, null, 2));
 }
@@ -147,6 +169,14 @@ async function watchInbox(after) {
       if (message.conversation_id !== conversation.id) return;
       if (message.sender?.username?.toLowerCase() === BOT_USERNAME) return;
       if (after && new Date(message.created_at).getTime() <= new Date(after).getTime()) return;
+      ws.send(JSON.stringify({
+        type: 'read:mark',
+        id: `codex-bot-chat-watch-read-${message.id}`,
+        payload: {
+          conversation_id: conversation.id,
+          message_id: message.id,
+        },
+      }));
       console.log(JSON.stringify({
         id: message.id,
         sender: message.sender?.username,
