@@ -17,6 +17,8 @@
 - Перед деплоем secrets проверяются через `npm run check:secrets -- <env-file>`.
 - Продовая статика клиента раздаётся только из `/opt/mmess/client/dist` через volume `./client/dist:/srv/www` в `caddy`.
 - Каталог `/opt/mmess/dist` не является deploy-target для SPA и не должен использоваться для клиентских выкладок.
+- При client deploy нельзя удалять старые hashed bundles из `/opt/mmess/client/dist/assets` сразу: старые вкладки/PWA могут ещё грузить предыдущий `index-*.js` и иначе получают белый экран.
+- Безопасный путь: выкладывать новый `client/dist` с сохранением предыдущих asset-файлов хотя бы за 1-2 последних версии или отдельно докладывать старые `assets/*` в прод.
 
 ## Git Rules
 
