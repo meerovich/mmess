@@ -43,14 +43,6 @@ export function ChatPane() {
     navigate('/', { replace: true });
   };
 
-  if (!activeConversationId) {
-    return (
-      <div className={styles.emptyState}>
-        <span>{t('chat.selectConversation')}</span>
-      </div>
-    );
-  }
-
   const conversation = conversations.find(c => c.id === activeConversationId);
 
   const conversationName = conversation
@@ -85,6 +77,14 @@ export function ChatPane() {
           });
     return t('time.lastSeen', { time: relative });
   }, [conversation, locale, presence?.last_seen_at, presence?.online, t]);
+
+  if (!activeConversationId) {
+    return (
+      <div className={styles.emptyState}>
+        <span>{t('chat.selectConversation')}</span>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.pane}>
