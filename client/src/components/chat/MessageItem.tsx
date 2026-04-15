@@ -151,7 +151,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const receiptVisualState = getReceiptVisualState(message, currentUserId, conversation?.participants ?? []);
 
   // WhatsApp-style swipe gestures
-  const SWIPE_THRESHOLD = 60;
+  const SWIPE_THRESHOLD = 48;
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
@@ -567,16 +567,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 state={receiptVisualState}
                 onClick={() => setShowReceiptDetails(prev => !prev)}
               />
-              {showReceiptDetails && receiptVisualState && (
-                <div className={styles.receiptPopover} onClick={(e) => e.stopPropagation()}>
-                  {receiptDetailRows.map((row, idx) => (
-                    <div key={`${row.label}-${idx}`} className={styles.receiptPopoverRow}>
-                      <span className={styles.receiptPopoverLabel}>{row.label}</span>
-                      <span className={styles.receiptPopoverValue}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </>
           )}
         </span>
@@ -698,6 +688,46 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         )
       : null;
 
+  const receiptDetailsPortal =
+    showReceiptDetails && receiptVisualState && typeof document !== 'undefined'
+      ? createPortal(
+          <>
+            <div
+              className={styles.receiptSheetOverlay}
+              onClick={() => setShowReceiptDetails(false)}
+            />
+            <div
+              className={styles.receiptSheet}
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-label={t('chat.messageReceiptInfo')}
+            >
+              <div className={styles.receiptSheetHandle} />
+              <div className={styles.receiptSheetHeader}>
+                <div className={styles.receiptSheetTitle}>{t('chat.messageReceiptInfo')}</div>
+                <button
+                  type="button"
+                  className={styles.receiptSheetClose}
+                  onClick={() => setShowReceiptDetails(false)}
+                  aria-label={t('chat.closeMenu')}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.receiptSheetRows}>
+                {receiptDetailRows.map((row, idx) => (
+                  <div key={`${row.label}-${idx}`} className={styles.receiptSheetRow}>
+                    <span className={styles.receiptSheetLabel}>{row.label}</span>
+                    <span className={styles.receiptSheetValue}>{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>,
+          document.body
+        )
+      : null;
+
   return (
     <div
       ref={itemRef}
@@ -742,7 +772,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         ref={bubbleRef}
         className={`${styles.bubble} ${isOwn ? styles.own : styles.other} ${showLongPressMenu ? styles.bubbleHighlighted : ''}`}
         style={
-          swipeX > 0
+          swipeX !== 0
             ? { transform: `translateX(${swipeX}px)`, transition: 'none' }
             : showLongPressMenu && bubbleShiftY > 0
               ? { transform: `translateY(-${bubbleShiftY}px)`, transition: 'transform 0.2s ease-out' }
@@ -769,6 +799,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         />
       )}
       {longPressMenuPortal}
+      {receiptDetailsPortal}
 
       {/* Action menu — inside .item but positioned absolutely so no layout shift */}
       {isHovered && !message.is_deleted && (
