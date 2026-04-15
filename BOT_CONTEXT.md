@@ -15,6 +15,8 @@
 - `/api/health` всегда должен отдавать одинаковые `version` и `minClientVersion`.
 - Даже для client-only фиксов после выкладки нужно проверить `/api/health`.
 - Перед деплоем secrets проверяются через `npm run check:secrets -- <env-file>`.
+- Продовая статика клиента раздаётся только из `/opt/mmess/client/dist` через volume `./client/dist:/srv/www` в `caddy`.
+- Каталог `/opt/mmess/dist` не является deploy-target для SPA и не должен использоваться для клиентских выкладок.
 
 ## Git Rules
 
