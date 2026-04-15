@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { formatDistanceToNowStrict } from 'date-fns';
+import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,7 +11,7 @@ import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
 import { GroupSettingsModal } from './GroupSettingsModal';
-import { UserMenu } from './UserMenu';
+import { Avatar } from '../common/Avatar';
 import styles from './ChatPane.module.css';
 import type { Conversation, Message } from '../../types/chat';
 
@@ -28,7 +30,7 @@ export function ChatPane() {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -54,6 +56,35 @@ export function ChatPane() {
   const conversationName = conversation
     ? getConversationName(conversation, user?.id ?? '', t)
     : t('chat.chat');
+  const otherParticipant = useMemo(
+    () => conversation?.type === 'direct'
+      ? conversation.participants.find(p => p.user_id !== user?.id)
+      : null,
+    [conversation, user?.id]
+  );
+  const presence = otherParticipant ? state.presenceByUser[otherParticipant.user_id] : null;
+  const headerSubtitle = useMemo(() => {
+    if (!conversation) return '';
+    if (conversation.type === 'group') {
+      return t('chat.membersCount', { count: String(conversation.participants.length) });
+    }
+    if (presence?.online) return t('time.online');
+    if (!presence?.last_seen_at) return t('time.offline');
+
+    const seenDate = new Date(presence.last_seen_at);
+    const diffMs = Date.now() - seenDate.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const relative =
+      diffMinutes < 1
+        ? locale === 'ru'
+          ? 'только что'
+          : 'just now'
+        : formatDistanceToNowStrict(seenDate, {
+            addSuffix: true,
+            locale: locale === 'ru' ? ru : enUS,
+          });
+    return t('time.lastSeen', { time: relative });
+  }, [conversation, locale, presence?.last_seen_at, presence?.online, t]);
 
   return (
     <div className={styles.pane}>
@@ -79,13 +110,15 @@ export function ChatPane() {
           onKeyDown={e => conversation?.type === 'group' && e.key === 'Enter' && setShowSettings(true)}
         >
           <span className={styles.headerName}>{conversationName}</span>
-          {conversation?.type === 'group' && (
-            <span className={styles.headerSubtitle}>
-              {t('chat.membersCount', { count: String(conversation.participants.length) })}
-            </span>
-          )}
+          {headerSubtitle && <span className={styles.headerSubtitle}>{headerSubtitle}</span>}
         </div>
-        <UserMenu placement="down" align="right" className={styles.headerMenu} />
+        <div className={styles.headerAvatar}>
+          <Avatar
+            name={conversationName}
+            avatarUrl={conversation?.type === 'direct' ? otherParticipant?.avatar_url ?? null : conversation?.avatar_url ?? null}
+            size="sm"
+          />
+        </div>
       </header>
 
       <MessageList

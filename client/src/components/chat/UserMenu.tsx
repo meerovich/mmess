@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
 import { Avatar } from '../common/Avatar';
+import { ThemeToggle } from '../common/ThemeToggle';
 import { ProfileModal } from './ProfileModal';
 import styles from './UserMenu.module.css';
 
@@ -72,6 +73,7 @@ export function UserMenu({
             <button className={styles.menuItem} onClick={toggleLanguage}>
               🌐 {t('menu.language')}: {locale === 'ru' ? 'Русский' : 'English'}
             </button>
+            <ThemeToggle variant="menu" />
             <div className={styles.separator} />
             <button className={`${styles.menuItem} ${styles.menuItemDanger}`} onClick={handleLogout}>
               🚪 {t('menu.logout')}

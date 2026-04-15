@@ -11,6 +11,67 @@ interface ProfileModalProps {
   onClose: () => void;
 }
 
+const CROP_FRAME_SIZE = 220;
+
+function clampCropOffset(
+  imageWidth: number,
+  imageHeight: number,
+  zoom: number,
+  offset: { x: number; y: number },
+) {
+  const baseScale = Math.max(CROP_FRAME_SIZE / imageWidth, CROP_FRAME_SIZE / imageHeight);
+  const scaledWidth = imageWidth * baseScale * zoom;
+  const scaledHeight = imageHeight * baseScale * zoom;
+  const maxX = Math.max(0, (scaledWidth - CROP_FRAME_SIZE) / 2);
+  const maxY = Math.max(0, (scaledHeight - CROP_FRAME_SIZE) / 2);
+
+  return {
+    x: Math.min(maxX, Math.max(-maxX, offset.x)),
+    y: Math.min(maxY, Math.max(-maxY, offset.y)),
+  };
+}
+
+async function loadImage(file: File): Promise<HTMLImageElement> {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error('Failed to load image'));
+      image.src = objectUrl;
+    });
+    return image;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function renderCroppedAvatar(
+  file: File,
+  zoom: number,
+  offset: { x: number; y: number },
+): Promise<File> {
+  const image = await loadImage(file);
+  const canvas = document.createElement('canvas');
+  const outputSize = 512;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas is not available');
+
+  const clampedOffset = clampCropOffset(image.width, image.height, zoom, offset);
+  const baseScale = Math.max(CROP_FRAME_SIZE / image.width, CROP_FRAME_SIZE / image.height);
+  const ratio = outputSize / CROP_FRAME_SIZE;
+
+  ctx.translate(outputSize / 2 + clampedOffset.x * ratio, outputSize / 2 + clampedOffset.y * ratio);
+  ctx.scale(baseScale * zoom * ratio, baseScale * zoom * ratio);
+  ctx.drawImage(image, -image.width / 2, -image.height / 2);
+
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+  if (!blob) throw new Error('Avatar crop failed');
+  return new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' });
+}
+
 export function ProfileModal({ onClose }: ProfileModalProps) {
   const { user, updateProfile } = useAuth();
   const { t } = useTranslation();
@@ -19,12 +80,23 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [saving, setSaving] = useState(false);
+  const [cropSource, setCropSource] = useState<{ file: File; url: string; width: number; height: number } | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [isCropping, setIsCropping] = useState(false);
+  const dragStateRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   useEffect(() => {
     if (!user) return;
     setStatus(user.profile_status ?? '');
     setAvatarUrl(user.avatar_url ?? null);
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      if (cropSource?.url) URL.revokeObjectURL(cropSource.url);
+    };
+  }, [cropSource?.url]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -41,7 +113,14 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
       setUploadState({ status: 'error', file, message: t('file.tooLarge') });
       return;
     }
+    const image = await loadImage(file);
+    const previewUrl = URL.createObjectURL(file);
+    setCropZoom(1);
+    setCropOffset({ x: 0, y: 0 });
+    setCropSource({ file, url: previewUrl, width: image.width, height: image.height });
+  };
 
+  const uploadAvatarFile = async (file: File) => {
     const abortController = new AbortController();
     setUploadState({ status: 'uploading', file, progress: 0, abortController });
 
@@ -71,6 +150,35 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
     }
   };
 
+  useEffect(() => {
+    if (!dragStateRef.current || !cropSource) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const drag = dragStateRef.current;
+      if (!drag) return;
+      setCropOffset(clampCropOffset(
+        cropSource.width,
+        cropSource.height,
+        cropZoom,
+        {
+          x: drag.originX + event.clientX - drag.startX,
+          y: drag.originY + event.clientY - drag.startY,
+        },
+      ));
+    };
+
+    const stopDragging = () => {
+      dragStateRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopDragging);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopDragging);
+    };
+  }, [cropSource, cropZoom]);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -98,10 +206,9 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
         </div>
 
         <div className={styles.hero}>
-          <button type="button" className={styles.avatarButton} onClick={() => fileInputRef.current?.click()}>
+          <div className={styles.avatarButton}>
             <Avatar name={user.username} avatarUrl={avatarUrl} size="lg" />
-            <span className={styles.avatarOverlay}>{t('profile.changeAvatar')}</span>
-          </button>
+          </div>
           <div className={styles.identity}>
             <strong className={styles.username}>{user.username}</strong>
             <span className={styles.email}>{user.email}</span>
@@ -137,6 +244,80 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
           />
         )}
 
+        {cropSource && (
+          <div className={styles.cropCard}>
+            <div className={styles.cropHeader}>
+              <strong>{t('profile.cropAvatar')}</strong>
+            </div>
+            <div
+              className={styles.cropViewport}
+              onPointerDown={(event) => {
+                dragStateRef.current = {
+                  startX: event.clientX,
+                  startY: event.clientY,
+                  originX: cropOffset.x,
+                  originY: cropOffset.y,
+                };
+              }}
+            >
+              <img
+                src={cropSource.url}
+                alt={t('profile.cropAvatar')}
+                className={styles.cropImage}
+                style={{
+                  transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                }}
+                draggable={false}
+              />
+            </div>
+            <label className={styles.zoomField}>
+              <span>{t('profile.zoom')}</span>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.01"
+                value={cropZoom}
+                onChange={(event) => {
+                  const nextZoom = Number(event.target.value);
+                  setCropZoom(nextZoom);
+                  setCropOffset(current => clampCropOffset(cropSource.width, cropSource.height, nextZoom, current));
+                }}
+              />
+            </label>
+            <div className={styles.cropActions}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => {
+                  URL.revokeObjectURL(cropSource.url);
+                  setCropSource(null);
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                disabled={isCropping}
+                onClick={async () => {
+                  setIsCropping(true);
+                  try {
+                    const croppedFile = await renderCroppedAvatar(cropSource.file, cropZoom, cropOffset);
+                    URL.revokeObjectURL(cropSource.url);
+                    setCropSource(null);
+                    await uploadAvatarFile(croppedFile);
+                  } finally {
+                    setIsCropping(false);
+                  }
+                }}
+              >
+                {isCropping ? t('profile.saving') : t('profile.applyCrop')}
+              </button>
+            </div>
+          </div>
+        )}
+
         <label className={styles.field}>
           <span className={styles.label}>{t('profile.status')}</span>
           <textarea
@@ -149,9 +330,14 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
         </label>
 
         <div className={styles.footer}>
-          <button type="button" className={styles.ghostButton} onClick={() => setAvatarUrl(null)}>
-            {t('profile.removeAvatar')}
-          </button>
+          <div className={styles.footerActions}>
+            <button type="button" className={styles.ghostButton} onClick={() => fileInputRef.current?.click()}>
+              {t('profile.changeAvatar')}
+            </button>
+            <button type="button" className={styles.ghostButton} onClick={() => setAvatarUrl(null)}>
+              {t('profile.removeAvatar')}
+            </button>
+          </div>
           <div className={styles.footerActions}>
             <button type="button" className={styles.secondaryButton} onClick={onClose}>
               {t('common.cancel')}

@@ -145,8 +145,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const currentUserId = user?.id ?? '';
+  const isOwn = message.sender_id === currentUserId;
+  const conversation = state.conversations.find(c => c.id === message.conversation_id);
+  const receiptVisualState = getReceiptVisualState(message, currentUserId, conversation?.participants ?? []);
 
-  // WhatsApp-style swipe-to-reply gesture
+  // WhatsApp-style swipe gestures
   const SWIPE_THRESHOLD = 60;
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -170,20 +174,27 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       e.preventDefault();
       touchRef.current.swiping = true;
       setSwipeX(Math.min(dx, 100));
+      return;
     }
-  }, []);
+
+    if (isOwn && receiptVisualState && dx < -10) {
+      e.preventDefault();
+      touchRef.current.swiping = true;
+      setSwipeX(Math.max(dx, -100));
+    }
+  }, [isOwn, receiptVisualState]);
 
   const handleTouchEnd = useCallback(() => {
     if (touchRef.current?.swiping && swipeX >= SWIPE_THRESHOLD) {
-      // Trigger reply
       onReply?.(message);
+    }
+    if (touchRef.current?.swiping && swipeX <= -SWIPE_THRESHOLD && isOwn && receiptVisualState) {
+      setShowReceiptDetails(true);
     }
     touchRef.current = null;
     setSwipeX(0);
-  }, [swipeX, message, onReply]);
+  }, [isOwn, message, onReply, receiptVisualState, swipeX]);
 
-  const currentUserId = user?.id ?? '';
-  const isOwn = message.sender_id === currentUserId;
   const senderPalette = getAvatarPalette(message.sender.username);
   const forwardedPalette = message.forwarded_from?.sender?.username
     ? getAvatarPalette(message.forwarded_from.sender.username)
@@ -193,13 +204,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const senderPresence = state.presenceByUser[message.sender_id];
   const senderOnline = senderPresence?.online ?? false;
 
-  const conversation = state.conversations.find(c => c.id === message.conversation_id);
   const currentParticipant = conversation?.participants.find(p => p.user_id === currentUserId);
   const otherParticipants = useMemo(
     () => (conversation?.participants ?? []).filter(p => p.user_id !== currentUserId),
     [conversation?.participants, currentUserId]
   );
-  const receiptVisualState = getReceiptVisualState(message, currentUserId, conversation?.participants ?? []);
   const readParticipants = useMemo(
     () => otherParticipants.filter(p => p.last_read_at != null && p.last_read_at >= message.created_at),
     [message.created_at, otherParticipants]
@@ -292,8 +301,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     left: number;
     width: number;
   } | null>(null);
-  const swipeActionKind = isOwn && receiptVisualState ? 'receipts' : 'reply';
-
   const closeLongPressMenu = useCallback(() => {
     setShowLongPressMenu(false);
     setBubbleShiftY(0);
@@ -435,17 +442,23 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         e.preventDefault();
         touchRef.current.swiping = true;
         setSwipeX(Math.min(dx, 100));
+        return;
+      }
+
+      if (isOwn && receiptVisualState && dx < -10) {
+        e.preventDefault();
+        touchRef.current.swiping = true;
+        setSwipeX(Math.max(dx, -100));
       }
     };
 
     const onEnd = () => {
       handleLongPressEnd();
       if (touchRef.current?.swiping && swipeXRef.current >= SWIPE_THRESHOLD) {
-        if (swipeActionKind === 'receipts') {
-          setShowReceiptDetails(true);
-        } else {
-          onReplyRef.current?.(messageRef.current);
-        }
+        onReplyRef.current?.(messageRef.current);
+      }
+      if (touchRef.current?.swiping && swipeXRef.current <= -SWIPE_THRESHOLD && isOwn && receiptVisualState) {
+        setShowReceiptDetails(true);
       }
       touchRef.current = null;
       setSwipeX(0);
@@ -461,7 +474,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       el.removeEventListener('touchend', onEnd);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleLongPressStart, handleLongPressEnd, swipeActionKind]);
+  }, [handleLongPressStart, handleLongPressEnd, isOwn, receiptVisualState]);
 
   const timestamp = format(new Date(message.created_at), 'HH:mm');
   const bubbleContent = (
@@ -694,15 +707,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         setShowMenu(false);
       }}
     >
-      <div
-        className={`${styles.swipeCue} ${swipeX > 0 ? styles.swipeCueVisible : ''} ${isOwn ? styles.swipeCueOwn : styles.swipeCueOther}`}
-        aria-hidden="true"
-      >
-        <span className={styles.swipeCueIcon}>{swipeActionKind === 'receipts' ? '✓✓' : '↩'}</span>
-        <span className={styles.swipeCueText}>
-          {swipeActionKind === 'receipts' ? t('time.readLabel') : t('chat.reply')}
-        </span>
-      </div>
+      {swipeX !== 0 && (
+        <div
+          className={`${styles.swipeCue} ${styles.swipeCueVisible} ${swipeX > 0 ? styles.swipeCueReply : styles.swipeCueReceipts}`}
+          aria-hidden="true"
+        >
+          <span className={styles.swipeCueIcon}>{swipeX > 0 ? '↩' : '✓✓'}</span>
+        </div>
+      )}
 
       {/* Avatar placeholder for other user messages */}
       {!isOwn && (

@@ -57,6 +57,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
 
   const messages: Message[] = state.messages[conversationId] ?? [];
   const pagination = messagePagination[conversationId];
+  const activeConversation = state.conversations.find(conversation => conversation.id === conversationId);
   const hasPendingNotificationTarget =
     pendingNotificationMessageId !== null &&
     !messages.some(message => message.id === pendingNotificationMessageId);
@@ -415,6 +416,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
   // before the first message from someone else that the current user hasn't read.
   const firstUnreadIdx = (() => {
     if (!openReadCursor || !showDivider || !user?.id || hasPendingNotificationTarget) return -1;
+    if ((activeConversation?.unread_count ?? 0) === 0) return -1;
     const cursorIdx = messages.findIndex(m => m.id === openReadCursor);
     if (cursorIdx === -1) return -1;
     // Find first message after cursor that is NOT from the current user

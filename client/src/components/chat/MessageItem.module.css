@@ -62,8 +62,9 @@
   transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-accent) 18%, var(--color-surface) 82%);
   color: var(--color-accent);
@@ -79,23 +80,18 @@
   opacity: 1;
 }
 
-.swipeCueOwn {
+.swipeCueReply {
   left: 8px;
 }
 
-.swipeCueOther {
-  left: 48px;
+.swipeCueReceipts {
+  right: 8px;
 }
 
 .swipeCueIcon {
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: -1px;
-}
-
-.swipeCueText {
-  font-size: var(--text-label);
-  font-weight: 700;
 }
 
 /* All elements inside bubble: only allow vertical pan (browser handles scroll),

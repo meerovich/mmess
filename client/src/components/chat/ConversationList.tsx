@@ -7,7 +7,6 @@ import { ConversationItem } from './ConversationItem';
 import { NewChatModal } from './NewChatModal';
 import { NewGroupModal } from './NewGroupModal';
 import { UserMenu } from './UserMenu';
-import { ThemeToggle } from '../common/ThemeToggle';
 import { Spinner } from '../common/Spinner';
 import styles from './ConversationList.module.css';
 
@@ -138,7 +137,6 @@ export function ConversationList() {
           <span className={styles.versionLabel} title={`Build ${resolvedVersion}`}>
             v{resolvedVersion}
           </span>
-          <ThemeToggle />
         </div>
       )}
 

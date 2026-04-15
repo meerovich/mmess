@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from '../../lib/i18n';
+import menuStyles from '../chat/UserMenu.module.css';
 import styles from './ThemeToggle.module.css';
 
 type Theme = 'light' | 'dark' | 'system';
+interface ThemeToggleProps {
+  variant?: 'group' | 'menu';
+}
 
 const STORAGE_KEY = 'mmess.theme';
 
@@ -14,10 +18,15 @@ function resolveTheme(t: Theme): 'light' | 'dark' {
 }
 
 function applyTheme(t: Theme): void {
-  document.documentElement.dataset.theme = resolveTheme(t);
+  const resolved = resolveTheme(t);
+  document.documentElement.dataset.theme = resolved;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    meta.setAttribute('content', resolved === 'dark' ? '#141414' : '#f4f5f7');
+  }
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = 'group' }: ThemeToggleProps) {
   const { t } = useTranslation();
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(STORAGE_KEY) as Theme) ?? 'system'
@@ -77,6 +86,29 @@ export function ThemeToggle() {
       ),
     },
   ];
+
+  if (variant === 'menu') {
+    return (
+      <div className={menuStyles.themeSection}>
+        <div className={menuStyles.themeLabel}>{t('menu.theme')}</div>
+        <div className={menuStyles.themeOptions} role="group" aria-label={t('theme.group')}>
+          {buttons.map(({ value, labelKey, icon }) => (
+            <button
+              key={value}
+              type="button"
+              className={`${menuStyles.themeOption} ${theme === value ? menuStyles.themeOptionActive : ''}`}
+              aria-label={t(labelKey)}
+              aria-pressed={theme === value}
+              onClick={() => select(value)}
+            >
+              <span className={menuStyles.themeOptionIcon}>{icon}</span>
+              <span>{t(labelKey)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.group} role="group" aria-label={t('theme.group')}>
