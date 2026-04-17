@@ -4,7 +4,7 @@ import styles from './Avatar.module.css';
 
 interface AvatarProps {
   name: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   avatarUrl?: string | null;
 }
 

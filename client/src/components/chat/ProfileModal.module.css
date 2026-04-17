@@ -118,7 +118,12 @@
   background: #0f172a;
   position: relative;
   touch-action: none;
+  cursor: grab;
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.cropViewport:active {
+  cursor: grabbing;
 }
 
 .cropViewport::after {

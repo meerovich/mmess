@@ -89,7 +89,17 @@
 }
 
 .headerAvatar {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
   flex-shrink: 0;
+  border-radius: 999px;
+  transition: transform 0.14s ease, filter 0.14s ease;
+}
+
+.headerAvatar:active {
+  transform: scale(0.96);
 }
 
 .headerSubtitle {
@@ -151,4 +161,62 @@
 
 .declineBtn:disabled {
   opacity: 0.5;
+}
+
+.avatarPreviewOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.avatarPreviewCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(320px, 100%);
+  padding: 28px 24px 24px;
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.18), transparent 42%),
+    color-mix(in srgb, var(--color-surface) 92%, white 8%);
+  border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent 28%);
+  box-shadow: 0 32px 90px rgba(15, 23, 42, 0.32);
+}
+
+.avatarPreviewClose {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-secondary) 82%, transparent 18%);
+  color: var(--color-text-secondary);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.avatarPreviewName {
+  margin-top: 6px;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  text-align: center;
+}
+
+.avatarPreviewSubtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  text-align: center;
 }

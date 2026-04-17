@@ -45,6 +45,7 @@ export function ChatPane() {
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
 
   // Mobile back navigation: clear active conversation + close chat pane so the
   // sidebar becomes visible again. Navigate to / so the URL matches.
@@ -111,13 +112,18 @@ export function ChatPane() {
           <span className={styles.headerName}>{conversationName}</span>
           {headerSubtitle && <span className={styles.headerSubtitle}>{headerSubtitle}</span>}
         </div>
-        <div className={styles.headerAvatar}>
+        <button
+          type="button"
+          className={styles.headerAvatar}
+          onClick={() => setShowAvatarPreview(true)}
+          aria-label={t('chat.openAvatar')}
+        >
           <Avatar
             name={conversationName}
             avatarUrl={conversation?.type === 'direct' ? otherParticipant?.avatar_url ?? null : conversation?.avatar_url ?? null}
-            size="sm"
+            size="md"
           />
-        </div>
+        </button>
       </header>
 
       <MessageList
@@ -140,6 +146,33 @@ export function ChatPane() {
           conversation={conversation}
           onClose={() => setShowSettings(false)}
         />
+      )}
+      {showAvatarPreview && conversation && (
+        <div
+          className={styles.avatarPreviewOverlay}
+          onClick={() => setShowAvatarPreview(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('chat.avatarPreview')}
+        >
+          <div className={styles.avatarPreviewCard} onClick={event => event.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.avatarPreviewClose}
+              onClick={() => setShowAvatarPreview(false)}
+              aria-label={t('chat.closeMenu')}
+            >
+              ×
+            </button>
+            <Avatar
+              name={conversationName}
+              avatarUrl={conversation.type === 'direct' ? otherParticipant?.avatar_url ?? null : conversation.avatar_url ?? null}
+              size="xl"
+            />
+            <div className={styles.avatarPreviewName}>{conversationName}</div>
+            {headerSubtitle && <div className={styles.avatarPreviewSubtitle}>{headerSubtitle}</div>}
+          </div>
+        </div>
       )}
     </div>
   );

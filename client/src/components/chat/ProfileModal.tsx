@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { uploadFile } from '../../lib/api';
 import { useTranslation } from '../../lib/i18n';
@@ -154,34 +154,50 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
     }
   };
 
-  useEffect(() => {
-    if (!dragStateRef.current || !cropSource) return;
+  const handleCropPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropSource) return;
 
-    const handlePointerMove = (event: PointerEvent) => {
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: cropOffset.x,
+      originY: cropOffset.y,
+    };
+
+    const imageWidth = cropSource.width;
+    const imageHeight = cropSource.height;
+    const zoom = cropZoom;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
       const drag = dragStateRef.current;
       if (!drag) return;
       setCropOffset(clampCropOffset(
-        cropSource.width,
-        cropSource.height,
-        cropZoom,
+        imageWidth,
+        imageHeight,
+        zoom,
         {
-          x: drag.originX + event.clientX - drag.startX,
-          y: drag.originY + event.clientY - drag.startY,
+          x: drag.originX + moveEvent.clientX - drag.startX,
+          y: drag.originY + moveEvent.clientY - drag.startY,
         },
       ));
     };
 
     const stopDragging = () => {
       dragStateRef.current = null;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopDragging);
+      window.removeEventListener('pointercancel', stopDragging);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', stopDragging);
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', stopDragging);
-    };
-  }, [cropSource, cropZoom]);
+    window.addEventListener('pointerup', stopDragging, { once: true });
+    window.addEventListener('pointercancel', stopDragging, { once: true });
+  }, [cropOffset.x, cropOffset.y, cropSource, cropZoom]);
+
+  useEffect(() => () => {
+    dragStateRef.current = null;
+  }, []);
 
   const handleSave = async () => {
     setSaving(true);
@@ -255,14 +271,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
             </div>
             <div
               className={styles.cropViewport}
-              onPointerDown={(event) => {
-                dragStateRef.current = {
-                  startX: event.clientX,
-                  startY: event.clientY,
-                  originX: cropOffset.x,
-                  originY: cropOffset.y,
-                };
-              }}
+              onPointerDown={handleCropPointerDown}
             >
               <img
                 src={cropSource.url}
