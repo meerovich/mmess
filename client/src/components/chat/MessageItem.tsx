@@ -147,6 +147,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
+  const [activeReceiptHint, setActiveReceiptHint] = useState<{ userId: string; type: 'delivered' | 'read' } | null>(null);
   const [receiptViewport, setReceiptViewport] = useState(() => ({
     offsetTop: 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
@@ -762,7 +763,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 bottom: `calc(${receiptViewport.keyboardInset}px + env(safe-area-inset-bottom, 0px) + 12px)`,
                 maxHeight: Math.max(180, receiptViewport.height - 24),
               }}
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveReceiptHint(null);
+              }}
               role="dialog"
               aria-label={t('chat.messageReceiptInfo')}
             >
@@ -779,12 +783,91 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 </button>
               </div>
               <div className={styles.receiptSheetRows}>
-                {receiptDetailRows.map((row, idx) => (
-                  <div key={`${row.label}-${idx}`} className={styles.receiptSheetRow}>
-                    <span className={styles.receiptSheetLabel}>{row.label}</span>
-                    <span className={styles.receiptSheetValue}>{row.value}</span>
-                  </div>
-                ))}
+                {conversation?.type === 'group' ? (
+                  <>
+                    <div className={styles.receiptSheetRow}>
+                      <span className={styles.receiptSheetLabel}>{t('time.sent')}</span>
+                      <span className={styles.receiptSheetValue}>{formatReceiptTimestamp(message.created_at, locale)}</span>
+                    </div>
+                    {([
+                      {
+                        type: 'delivered' as const,
+                        label: t('time.delivered'),
+                        participants: deliveredParticipants,
+                      },
+                      {
+                        type: 'read' as const,
+                        label: t('time.readLabel'),
+                        participants: readParticipants,
+                      },
+                    ]).map(row => (
+                      <div key={row.type} className={`${styles.receiptSheetRow} ${styles.receiptSheetAvatarRow}`}>
+                        <span className={styles.receiptSheetLabel}>
+                          {row.label}
+                          <span className={styles.receiptSheetCount}>
+                            {row.participants.length}/{receiptParticipants.length}
+                          </span>
+                        </span>
+                        {(() => {
+                          const activeParticipant = row.participants.find(
+                            participant =>
+                              activeReceiptHint?.userId === participant.user_id &&
+                              activeReceiptHint.type === row.type
+                          );
+                          const activeTimestamp =
+                            activeParticipant && row.type === 'read'
+                              ? activeParticipant.read_at
+                              : activeParticipant?.delivered_at;
+
+                          return (
+                            <>
+                              <div className={styles.receiptAvatarList} aria-label={row.label}>
+                                {row.participants.length > 0 ? (
+                                  row.participants.map(participant => {
+                                    const timestamp = row.type === 'read' ? participant.read_at : participant.delivered_at;
+                                    const isActive =
+                                      activeReceiptHint?.userId === participant.user_id &&
+                                      activeReceiptHint.type === row.type;
+
+                                    return (
+                                      <button
+                                        key={`${row.type}-${participant.user_id}`}
+                                        type="button"
+                                        className={`${styles.receiptAvatarButton} ${isActive ? styles.receiptAvatarButtonActive : ''}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveReceiptHint(isActive ? null : { userId: participant.user_id, type: row.type });
+                                        }}
+                                        aria-label={`${participant.username}: ${timestamp ? formatReceiptTimestamp(timestamp, locale) : t('time.pendingReceipt')}`}
+                                      >
+                                        <Avatar name={participant.username} avatarUrl={participant.avatar_url} size="sm" />
+                                      </button>
+                                    );
+                                  })
+                                ) : (
+                                  <span className={styles.receiptEmpty}>{t('time.pendingReceipt')}</span>
+                                )}
+                              </div>
+                              {activeParticipant && activeTimestamp && (
+                                <div className={styles.receiptHint} role="tooltip">
+                                  <span className={styles.receiptHintName}>{activeParticipant.username}</span>
+                                  <span className={styles.receiptHintTime}>{formatReceiptTimestamp(activeTimestamp, locale)}</span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  receiptDetailRows.map((row, idx) => (
+                    <div key={`${row.label}-${idx}`} className={styles.receiptSheetRow}>
+                      <span className={styles.receiptSheetLabel}>{row.label}</span>
+                      <span className={styles.receiptSheetValue}>{row.value}</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </>,
