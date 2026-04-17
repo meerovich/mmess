@@ -215,6 +215,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasConnectedOnceRef = useRef(false);
+  const lastPresenceFetchKeyRef = useRef('');
   const { dispatch, state } = useChat();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -233,6 +234,42 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     _activeConversationId = state.activeConversationId;
   }, [state.activeConversationId]);
+
+  useEffect(() => {
+    if (!user?.id || state.conversations.length === 0) return;
+
+    const userIds = Array.from(new Set(
+      state.conversations.flatMap(conversation =>
+        conversation.participants
+          .map(participant => participant.user_id)
+          .filter(userId => userId !== user.id)
+      )
+    )).sort();
+    if (userIds.length === 0) return;
+
+    const fetchKey = userIds.join(',');
+    if (lastPresenceFetchKeyRef.current === fetchKey) return;
+    lastPresenceFetchKeyRef.current = fetchKey;
+
+    apiFetch(`/api/presence?user_ids=${userIds.map(encodeURIComponent).join(',')}`)
+      .then(res => res.ok ? res.json() : null)
+      .then((data: { presence?: Array<{ user_id: string; online: boolean; last_seen_at: string | null }> } | null) => {
+        if (!Array.isArray(data?.presence)) return;
+        dispatch({
+          type: 'SET_PRESENCE_BULK',
+          entries: data.presence.map(entry => ({
+            userId: entry.user_id,
+            presence: {
+              online: entry.online,
+              last_seen_at: entry.last_seen_at,
+            },
+          })),
+        });
+      })
+      .catch(() => {
+        lastPresenceFetchKeyRef.current = '';
+      });
+  }, [dispatch, state.conversations, user?.id]);
 
   // Re-fetch conversations + active conversation messages. Called on reconnect
   // and on visibility-change wake to guarantee delivery of missed messages.

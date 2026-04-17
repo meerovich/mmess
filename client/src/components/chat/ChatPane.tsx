@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { formatDistanceToNowStrict } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
@@ -22,6 +22,17 @@ function getConversationName(conversation: Conversation, currentUserId: string, 
   // DM: show the other participant's username
   const other = conversation.participants.find(p => p.user_id !== currentUserId);
   return other?.username ?? conversation.name ?? t('chat.chat');
+}
+
+function formatLastSeenAt(timestamp: string, locale: 'ru' | 'en'): string {
+  const date = new Date(timestamp);
+  if (isToday(date)) return format(date, 'HH:mm');
+  if (isYesterday(date)) {
+    return locale === 'ru'
+      ? `вчера ${format(date, 'HH:mm')}`
+      : `yesterday ${format(date, 'HH:mm')}`;
+  }
+  return format(date, 'dd.MM.yy HH:mm', { locale: locale === 'ru' ? ru : enUS });
 }
 
 export function ChatPane() {
@@ -61,21 +72,9 @@ export function ChatPane() {
       return t('chat.membersCount', { count: String(conversation.participants.length) });
     }
     if (presence?.online) return t('time.online');
-    if (!presence?.last_seen_at) return t('time.offline');
+    if (!presence?.last_seen_at) return t('time.lastSeenUnknown');
 
-    const seenDate = new Date(presence.last_seen_at);
-    const diffMs = Date.now() - seenDate.getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-    const relative =
-      diffMinutes < 1
-        ? locale === 'ru'
-          ? 'только что'
-          : 'just now'
-        : formatDistanceToNowStrict(seenDate, {
-            addSuffix: true,
-            locale: locale === 'ru' ? ru : enUS,
-          });
-    return t('time.lastSeen', { time: relative });
+    return t('time.lastSeenAt', { time: formatLastSeenAt(presence.last_seen_at, locale) });
   }, [conversation, locale, presence?.last_seen_at, presence?.online, t]);
 
   if (!activeConversationId) {

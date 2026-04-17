@@ -108,6 +108,10 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
 
   if (!user) return null;
 
+  const cropPreviewScale = cropSource
+    ? Math.max(CROP_FRAME_SIZE / cropSource.width, CROP_FRAME_SIZE / cropSource.height) * cropZoom
+    : 1;
+
   const handleAvatarFileSelect = async (file: File) => {
     if (file.size > 25 * 1024 * 1024) {
       setUploadState({ status: 'error', file, message: t('file.tooLarge') });
@@ -265,7 +269,9 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
                 alt={t('profile.cropAvatar')}
                 className={styles.cropImage}
                 style={{
-                  transform: `translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropZoom})`,
+                  width: cropSource.width,
+                  height: cropSource.height,
+                  transform: `translate(-50%, -50%) translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropPreviewScale})`,
                 }}
                 draggable={false}
               />
