@@ -27,12 +27,12 @@
 .item {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
+  gap: 12px;
+  padding: 9px var(--space-md);
   cursor: pointer;
   border-left: 3px solid transparent;
   transition: background 0.1s;
-  min-height: 44px;
+  min-height: 58px;
   position: relative;
   background: var(--color-surface-secondary);
   user-select: none;
@@ -60,8 +60,8 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   border: 2px solid var(--color-surface-secondary); /* matches sidebar bg */
 }
