@@ -317,6 +317,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
               name={groupDisplayName}
               size="lg"
               avatarUrl={localAvatarUrl}
+              kind="group"
             />
 
             {/* Hidden file input — images only */}

@@ -122,6 +122,7 @@ export function ChatPane() {
             name={conversationName}
             avatarUrl={conversation?.type === 'direct' ? otherParticipant?.avatar_url ?? null : conversation?.avatar_url ?? null}
             size="md"
+            kind={conversation?.type === 'group' ? 'group' : 'user'}
           />
         </button>
       </header>
@@ -168,6 +169,7 @@ export function ChatPane() {
               name={conversationName}
               avatarUrl={conversation.type === 'direct' ? otherParticipant?.avatar_url ?? null : conversation.avatar_url ?? null}
               size="xl"
+              kind={conversation.type === 'group' ? 'group' : 'user'}
             />
             <div className={styles.avatarPreviewName}>{conversationName}</div>
             {headerSubtitle && <div className={styles.avatarPreviewSubtitle}>{headerSubtitle}</div>}

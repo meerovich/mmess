@@ -6,9 +6,10 @@ interface AvatarProps {
   name: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   avatarUrl?: string | null;
+  kind?: 'user' | 'group';
 }
 
-export function Avatar({ name, size = 'md', avatarUrl }: AvatarProps) {
+export function Avatar({ name, size = 'md', avatarUrl, kind = 'user' }: AvatarProps) {
   const [imgError, setImgError] = useState(false);
 
   // Render image if avatarUrl is provided and hasn't errored
@@ -20,6 +21,15 @@ export function Avatar({ name, size = 'md', avatarUrl }: AvatarProps) {
         className={`${styles.avatar} ${styles[size]}`}
         onError={() => setImgError(true)}
       />
+    );
+  }
+
+  if (kind === 'group') {
+    return (
+      <div className={`${styles.avatar} ${styles[size]} ${styles.groupAvatar}`} aria-hidden="true">
+        <span className={styles.groupPersonBack} />
+        <span className={styles.groupPersonFront} />
+      </div>
     );
   }
 

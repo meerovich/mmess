@@ -176,7 +176,12 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
       >
       <div className={styles.avatarWrapper}>
-        <Avatar name={displayName} avatarUrl={displayAvatarUrl} size="sm" />
+        <Avatar
+          name={displayName}
+          avatarUrl={displayAvatarUrl}
+          size="sm"
+          kind={conversation.type === 'group' ? 'group' : 'user'}
+        />
         {presenceTargetId && (
           <span
             className={`${styles.onlineDot} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}

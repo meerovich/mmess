@@ -161,7 +161,7 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
             return (
               <li key={conv.id}>
                 <button className={styles.item} onClick={() => handleForward(conv)}>
-                  <Avatar name={name} avatarUrl={avatar} size="sm" />
+                  <Avatar name={name} avatarUrl={avatar} size="sm" kind={conv.type === 'group' ? 'group' : 'user'} />
                   <span className={styles.convName}>{name}</span>
                 </button>
               </li>

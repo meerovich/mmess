@@ -141,6 +141,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
+  const [receiptViewport, setReceiptViewport] = useState(() => ({
+    offsetTop: 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+    keyboardInset: 0,
+  }));
   const [swipeX, setSwipeX] = useState(0);
   const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
   const itemRef = useRef<HTMLDivElement>(null);
@@ -222,23 +227,27 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
 
     const rows: Array<{ label: string; value: string }> = [];
     rows.push({
+      label: t('time.sent'),
+      value: formatReceiptTimestamp(message.created_at, locale),
+    });
+    rows.push({
       label: t('time.delivered'),
       value: deliveredDetails ?? t('time.pendingReceipt'),
     });
 
     if (conversation?.type === 'group') {
-      if (readParticipants.length === 0) {
-        rows.push({ label: t('time.readLabel'), value: t('time.pendingReceipt') });
-      } else {
-        readParticipants.forEach(participant => {
-          rows.push({
-            label: participant.username,
-            value: participant.last_read_at
-              ? formatReceiptTimestamp(participant.last_read_at, locale)
-              : t('time.pendingReceipt'),
-          });
+      rows.push({
+        label: t('time.readLabel'),
+        value: `${readParticipants.length}/${otherParticipants.length}`,
+      });
+      otherParticipants.forEach(participant => {
+        rows.push({
+          label: participant.username,
+          value: participant.last_read_at && participant.last_read_at >= message.created_at
+            ? formatReceiptTimestamp(participant.last_read_at, locale)
+            : t('time.pendingReceipt'),
         });
-      }
+      });
     } else {
       const firstReader = readParticipants[0];
       rows.push({
@@ -250,7 +259,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     }
 
     return rows;
-  }, [conversation?.type, deliveredDetails, isOwn, locale, readParticipants, t]);
+  }, [conversation?.type, deliveredDetails, isOwn, locale, message.created_at, otherParticipants, readParticipants.length, readParticipants, t]);
 
   // D-21: edit/delete menu only in group chats with correct permissions
   const canEditDelete =
@@ -386,17 +395,35 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   useEffect(() => {
     if (!showReceiptDetails) return;
 
-    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
-      if (!itemRef.current?.contains(event.target as Node)) {
-        setShowReceiptDetails(false);
-      }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowReceiptDetails(false);
     };
 
-    document.addEventListener('mousedown', handleOutsideClick);
-    document.addEventListener('touchstart', handleOutsideClick);
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-      document.removeEventListener('touchstart', handleOutsideClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showReceiptDetails]);
+
+  useEffect(() => {
+    if (!showReceiptDetails) return;
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const updateReceiptViewport = () => {
+      setReceiptViewport({
+        offsetTop: visualViewport.offsetTop,
+        height: visualViewport.height,
+        keyboardInset: Math.max(0, window.innerHeight - (visualViewport.offsetTop + visualViewport.height)),
+      });
+    };
+
+    updateReceiptViewport();
+    visualViewport.addEventListener('resize', updateReceiptViewport);
+    visualViewport.addEventListener('scroll', updateReceiptViewport);
+    return () => {
+      visualViewport.removeEventListener('resize', updateReceiptViewport);
+      visualViewport.removeEventListener('scroll', updateReceiptViewport);
     };
   }, [showReceiptDetails]);
 
@@ -694,10 +721,19 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           <>
             <div
               className={styles.receiptSheetOverlay}
+              style={{
+                top: receiptViewport.offsetTop,
+                height: receiptViewport.height,
+                bottom: 'auto',
+              }}
               onClick={() => setShowReceiptDetails(false)}
             />
             <div
               className={styles.receiptSheet}
+              style={{
+                bottom: `calc(${receiptViewport.keyboardInset}px + env(safe-area-inset-bottom, 0px) + 12px)`,
+                maxHeight: Math.max(180, receiptViewport.height - 24),
+              }}
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-label={t('chat.messageReceiptInfo')}

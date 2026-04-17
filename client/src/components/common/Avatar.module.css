@@ -32,3 +32,56 @@
   height: 168px;
   font-size: 3rem;
 }
+
+.groupAvatar {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.36), transparent 30%),
+    linear-gradient(135deg, #0f766e, #0ea5e9 58%, #2563eb);
+}
+
+.groupPersonBack,
+.groupPersonFront {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+}
+
+.groupPersonBack {
+  width: 38%;
+  height: 38%;
+  left: 18%;
+  top: 24%;
+  opacity: 0.78;
+}
+
+.groupPersonBack::after,
+.groupPersonFront::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px 999px 30% 30%;
+  background: inherit;
+}
+
+.groupPersonBack::after {
+  width: 160%;
+  height: 95%;
+  top: 88%;
+}
+
+.groupPersonFront {
+  width: 44%;
+  height: 44%;
+  right: 17%;
+  top: 19%;
+}
+
+.groupPersonFront::after {
+  width: 170%;
+  height: 105%;
+  top: 86%;
+}
