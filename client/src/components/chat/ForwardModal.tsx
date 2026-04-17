@@ -107,6 +107,8 @@ export function ForwardModal({ message, onClose }: ForwardModalProps) {
         created_at: new Date().toISOString(),
         sender: { id: currentUserId, username: user?.username ?? '', avatar_url: null },
         reactions: [],
+        deliveries: [],
+        reads: [],
         status: 'sending',
         file_id: message.file_id,
         file_name: message.file_name,

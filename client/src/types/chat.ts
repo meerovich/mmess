@@ -4,6 +4,18 @@ export interface MessageReaction {
   username: string;
 }
 
+export interface MessageDelivery {
+  user_id: string;
+  username?: string;
+  delivered_at: string;
+}
+
+export interface MessageRead {
+  user_id: string;
+  username?: string;
+  read_at: string;
+}
+
 export interface MessageSender {
   id: string;
   username: string;
@@ -37,6 +49,8 @@ export interface Message {
   created_at: string;
   sender: MessageSender;
   reactions: MessageReaction[];
+  deliveries?: MessageDelivery[];
+  reads?: MessageRead[];
   status?: MessageStatus; // optimistic UI — undefined means confirmed
   delivered_at?: string | null;
   // File attachment (Phase 5 — FILE-01, FILE-02)
@@ -121,8 +135,9 @@ export type ChatAction =
   | { type: 'SET_TYPING_USERS'; conversationId: string; typers: { userId: string; username: string }[] }
   | { type: 'MARK_READ'; conversationId: string; messageId: string }
   | { type: 'INCREMENT_UNREAD'; conversationId: string }
-  | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string; deliveredAt?: string | null }
-  | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string; messageId?: string }
+  | { type: 'MESSAGE_DELIVERED'; conversationId: string; messageId: string; deliveredAt?: string | null; deliveries?: Array<{ user_id: string; username?: string; delivered_at: string }> }
+  | { type: 'MESSAGES_DELIVERED'; conversationId: string; userId: string; deliveries: Array<{ message_id: string; delivered_at: string }> }
+  | { type: 'UPDATE_PARTICIPANT_READ'; conversationId: string; userId: string; lastReadAt: string; messageId?: string; readAt?: string }
   | { type: 'WS_STATUS'; status: 'connected' | 'disconnected' | 'reconnecting' }
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
   | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }

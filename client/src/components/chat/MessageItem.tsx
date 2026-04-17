@@ -87,14 +87,20 @@ function getReceiptVisualState(
   if (message.status === 'sending') return 'sending';
 
   const otherParticipants = participants.filter(p => p.user_id !== currentUserId);
+  const readUserIds = new Set((message.reads ?? []).map(read => read.user_id));
+  const deliveredUserIds = new Set([
+    ...(message.deliveries ?? []).map(delivery => delivery.user_id),
+    ...(message.reads ?? []).map(read => read.user_id),
+  ]);
   const isAllRead =
     otherParticipants.length > 0 &&
     otherParticipants.every(p =>
-      p.last_read_at != null && p.last_read_at >= message.created_at
+      readUserIds.has(p.user_id) ||
+      (p.last_read_at != null && p.last_read_at >= message.created_at)
     );
 
   if (isAllRead) return 'read';
-  if (message.status === 'delivered') return 'delivered';
+  if (message.status === 'delivered' || otherParticipants.some(p => deliveredUserIds.has(p.user_id))) return 'delivered';
   return 'sent';
 }
 
@@ -214,14 +220,25 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     () => (conversation?.participants ?? []).filter(p => p.user_id !== currentUserId),
     [conversation?.participants, currentUserId]
   );
-  const readParticipants = useMemo(
-    () => otherParticipants.filter(p => p.last_read_at != null && p.last_read_at >= message.created_at),
-    [message.created_at, otherParticipants]
-  );
-  const fallbackDeliveredAt = message.delivered_at ?? readParticipants[0]?.last_read_at ?? null;
-  const deliveredDetails = fallbackDeliveredAt
-    ? formatReceiptTimestamp(fallbackDeliveredAt, locale)
-    : null;
+  const receiptParticipants = useMemo(() => {
+    const deliveries = message.deliveries ?? [];
+    const reads = message.reads ?? [];
+    return otherParticipants.map((participant, index) => {
+      const read = reads.find(item => item.user_id === participant.user_id);
+      const delivery = deliveries.find(item => item.user_id === participant.user_id);
+      const fallbackReadAt =
+        participant.last_read_at && participant.last_read_at >= message.created_at
+          ? participant.last_read_at
+          : null;
+      return {
+        ...participant,
+        delivered_at: delivery?.delivered_at ?? read?.read_at ?? fallbackReadAt ?? (index === 0 ? message.delivered_at ?? null : null),
+        read_at: read?.read_at ?? fallbackReadAt,
+      };
+    });
+  }, [message.created_at, message.deliveries, message.reads, otherParticipants]);
+  const deliveredParticipants = receiptParticipants.filter(participant => participant.delivered_at);
+  const readParticipants = receiptParticipants.filter(participant => participant.read_at);
   const receiptDetailRows = useMemo(() => {
     if (!isOwn) return [];
 
@@ -230,36 +247,47 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       label: t('time.sent'),
       value: formatReceiptTimestamp(message.created_at, locale),
     });
-    rows.push({
-      label: t('time.delivered'),
-      value: deliveredDetails ?? t('time.pendingReceipt'),
-    });
 
     if (conversation?.type === 'group') {
       rows.push({
-        label: t('time.readLabel'),
-        value: `${readParticipants.length}/${otherParticipants.length}`,
+        label: t('time.delivered'),
+        value: `${deliveredParticipants.length}/${receiptParticipants.length}`,
       });
-      otherParticipants.forEach(participant => {
+      rows.push({
+        label: t('time.readLabel'),
+        value: `${readParticipants.length}/${receiptParticipants.length}`,
+      });
+      receiptParticipants.forEach(participant => {
+        const readAt = participant.read_at;
+        const deliveredAt = participant.delivered_at;
         rows.push({
           label: participant.username,
-          value: participant.last_read_at && participant.last_read_at >= message.created_at
-            ? formatReceiptTimestamp(participant.last_read_at, locale)
-            : t('time.pendingReceipt'),
+          value: readAt
+            ? `${t('time.readLabel')} ${formatReceiptTimestamp(readAt, locale)}`
+            : deliveredAt
+              ? `${t('time.delivered')} ${formatReceiptTimestamp(deliveredAt, locale)}`
+              : t('time.pendingReceipt'),
         });
       });
     } else {
       const firstReader = readParticipants[0];
+      const firstDelivery = deliveredParticipants[0];
+      rows.push({
+        label: t('time.delivered'),
+        value: firstDelivery?.delivered_at
+          ? formatReceiptTimestamp(firstDelivery.delivered_at, locale)
+          : t('time.pendingReceipt'),
+      });
       rows.push({
         label: t('time.readLabel'),
-        value: firstReader?.last_read_at
-          ? formatReceiptTimestamp(firstReader.last_read_at, locale)
+        value: firstReader?.read_at
+          ? formatReceiptTimestamp(firstReader.read_at, locale)
           : t('time.pendingReceipt'),
       });
     }
 
     return rows;
-  }, [conversation?.type, deliveredDetails, isOwn, locale, message.created_at, otherParticipants, readParticipants.length, readParticipants, t]);
+  }, [conversation?.type, deliveredParticipants, isOwn, locale, message.created_at, readParticipants, receiptParticipants, t]);
 
   // D-21: edit/delete menu only in group chats with correct permissions
   const canEditDelete =

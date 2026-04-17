@@ -137,6 +137,17 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           conversationId: msg.payload.conversation_id as string,
           messageId: msg.payload.message_id as string,
           deliveredAt: (msg.payload.delivered_at as string | null | undefined) ?? null,
+          deliveries: (msg.payload.deliveries as Array<{ user_id: string; username?: string; delivered_at: string }> | undefined) ?? undefined,
+        });
+      }
+      break;
+    case 'messages:delivered':
+      if (msg.payload?.conversation_id && msg.payload?.user_id && Array.isArray(msg.payload.deliveries)) {
+        dispatch({
+          type: 'MESSAGES_DELIVERED',
+          conversationId: msg.payload.conversation_id as string,
+          userId: msg.payload.user_id as string,
+          deliveries: msg.payload.deliveries as Array<{ message_id: string; delivered_at: string }>,
         });
       }
       break;
@@ -147,8 +158,9 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           type: 'UPDATE_PARTICIPANT_READ',
           conversationId: msg.payload.conversation_id as string,
           userId: msg.payload.user_id as string,
-          lastReadAt: msg.payload.read_at as string,
+          lastReadAt: (msg.payload.read_cursor_at as string | undefined) ?? (msg.payload.read_at as string),
           messageId: (msg.payload.message_id as string | undefined) ?? undefined,
+          readAt: msg.payload.read_at as string,
         });
         if (msg.payload.user_id === _currentUserId) {
           dispatch({

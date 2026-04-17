@@ -128,6 +128,24 @@ export const message_reads = pgTable(
   })
 );
 
+export const message_deliveries = pgTable(
+  'message_deliveries',
+  {
+    message_id: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    delivered_at: timestamp('delivered_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pk: unique().on(t.message_id, t.user_id),
+    idx_message: index('idx_md_message').on(t.message_id),
+    idx_user: index('idx_md_user').on(t.user_id),
+  })
+);
+
 export const files = pgTable('files', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   uploader_id: uuid('uploader_id')

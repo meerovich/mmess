@@ -4,6 +4,8 @@ import {
   conversations,
   conversation_participants,
   messages,
+  message_deliveries,
+  message_reads,
   message_reactions,
   users,
   files,
@@ -124,6 +126,38 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
 
     const messageIds = pageMessages.map((m) => m.id);
 
+    const deliveredResult = await db.execute(sql`
+      INSERT INTO message_deliveries (message_id, user_id, delivered_at)
+      SELECT id, ${userId}::uuid, NOW()
+      FROM messages
+      WHERE id = ANY(ARRAY[${sql.join(
+        messageIds.map((id) => sql`${id}::uuid`),
+        sql`, `
+      )}])
+        AND sender_id != ${userId}::uuid
+      ON CONFLICT DO NOTHING
+      RETURNING message_id, delivered_at
+    `);
+    const newlyDelivered = Array.from(deliveredResult as unknown as Array<{ message_id: string; delivered_at: Date }>);
+    if (newlyDelivered.length > 0) {
+      const participantRows = await db
+        .select({ user_id: conversation_participants.user_id })
+        .from(conversation_participants)
+        .where(eq(conversation_participants.conversation_id, conversationId));
+      const { broadcast } = await import('../ws/registry.js');
+      broadcast(participantRows.map(row => row.user_id), {
+        type: 'messages:delivered',
+        payload: {
+          conversation_id: conversationId,
+          user_id: userId,
+          deliveries: newlyDelivered.map(row => ({
+            message_id: row.message_id,
+            delivered_at: row.delivered_at.toISOString(),
+          })),
+        },
+      });
+    }
+
     // Fetch reactions for these messages
     const reactions = await db
       .select({
@@ -147,6 +181,60 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       const list = reactionsMap.get(r.message_id) ?? [];
       list.push({ emoji: r.emoji, user_id: r.user_id, username: r.username });
       reactionsMap.set(r.message_id, list);
+    }
+
+    const deliveries = await db
+      .select({
+        message_id: message_deliveries.message_id,
+        user_id: message_deliveries.user_id,
+        username: users.username,
+        delivered_at: message_deliveries.delivered_at,
+      })
+      .from(message_deliveries)
+      .innerJoin(users, eq(message_deliveries.user_id, users.id))
+      .where(
+        sql`${message_deliveries.message_id} = ANY(ARRAY[${sql.join(
+          messageIds.map((id) => sql`${id}::uuid`),
+          sql`, `
+        )}])`
+      );
+
+    const deliveriesMap = new Map<string, Array<{ user_id: string; username: string; delivered_at: string }>>();
+    for (const delivery of deliveries) {
+      const list = deliveriesMap.get(delivery.message_id) ?? [];
+      list.push({
+        user_id: delivery.user_id,
+        username: delivery.username,
+        delivered_at: delivery.delivered_at.toISOString(),
+      });
+      deliveriesMap.set(delivery.message_id, list);
+    }
+
+    const reads = await db
+      .select({
+        message_id: message_reads.message_id,
+        user_id: message_reads.user_id,
+        username: users.username,
+        read_at: message_reads.read_at,
+      })
+      .from(message_reads)
+      .innerJoin(users, eq(message_reads.user_id, users.id))
+      .where(
+        sql`${message_reads.message_id} = ANY(ARRAY[${sql.join(
+          messageIds.map((id) => sql`${id}::uuid`),
+          sql`, `
+        )}])`
+      );
+
+    const readsMap = new Map<string, Array<{ user_id: string; username: string; read_at: string }>>();
+    for (const read of reads) {
+      const list = readsMap.get(read.message_id) ?? [];
+      list.push({
+        user_id: read.user_id,
+        username: read.username,
+        read_at: read.read_at.toISOString(),
+      });
+      readsMap.set(read.message_id, list);
     }
 
     // Fetch reply_to messages for those that have one
@@ -237,6 +325,8 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       },
       reply_to: m.reply_to_id ? (replyToMap.get(m.reply_to_id) ?? null) : null,
       reactions: reactionsMap.get(m.id) ?? [],
+      deliveries: deliveriesMap.get(m.id) ?? [],
+      reads: readsMap.get(m.id) ?? [],
       file_id: m.file_id ?? null,
       file_name: m.file_original_name ?? null,
       file_mime: m.file_mimetype ?? null,

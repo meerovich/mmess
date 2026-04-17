@@ -1,7 +1,15 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
-import { messages, conversations, conversation_participants, files, users } from '../../../db/schema.js';
+import {
+  messages,
+  conversations,
+  conversation_participants,
+  files,
+  users,
+  message_deliveries,
+  message_reads,
+} from '../../../db/schema.js';
 
 type DB = PostgresJsDatabase<Record<string, never>>;
 
@@ -80,6 +88,26 @@ async function enrichMessage(
         thumbnail_url: null,
       };
 
+  const deliveries = await db
+    .select({
+      user_id: message_deliveries.user_id,
+      username: users.username,
+      delivered_at: message_deliveries.delivered_at,
+    })
+    .from(message_deliveries)
+    .innerJoin(users, eq(message_deliveries.user_id, users.id))
+    .where(eq(message_deliveries.message_id, row.id));
+
+  const reads = await db
+    .select({
+      user_id: message_reads.user_id,
+      username: users.username,
+      read_at: message_reads.read_at,
+    })
+    .from(message_reads)
+    .innerJoin(users, eq(message_reads.user_id, users.id))
+    .where(eq(message_reads.message_id, row.id));
+
   // Forwarded-from — populate original message sender info
   let forwarded_from: Record<string, unknown> | null = null;
   if (row.forwarded_from_id) {
@@ -108,6 +136,16 @@ async function enrichMessage(
     ...row,
     sender: sender ?? null,
     reactions: [],
+    deliveries: deliveries.map(d => ({
+      user_id: d.user_id,
+      username: d.username,
+      delivered_at: d.delivered_at.toISOString(),
+    })),
+    reads: reads.map(r => ({
+      user_id: r.user_id,
+      username: r.username,
+      read_at: r.read_at.toISOString(),
+    })),
     reply_to,
     forwarded_from,
     ...fileFields,
@@ -233,6 +271,22 @@ export async function handleMessageSend(
     return [msg];
   });
 
+  const participantIds = await getParticipantIds(db, payload.conversation_id);
+  const { isOnline } = await import('../registry.js');
+  const recipientIds = participantIds.filter(id => id !== userId);
+  const onlineRecipientIds = recipientIds.filter(id => isOnline(id));
+
+  if (onlineRecipientIds.length > 0) {
+    await db.execute(sql`
+      INSERT INTO message_deliveries (message_id, user_id, delivered_at)
+      VALUES ${sql.join(
+        onlineRecipientIds.map(id => sql`(${newMessage.id}::uuid, ${id}::uuid, NOW())`),
+        sql`, `
+      )}
+      ON CONFLICT DO NOTHING
+    `);
+  }
+
   // Build enriched payload with sender/reactions/reply_to + file metadata
   // (white-screen fix — client MessageItem requires these nested objects)
   const enrichedMessage = await enrichMessage(db, newMessage, fileRecord);
@@ -243,7 +297,6 @@ export async function handleMessageSend(
   // Fan out to other participants (D-04). Exclude only the source socket so
   // that OTHER sessions of the sender (second device, other browser) also
   // receive message:new and stay in sync — see multi-session bug report.
-  const participantIds = await getParticipantIds(db, payload.conversation_id);
   broadcastExcludeSocket(
     participantIds,
     { type: 'message:new', payload: { message: enrichedMessage } },
@@ -252,10 +305,7 @@ export async function handleMessageSend(
 
   // D-10: Delivery detection — if at least one recipient socket is OPEN,
   // notify sender that the message was delivered (server-side only, no client ack needed).
-  const { isOnline } = await import('../registry.js');
-  const recipientIds = participantIds.filter(id => id !== userId);
-  const anyDelivered = recipientIds.some(id => isOnline(id));
-  if (anyDelivered) {
+  if (onlineRecipientIds.length > 0) {
     const deliveredAt = new Date().toISOString();
     socket.send(JSON.stringify({
       type: 'message:delivered',
@@ -263,6 +313,10 @@ export async function handleMessageSend(
         conversation_id: payload.conversation_id,
         message_id: newMessage.id,
         delivered_at: deliveredAt,
+        deliveries: onlineRecipientIds.map(id => ({
+          user_id: id,
+          delivered_at: deliveredAt,
+        })),
       },
     }));
   }

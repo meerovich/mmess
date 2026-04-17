@@ -26,6 +26,20 @@ export async function handleReadMark(
   if (!markedMsg) return;
 
   await db.execute(sql`
+    INSERT INTO message_deliveries (message_id, user_id, delivered_at)
+    SELECT id, ${userId}::uuid, NOW()
+    FROM messages
+    WHERE conversation_id = ${payload.conversation_id}::uuid
+      AND sender_id != ${userId}::uuid
+      AND created_at <= (
+        SELECT created_at
+        FROM messages
+        WHERE id = ${payload.message_id}::uuid
+      )
+    ON CONFLICT DO NOTHING
+  `);
+
+  await db.execute(sql`
     INSERT INTO message_reads (message_id, user_id, read_at)
     SELECT id, ${userId}::uuid, NOW()
     FROM messages
@@ -62,6 +76,7 @@ export async function handleReadMark(
         message_id: payload.message_id,
         user_id: userId,
         read_at: new Date().toISOString(),
+        read_cursor_at: markedMsg.created_at.toISOString(),
       },
     },
     socket

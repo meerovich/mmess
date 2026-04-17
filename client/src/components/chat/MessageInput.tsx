@@ -303,6 +303,8 @@ export function MessageInput({
             avatar_url: user.avatar_url,
           },
           reactions: [],
+          deliveries: [],
+          reads: [],
           status: 'sending',
           file_id: fileId ?? null,
           file_name: uploadFile_ ? uploadFile_.name : null,

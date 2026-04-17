@@ -40,6 +40,10 @@ function sortConversations(conversations: Conversation[]): Conversation[] {
   });
 }
 
+function participantName(conversation: Conversation | undefined, userId: string): string | undefined {
+  return conversation?.participants.find(p => p.user_id === userId)?.username;
+}
+
 function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerState {
   switch (action.type) {
     case 'SET_CONVERSATIONS':
@@ -154,15 +158,59 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
 
     case 'MESSAGE_DELIVERED': {
       const convMsgs = state.messages[action.conversationId] ?? [];
+      const conversation = state.conversations.find(c => c.id === action.conversationId);
       return {
         ...state,
         messages: {
           ...state.messages,
           [action.conversationId]: convMsgs.map(m =>
             m.id === action.messageId
-              ? { ...m, status: 'delivered' as const, delivered_at: action.deliveredAt ?? m.delivered_at ?? null }
+              ? {
+                  ...m,
+                  status: 'delivered' as const,
+                  delivered_at: action.deliveredAt ?? m.delivered_at ?? null,
+                  deliveries: [
+                    ...(m.deliveries ?? []),
+                    ...(action.deliveries ?? [])
+                      .filter(delivery => !(m.deliveries ?? []).some(existing => existing.user_id === delivery.user_id))
+                      .map(delivery => ({
+                        ...delivery,
+                        username: delivery.username ?? participantName(conversation, delivery.user_id),
+                      })),
+                  ],
+                }
               : m
           ),
+        },
+      };
+    }
+
+    case 'MESSAGES_DELIVERED': {
+      const convMsgs = state.messages[action.conversationId] ?? [];
+      const conversation = state.conversations.find(c => c.id === action.conversationId);
+      const deliveredBy = participantName(conversation, action.userId);
+      const deliveredByMessage = new Map(action.deliveries.map(delivery => [delivery.message_id, delivery.delivered_at]));
+      return {
+        ...state,
+        messages: {
+          ...state.messages,
+          [action.conversationId]: convMsgs.map(message => {
+            const deliveredAt = deliveredByMessage.get(message.id);
+            if (!deliveredAt || (message.deliveries ?? []).some(delivery => delivery.user_id === action.userId)) {
+              return message;
+            }
+            return {
+              ...message,
+              deliveries: [
+                ...(message.deliveries ?? []),
+                {
+                  user_id: action.userId,
+                  username: deliveredBy,
+                  delivered_at: deliveredAt,
+                },
+              ],
+            };
+          }),
         },
       };
     }
@@ -257,8 +305,41 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
       };
 
     case 'UPDATE_PARTICIPANT_READ': {
+      const conversation = state.conversations.find(c => c.id === action.conversationId);
+      const readBy = participantName(conversation, action.userId);
       return {
         ...state,
+        messages: {
+          ...state.messages,
+          [action.conversationId]: (state.messages[action.conversationId] ?? []).map(message => {
+            if (message.sender_id === action.userId || message.created_at > action.lastReadAt) return message;
+            const hasRead = (message.reads ?? []).some(read => read.user_id === action.userId);
+            const hasDelivery = (message.deliveries ?? []).some(delivery => delivery.user_id === action.userId);
+            return {
+              ...message,
+              deliveries: hasDelivery
+                ? message.deliveries
+                : [
+                    ...(message.deliveries ?? []),
+                    {
+                      user_id: action.userId,
+                      username: readBy,
+                      delivered_at: action.readAt ?? action.lastReadAt,
+                    },
+                  ],
+              reads: hasRead
+                ? message.reads
+                : [
+                    ...(message.reads ?? []),
+                    {
+                      user_id: action.userId,
+                      username: readBy,
+                      read_at: action.readAt ?? new Date().toISOString(),
+                    },
+                  ],
+            };
+          }),
+        },
         conversations: state.conversations.map((c: Conversation) => {
           if (c.id !== action.conversationId) return c;
           return {
