@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { apiFetch } from '../../lib/api';
@@ -30,12 +30,11 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
   const [results, setResults] = useState<UserResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-
-  // Focus name input on mount
-  useEffect(() => {
-    nameInputRef.current?.focus();
-  }, []);
+  const selectedIds = useMemo(() => new Set(selectedUsers.map(user => user.id)), [selectedUsers]);
+  const visibleResults = useMemo(
+    () => results.filter(user => !selectedIds.has(user.id)),
+    [results, selectedIds]
+  );
 
   // Escape closes modal
   useEffect(() => {
@@ -57,20 +56,21 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
       apiFetch(`/api/users?q=${encodeURIComponent(query)}&limit=20`)
         .then(res => res.ok ? res.json() : { users: [] })
         .then((data: { users: UserResult[] }) => {
-          // Filter out already-selected users
-          const selectedIds = new Set(selectedUsers.map(u => u.id));
-          setResults((data.users ?? []).filter((u: UserResult) => !selectedIds.has(u.id)));
+          setResults(data.users ?? []);
         })
         .catch(() => setResults([]))
         .finally(() => setIsSearching(false));
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, selectedUsers]);
+  }, [query]);
 
   function addUser(user: UserResult) {
-    setSelectedUsers(prev => [...prev, { id: user.id, username: user.username }]);
-    setQuery('');
-    setResults([]);
+    setSelectedUsers(prev =>
+      prev.some(selected => selected.id === user.id)
+        ? prev
+        : [...prev, { id: user.id, username: user.username }]
+    );
+    setResults(prev => prev.filter(result => result.id !== user.id));
   }
 
   function removeUser(userId: string) {
@@ -134,7 +134,6 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
         <h2 id="new-group-title" className={styles.title}>{t('newGroup.title')}</h2>
 
         <input
-          ref={nameInputRef}
           className={styles.input}
           type="text"
           placeholder={t('newGroup.namePlaceholder')}
@@ -172,18 +171,19 @@ export function NewGroupModal({ onClose }: NewGroupModalProps) {
 
         {isSearching && <p className={styles.statusText}>{t('newGroup.searching')}</p>}
 
-        {!isSearching && query.length >= 2 && results.length === 0 && (
+        {!isSearching && query.length >= 2 && visibleResults.length === 0 && (
           <div className={styles.emptyState}>
             <p className={styles.emptyTitle}>{t('newGroup.noUsersFound')}</p>
             <p className={styles.emptySubtitle}>{t('newGroup.tryDifferent')}</p>
           </div>
         )}
 
-        {results.length > 0 && (
+        {visibleResults.length > 0 && (
           <ul className={styles.results} role="listbox">
-            {results.map(user => (
+            {visibleResults.map(user => (
               <li key={user.id} role="option" aria-selected={false}>
                 <button
+                  type="button"
                   className={styles.resultItem}
                   onClick={() => addUser(user)}
                 >
