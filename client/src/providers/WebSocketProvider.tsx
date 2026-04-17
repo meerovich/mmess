@@ -191,6 +191,14 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
         });
       }
       break;
+    case 'profile:updated':
+      if (msg.payload?.user) {
+        dispatch({
+          type: 'PROFILE_UPDATED',
+          user: msg.payload.user as { id: string; username: string; avatar_url: string | null; profile_status?: string | null },
+        });
+      }
+      break;
     case 'conversation:updated':
       if (msg.payload?.conversation) {
         dispatch({

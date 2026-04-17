@@ -309,6 +309,49 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
       };
     }
 
+    case 'PROFILE_UPDATED': {
+      const profile = action.user;
+      const patchSender = (sender: Message['sender']) =>
+        sender.id === profile.id
+          ? { ...sender, username: profile.username, avatar_url: profile.avatar_url }
+          : sender;
+
+      const messages = Object.fromEntries(
+        Object.entries(state.messages).map(([conversationId, conversationMessages]) => [
+          conversationId,
+          conversationMessages.map(message => ({
+            ...message,
+            sender: patchSender(message.sender),
+            reply_to: message.reply_to?.sender?.id === profile.id
+              ? {
+                  ...message.reply_to,
+                  sender: { ...message.reply_to.sender, username: profile.username },
+                }
+              : message.reply_to,
+            forwarded_from: message.forwarded_from?.sender?.id === profile.id
+              ? {
+                  ...message.forwarded_from,
+                  sender: { ...message.forwarded_from.sender, username: profile.username },
+                }
+              : message.forwarded_from,
+          })),
+        ])
+      );
+
+      return {
+        ...state,
+        conversations: state.conversations.map(conversation => ({
+          ...conversation,
+          participants: conversation.participants.map(participant =>
+            participant.user_id === profile.id
+              ? { ...participant, username: profile.username, avatar_url: profile.avatar_url }
+              : participant
+          ),
+        })),
+        messages,
+      };
+    }
+
     case 'CONVERSATION_UPDATED': {
       const idx = state.conversations.findIndex(c => c.id === action.conversation.id);
       if (idx === -1) {

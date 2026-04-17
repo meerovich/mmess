@@ -4,7 +4,7 @@ import { unlink, stat } from 'fs/promises';
 import type { FastifyInstance } from 'fastify';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../../db/index.js';
-import { files, messages, conversations, conversation_participants } from '../../db/schema.js';
+import { files, messages, conversations, conversation_participants, users } from '../../db/schema.js';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import {
   getUploadPath,
@@ -21,7 +21,8 @@ type DB = PostgresJsDatabase<Record<string, never>>;
  * Access check (D-16) — three allowed paths:
  * 1. User is the original uploader
  * 2. File is referenced as a group avatar (exact string match)
- * 3. User is a conversation participant of any message with this file_id
+ * 3. File is referenced as a user profile avatar
+ * 4. User is a conversation participant of any message with this file_id
  */
 async function checkFileAccess(
   dbConn: DB,
@@ -47,7 +48,16 @@ async function checkFileAccess(
     .limit(1);
   if (avatarConv) return true;
 
-  // Check 3: user is a participant in any conversation with a message referencing this file
+  // Check 3: user profile avatars are visible to authenticated users wherever
+  // that profile is shown (chat headers, message avatars, user search).
+  const [avatarUser] = await dbConn
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.avatar_url, avatarUrl))
+    .limit(1);
+  if (avatarUser) return true;
+
+  // Check 4: user is a participant in any conversation with a message referencing this file
   const [participantRow] = await dbConn
     .select({ user_id: conversation_participants.user_id })
     .from(messages)

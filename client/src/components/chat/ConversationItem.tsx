@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
+import { getPlainMessagePreview } from '../../lib/chatText';
 import { useChatLayout } from './ChatLayout';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { Avatar } from '../common/Avatar';
@@ -58,14 +59,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       ? (conversation.participants.find(p => p.user_id !== user.id)?.avatar_url ?? null)
       : conversation.avatar_url;
 
-  // Strip markdown syntax for sidebar preview: remove **bold**, *italic*,
-  // `code`, [links](url), # headers, etc. — show clean plain text.
+  // Strip markdown syntax for sidebar preview and mirror message emoticons.
   const lastPreview = conversation.last_message?.content
-    ? conversation.last_message.content
-        .replace(/[*_~`#>\[\]()!]/g, '')
-        .replace(/\n+/g, ' ')
-        .trim()
-        .slice(0, 50)
+    ? getPlainMessagePreview(conversation.last_message.content, 50)
     : null;
 
   const timeStr = conversation.updated_at ? formatTime(conversation.updated_at, locale, t) : '';
@@ -204,7 +200,7 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         <div className={styles.bottomRow}>
           <span className={styles.preview}>
             {draft ? (
-              <><span className={styles.draftLabel}>{t('sidebar.draft')}</span>{draft.replace(/\n/g, ' ').slice(0, 40)}</>
+              <><span className={styles.draftLabel}>{t('sidebar.draft')}</span>{getPlainMessagePreview(draft, 40)}</>
             ) : (
               <>
                 {isOwnLastMessage && outgoingStatus && (

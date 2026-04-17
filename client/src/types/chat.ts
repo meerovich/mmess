@@ -127,6 +127,7 @@ export type ChatAction =
   | { type: 'SET_MESSAGE_HAS_MORE'; conversationId: string; hasMore: boolean; nextCursor: string | null }
   | { type: 'SET_PRESENCE'; userId: string; presence: PresenceState }
   | { type: 'SET_PRESENCE_BULK'; entries: Array<{ userId: string; presence: PresenceState }> }
+  | { type: 'PROFILE_UPDATED'; user: { id: string; username: string; avatar_url: string | null; profile_status?: string | null } }
   | { type: 'CONVERSATION_UPDATED'; conversation: Conversation }
   | { type: 'INVITATION_ACCEPTED'; conversationId: string; userId: string }
   | { type: 'INVITATION_DECLINED'; conversationId: string; userId: string };

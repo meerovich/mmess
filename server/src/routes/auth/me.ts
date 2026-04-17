@@ -1,8 +1,9 @@
 import fp from 'fastify-plugin';
 import type { FastifyInstance } from 'fastify';
 import { db } from '../../db/index.js';
-import { users } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { conversation_participants, users } from '../../db/schema.js';
+import { eq, inArray } from 'drizzle-orm';
+import { broadcast } from '../ws/registry.js';
 
 export default fp(async (fastify: FastifyInstance) => {
   fastify.get('/auth/me', {
@@ -81,6 +82,25 @@ export default fp(async (fastify: FastifyInstance) => {
 
     if (!updatedUser) {
       return reply.code(404).send({ error: 'User not found' });
+    }
+
+    const userConversationRows = await db
+      .select({ conversation_id: conversation_participants.conversation_id })
+      .from(conversation_participants)
+      .where(eq(conversation_participants.user_id, userId));
+    const conversationIds = userConversationRows.map(row => row.conversation_id);
+
+    if (conversationIds.length > 0) {
+      const participantRows = await db
+        .select({ user_id: conversation_participants.user_id })
+        .from(conversation_participants)
+        .where(inArray(conversation_participants.conversation_id, conversationIds));
+      const participantIds = Array.from(new Set(participantRows.map(row => row.user_id)));
+
+      broadcast(participantIds, {
+        type: 'profile:updated',
+        payload: { user: updatedUser },
+      });
     }
 
     return updatedUser;
