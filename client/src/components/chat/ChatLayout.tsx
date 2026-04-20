@@ -307,10 +307,34 @@ export function ChatLayout() {
 
     let rafId: number | null = null;
 
-    const setVH = () => {
+    const isEditableFocus = () => {
+      const active = document.activeElement;
+      if (!active) return false;
+      if (active instanceof HTMLTextAreaElement) return true;
+      if (active instanceof HTMLInputElement) {
+        const textLikeTypes = new Set([
+          'text',
+          'search',
+          'url',
+          'tel',
+          'email',
+          'password',
+          '',
+        ]);
+        return textLikeTypes.has(active.type);
+      }
+      return active instanceof HTMLElement && active.isContentEditable;
+    };
+
+    const setVH = (reason: 'resize' | 'scroll') => {
       rafId = null;
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
       const keyboardOpen = vv.height < initialHeight * 0.85;
+      const shouldIgnoreViewportScroll = reason === 'scroll' && keyboardOpen && isEditableFocus();
+
+      if (shouldIgnoreViewportScroll) {
+        return;
+      }
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
@@ -332,20 +356,23 @@ export function ChatLayout() {
       }
     };
 
-    const scheduleSetVH = () => {
+    const scheduleSetVH = (reason: 'resize' | 'scroll') => {
       if (rafId !== null) return;
-      rafId = window.requestAnimationFrame(setVH);
+      rafId = window.requestAnimationFrame(() => setVH(reason));
     };
 
     // Set initial
-    setVH();
+    setVH('resize');
 
-    vv.addEventListener('resize', scheduleSetVH);
-    vv.addEventListener('scroll', scheduleSetVH);
+    const onResize = () => scheduleSetVH('resize');
+    const onScroll = () => scheduleSetVH('scroll');
+
+    vv.addEventListener('resize', onResize);
+    vv.addEventListener('scroll', onScroll);
 
     return () => {
-      vv.removeEventListener('resize', scheduleSetVH);
-      vv.removeEventListener('scroll', scheduleSetVH);
+      vv.removeEventListener('resize', onResize);
+      vv.removeEventListener('scroll', onScroll);
       if (rafId !== null) {
         window.cancelAnimationFrame(rafId);
       }
