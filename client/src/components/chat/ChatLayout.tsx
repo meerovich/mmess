@@ -330,11 +330,7 @@ export function ChatLayout() {
       rafId = null;
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
       const keyboardOpen = vv.height < initialHeight * 0.85;
-      const shouldIgnoreViewportScroll = reason === 'scroll' && keyboardOpen && isEditableFocus();
-
-      if (shouldIgnoreViewportScroll) {
-        return;
-      }
+      const isEditableViewportScroll = reason === 'scroll' && keyboardOpen && isEditableFocus();
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
@@ -351,7 +347,7 @@ export function ChatLayout() {
       // Only correct window scroll while the keyboard is actively pushing the
       // visual viewport. Running this on every viewport event causes visible
       // "rubber-band" jerk on iOS during normal gestures.
-      if (keyboardOpen && window.scrollY !== 0) {
+      if (keyboardOpen && !isEditableViewportScroll && window.scrollY !== 0) {
         window.scrollTo(0, 0);
       }
     };
