@@ -35,6 +35,7 @@ export function ChatLayout() {
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
   const previousPathRef = useRef(location.pathname);
+  const staleChatPopGuardRef = useRef(false);
   const { t } = useTranslation();
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('mmess-sidebar-width');
@@ -49,6 +50,21 @@ export function ChatLayout() {
   // makes browser swipe-back gesture work: history.back() goes to /,
   // urlConversationId becomes undefined, showChat resets to false.
   useEffect(() => {
+    const isMobileViewport = window.matchMedia?.('(max-width: 767px)').matches ?? window.innerWidth < 768;
+    const isStaleChatPop =
+      isMobileViewport &&
+      Boolean(urlConversationId) &&
+      navigationType === 'POP' &&
+      previousPathRef.current === '/' &&
+      staleChatPopGuardRef.current;
+
+    if (isStaleChatPop) {
+      dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
+      setShowChat(false);
+      navigate('/', { replace: true });
+      return;
+    }
+
     if (urlConversationId) {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
       setShowChat(true);
@@ -68,7 +84,7 @@ export function ChatLayout() {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
       setShowChat(false);
     }
-  }, [urlConversationId, dispatch]);
+  }, [urlConversationId, dispatch, navigate, navigationType]);
 
   // Register Web Push subscription on mount (user is authenticated at this point).
   useEffect(() => {
@@ -116,7 +132,7 @@ export function ChatLayout() {
 
   useEffect(() => {
     const urlNotificationTarget = parseNotificationTargetUrl(window.location.href);
-    if (urlNotificationTarget?.messageId) {
+    if (urlNotificationTarget?.conversationId || urlNotificationTarget?.messageId) {
       writeNotificationTarget(urlNotificationTarget);
       window.history.replaceState(window.history.state, '', urlNotificationTarget.path);
     }
@@ -143,11 +159,13 @@ export function ChatLayout() {
       navigationType === 'POP';
 
     if (isReturningToListViaNativeBack) {
-      const timer = window.setTimeout(() => {
-        window.history.pushState(window.history.state, '', location.pathname);
-      }, 220);
+      staleChatPopGuardRef.current = true;
       previousPathRef.current = location.pathname;
-      return () => window.clearTimeout(timer);
+      return;
+    }
+
+    if (location.pathname.startsWith('/chat/') && navigationType !== 'POP') {
+      staleChatPopGuardRef.current = false;
     }
 
     previousPathRef.current = location.pathname;

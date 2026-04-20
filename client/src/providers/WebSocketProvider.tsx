@@ -4,10 +4,11 @@ import type { ChatAction, Message } from '../types/chat';
 import { useChat } from '../contexts/ChatContext';
 import { useAuth } from '../contexts/AuthContext';
 import { apiFetch } from '../lib/api';
+import { writeNotificationTarget } from '../lib/notificationTarget';
 
 // Module-level references set by WebSocketProvider for use in handleIncoming
 let _currentUserId: string | null = null;
-let _navigate: ((to: string) => void) | null = null;
+let _navigate: ((to: string, options?: { replace?: boolean }) => void) | null = null;
 let _activeConversationId: string | null = null;
 
 // Server→Client message envelope
@@ -76,8 +77,15 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           });
 
           notif.onclick = () => {
+            const path = `/chat/${newMsg.conversation_id}`;
+            writeNotificationTarget({
+              path,
+              conversationId: newMsg.conversation_id,
+              messageId: newMsg.id,
+              replace: true,
+            });
+            _navigate?.(path, { replace: true });
             window.focus();
-            _navigate?.(`/chat/${newMsg.conversation_id}`);
           };
         }
       }

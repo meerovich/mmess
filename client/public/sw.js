@@ -83,23 +83,29 @@ self.addEventListener('notificationclick', (event) => {
             return pathname === '/' || pathname.startsWith('/chat/');
           }) ?? sameOriginClients[0];
 
-        preferredClient.postMessage(messagePayload);
-        try {
-          await preferredClient.focus();
-        } catch {
-          // Keep going — navigate/openWindow below is still useful.
-        }
-
         if (typeof preferredClient.navigate === 'function') {
           try {
-            await preferredClient.navigate(targetUrl.href);
+            const navigatedClient = await preferredClient.navigate(targetUrl.href);
+            try {
+              await (navigatedClient ?? preferredClient).focus();
+            } catch {
+              // Navigation already happened; focusing is best-effort on iOS.
+            }
             return;
           } catch {
             // Some mobile WebKit builds reject navigate() for background tabs.
           }
         }
 
-        return self.clients.openWindow(targetUrl.href);
+        // Fallback for mobile WebKit builds where client.navigate() is absent
+        // or rejected: tell the running app to persist the target and route.
+        preferredClient.postMessage(messagePayload);
+        try {
+          await preferredClient.focus();
+          return;
+        } catch {
+          return self.clients.openWindow(targetUrl.href);
+        }
       }
       // No existing window — open a new one pointing directly to the chat
       return self.clients.openWindow(targetUrl.href);
