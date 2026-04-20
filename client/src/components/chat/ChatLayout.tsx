@@ -31,7 +31,6 @@ export function useChatLayout(): ChatLayoutContextValue {
 }
 
 const NOTIFICATION_RECOVERY_WINDOW_MS = 20_000;
-const NOTIFICATION_RECOVERY_RECENT_MS = 5 * 60_000;
 
 export function ChatLayout() {
   const { conversationId: urlConversationId } = useParams<{ conversationId?: string }>();
@@ -44,8 +43,6 @@ export function ChatLayout() {
   const layoutRef = useRef<HTMLDivElement>(null);
   const previousPathRef = useRef(location.pathname);
   const staleChatPopGuardRef = useRef(false);
-  const notificationRecoveryUntilRef = useRef(0);
-  const recoveredNotificationMessageRef = useRef<string | null>(null);
   const { t } = useTranslation();
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('mmess-sidebar-width');
@@ -171,15 +168,20 @@ export function ChatLayout() {
 
   useEffect(() => {
     let cancelled = false;
+    let retryTimer: number | null = null;
 
     const routeTarget = (target: NotificationTarget | null) => {
       if (!target?.path) return;
 
       const currentPath = `${location.pathname}${location.search}${location.hash}`;
       if (currentPath !== target.path) {
+        const shouldPushFromList = location.pathname === '/' && Boolean(target.conversationId);
         navigate(target.path, {
-          replace: target.replace ?? true,
-          state: { mmessFromNotification: true },
+          replace: shouldPushFromList ? false : target.replace ?? true,
+          state: {
+            mmessBackToList: shouldPushFromList,
+            mmessFromNotification: true,
+          },
         });
         return;
       }
@@ -189,23 +191,41 @@ export function ChatLayout() {
       }
     };
 
-    const syncPendingNotificationTarget = async () => {
+    const syncPendingNotificationTarget = async (retryUntil = 0) => {
       const target = readNotificationTarget() ?? await readServiceWorkerNotificationTarget();
       if (cancelled) return;
-      routeTarget(target);
+      if (target?.path) {
+        routeTarget(target);
+        return;
+      }
+
+      if (retryUntil > Date.now() && location.pathname === '/') {
+        retryTimer = window.setTimeout(() => void syncPendingNotificationTarget(retryUntil), 500);
+      }
     };
 
-    void syncPendingNotificationTarget();
+    const isMobileViewport = window.matchMedia?.('(max-width: 767px)').matches ?? window.innerWidth < 768;
+    const isStandalone =
+      window.matchMedia?.('(display-mode: standalone)').matches ||
+      (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const retryUntil = (isMobileViewport || isStandalone) && location.pathname === '/'
+      ? Date.now() + NOTIFICATION_RECOVERY_WINDOW_MS
+      : 0;
 
-    const handleFocus = () => void syncPendingNotificationTarget();
+    void syncPendingNotificationTarget(retryUntil);
+
+    const handleFocus = () => void syncPendingNotificationTarget(Date.now() + NOTIFICATION_RECOVERY_WINDOW_MS);
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') void syncPendingNotificationTarget();
+      if (document.visibilityState === 'visible') {
+        void syncPendingNotificationTarget(Date.now() + NOTIFICATION_RECOVERY_WINDOW_MS);
+      }
     };
 
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       cancelled = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -217,77 +237,6 @@ export function ChatLayout() {
     state.conversations.length,
     state.wsStatus,
   ]);
-
-  useEffect(() => {
-    const isMobileViewport = window.matchMedia?.('(max-width: 767px)').matches ?? window.innerWidth < 768;
-    const isStandalone =
-      window.matchMedia?.('(display-mode: standalone)').matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-
-    if (!isMobileViewport && !isStandalone) return;
-
-    const armNotificationRecovery = () => {
-      if (window.location.pathname !== '/') return;
-      notificationRecoveryUntilRef.current = Date.now() + NOTIFICATION_RECOVERY_WINDOW_MS;
-    };
-
-    armNotificationRecovery();
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') armNotificationRecovery();
-    };
-    const handleFocus = () => armNotificationRecovery();
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    if (location.pathname !== '/') return;
-    if (Date.now() > notificationRecoveryUntilRef.current) return;
-    if (readNotificationTarget()) return;
-
-    const now = Date.now();
-    const candidate = state.conversations
-      .filter(conversation => {
-        const lastMessage = conversation.last_message;
-        if (!lastMessage) return false;
-        if (conversation.unread_count <= 0) return false;
-        if (lastMessage.sender_id === user.id) return false;
-        return now - new Date(lastMessage.created_at).getTime() <= NOTIFICATION_RECOVERY_RECENT_MS;
-      })
-      .sort((a, b) =>
-        new Date(b.last_message?.created_at ?? b.updated_at).getTime() -
-        new Date(a.last_message?.created_at ?? a.updated_at).getTime()
-      )[0];
-
-    if (!candidate?.last_message) return;
-    if (recoveredNotificationMessageRef.current === candidate.last_message.id) return;
-
-    recoveredNotificationMessageRef.current = candidate.last_message.id;
-    notificationRecoveryUntilRef.current = 0;
-    const path = `/chat/${candidate.id}`;
-    writeNotificationTarget({
-      path,
-      conversationId: candidate.id,
-      messageId: candidate.last_message.id,
-      replace: false,
-    });
-    staleChatPopGuardRef.current = false;
-    navigate(path, {
-      replace: false,
-      state: {
-        mmessBackToList: true,
-        mmessFromNotification: true,
-        mmessRecoveredNotification: true,
-      },
-    });
-  }, [location.pathname, navigate, state.conversations, user?.id]);
 
   useEffect(() => {
     const previousPath = previousPathRef.current;
