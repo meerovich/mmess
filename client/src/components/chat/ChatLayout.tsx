@@ -56,9 +56,20 @@ export function ChatLayout() {
   // urlConversationId becomes undefined, showChat resets to false.
   useEffect(() => {
     const isMobileViewport = window.matchMedia?.('(max-width: 767px)').matches ?? window.innerWidth < 768;
+    const urlNotificationTarget = parseNotificationTargetUrl(window.location.href);
+    const storedNotificationTarget = readNotificationTarget();
+    const locationState = location.state as { mmessFromNotification?: boolean } | null;
+    const isNotificationDrivenChat =
+      Boolean(urlConversationId) &&
+      (
+        urlNotificationTarget?.conversationId === urlConversationId ||
+        storedNotificationTarget?.conversationId === urlConversationId ||
+        locationState?.mmessFromNotification === true
+      );
     const isStaleChatPop =
       isMobileViewport &&
       Boolean(urlConversationId) &&
+      !isNotificationDrivenChat &&
       navigationType === 'POP' &&
       previousPathRef.current === '/' &&
       staleChatPopGuardRef.current;
@@ -71,6 +82,9 @@ export function ChatLayout() {
     }
 
     if (urlConversationId) {
+      if (isNotificationDrivenChat) {
+        staleChatPopGuardRef.current = false;
+      }
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: urlConversationId });
       setShowChat(true);
       // Immediately zero unread count in the sidebar — the user is looking at
@@ -89,7 +103,7 @@ export function ChatLayout() {
       dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
       setShowChat(false);
     }
-  }, [urlConversationId, dispatch, navigate, navigationType]);
+  }, [urlConversationId, dispatch, navigate, navigationType, location.state]);
 
   // Register Web Push subscription on mount (user is authenticated at this point).
   useEffect(() => {
