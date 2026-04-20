@@ -345,7 +345,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
         </label>
 
         <div className={styles.footer}>
-          <div className={styles.footerActions}>
+          <div className={`${styles.footerActions} ${styles.avatarActions}`}>
             <button type="button" className={styles.ghostButton} onClick={() => fileInputRef.current?.click()}>
               {t('profile.changeAvatar')}
             </button>

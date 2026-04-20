@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { db } from '../../db/index.js';
-import { conversations, conversation_participants, users } from '../../db/schema.js';
-import { eq, and, sql } from 'drizzle-orm';
+import { conversations, conversation_participants, messages, users } from '../../db/schema.js';
+import { eq, ne, and, sql } from 'drizzle-orm';
 import { broadcast } from '../ws/registry.js';
 
 /**
@@ -20,6 +20,8 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
     avatar_url: users.avatar_url,
     is_admin: conversation_participants.is_admin,
     can_edit_messages: conversation_participants.can_edit_messages,
+    status: conversation_participants.status,
+    last_read_message_id: conversation_participants.last_read_message_id,
   })
     .from(conversation_participants)
     .innerJoin(users, eq(conversation_participants.user_id, users.id))
@@ -31,12 +33,34 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
       ? otherParticipants[0].username
       : conv.name ?? 'Group';
 
+  let lastMessage = null;
+  if (conv.last_message_id) {
+    const [msg] = await db.select({
+      id: messages.id,
+      content: messages.content,
+      sender_id: messages.sender_id,
+      created_at: messages.created_at,
+    })
+      .from(messages)
+      .where(eq(messages.id, conv.last_message_id))
+      .limit(1);
+
+    if (msg) {
+      lastMessage = {
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        created_at: msg.created_at.toISOString(),
+      };
+    }
+  }
+
   return {
     id: conv.id,
     type: conv.type,
     name: displayName,
     avatar_url: conv.avatar_url,
-    last_message: null,
+    last_message: lastMessage,
     unread_count: 0,
     participants: participants.map(p => ({
       user_id: p.user_id,
@@ -44,6 +68,8 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
       avatar_url: p.avatar_url,
       is_admin: p.is_admin,
       can_edit_messages: p.can_edit_messages,
+      status: p.status,
+      last_read_message_id: p.last_read_message_id,
     })),
     updated_at: conv.updated_at.toISOString(),
     created_at: conv.created_at.toISOString(),
@@ -68,9 +94,9 @@ async function getParticipant(conversationId: string, userId: string) {
 
 export default async function conversationsAdminRoutes(fastify: FastifyInstance) {
 
-  // PATCH /conversations/:id — rename group (admin-only) (D-09)
+  // PATCH /conversations/:id — update group name/avatar (admin-only) (D-09)
   // Note: Caddy strips /api prefix before proxying — backend paths are unprefixed
-  fastify.patch<{ Params: { id: string }; Body: { name?: string } }>(
+  fastify.patch<{ Params: { id: string }; Body: { name?: string; avatar_url?: string | null } }>(
     '/conversations/:id',
     {
       preHandler: [fastify.authenticate],
@@ -78,23 +104,37 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
         params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
         body: {
           type: 'object',
-          properties: { name: { type: 'string', minLength: 1, maxLength: 100 } },
+          properties: {
+            name: { type: 'string', minLength: 1, maxLength: 100 },
+            avatar_url: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+          },
         },
       },
     },
     async (request, reply) => {
       const userId = request.user.sub;
       const { id: conversationId } = request.params;
-      const { name } = request.body;
+      const { name, avatar_url } = request.body;
 
       const participant = await getParticipant(conversationId, userId);
       if (!participant) return reply.code(403).send({ error: 'Not a participant' });
       if (!participant.is_admin) return reply.code(403).send({ error: 'Admin only' });
 
-      if (!name) return reply.code(400).send({ error: 'name is required' });
+      const updatePayload: { name?: string; avatar_url?: string | null; updated_at: Date } = { updated_at: new Date() };
+      if (name !== undefined) {
+        const trimmed = name.trim();
+        if (!trimmed) return reply.code(400).send({ error: 'name is required' });
+        updatePayload.name = trimmed;
+      }
+      if (avatar_url !== undefined) {
+        updatePayload.avatar_url = avatar_url;
+      }
+      if (updatePayload.name === undefined && updatePayload.avatar_url === undefined) {
+        return reply.code(400).send({ error: 'No fields to update' });
+      }
 
       await db.update(conversations)
-        .set({ name: name.trim(), updated_at: new Date() })
+        .set(updatePayload)
         .where(eq(conversations.id, conversationId));
 
       const conversation = await fetchConversation(conversationId, userId);
@@ -225,11 +265,12 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
         .set({ updated_at: new Date() })
         .where(eq(conversations.id, conversationId));
 
-      // Broadcast to remaining participants (kicked user does NOT receive it)
+      // Broadcast to remaining participants and explicitly remove the chat for the kicked user.
       const conversation = await fetchConversation(conversationId, userId);
       if (conversation) {
         broadcast(remainingIds, { type: 'conversation:updated', payload: { conversation } });
       }
+      broadcast([targetUserId], { type: 'conversation:removed', payload: { conversation_id: conversationId } });
 
       return reply.code(204).send();
     }
@@ -318,7 +359,31 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
       if (remainingIds.length === 0) {
         // Last participant — hard-delete the conversation (CASCADE handles messages, participants, reactions, reads)
         await db.delete(conversations).where(eq(conversations.id, conversationId));
+        broadcast([userId], { type: 'conversation:removed', payload: { conversation_id: conversationId } });
         return reply.code(204).send();
+      }
+
+      if (participant.is_admin) {
+        const remainingAdmins = await db.select({ user_id: conversation_participants.user_id })
+          .from(conversation_participants)
+          .where(
+            and(
+              eq(conversation_participants.conversation_id, conversationId),
+              eq(conversation_participants.is_admin, true),
+              ne(conversation_participants.user_id, userId)
+            )
+          );
+
+        if (remainingAdmins.length === 0) {
+          await db.update(conversation_participants)
+            .set({ is_admin: true, can_edit_messages: true })
+            .where(
+              and(
+                eq(conversation_participants.conversation_id, conversationId),
+                eq(conversation_participants.user_id, remainingIds[0])
+              )
+            );
+        }
       }
 
       // Remove this participant
@@ -338,6 +403,7 @@ export default async function conversationsAdminRoutes(fastify: FastifyInstance)
       if (conversation) {
         broadcast(remainingIds, { type: 'conversation:updated', payload: { conversation } });
       }
+      broadcast([userId], { type: 'conversation:removed', payload: { conversation_id: conversationId } });
 
       return reply.code(204).send();
     }

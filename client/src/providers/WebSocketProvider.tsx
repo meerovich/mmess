@@ -219,6 +219,17 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
         });
       }
       break;
+    case 'conversation:removed':
+      if (msg.payload?.conversation_id) {
+        dispatch({
+          type: 'CONVERSATION_REMOVED',
+          conversationId: msg.payload.conversation_id as string,
+        });
+        if (_activeConversationId === msg.payload.conversation_id) {
+          _navigate?.('/');
+        }
+      }
+      break;
     case 'error':
       console.error('[WS]', msg.payload);
       break;
@@ -351,6 +362,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         if (
           envelope.type === 'conversation:new' ||
           envelope.type === 'conversation:updated' ||
+          envelope.type === 'conversation:removed' ||
           envelope.type === 'invitation:accepted' ||
           envelope.type === 'invitation:declined'
         ) {

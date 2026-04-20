@@ -35,6 +35,15 @@ function formatLastSeenAt(timestamp: string, locale: 'ru' | 'en'): string {
   return format(date, 'dd.MM.yy HH:mm', { locale: locale === 'ru' ? ru : enUS });
 }
 
+function formatLastSeenStatus(timestamp: string, locale: 'ru' | 'en', t: (key: string, params?: Record<string, string>) => string): string {
+  const date = new Date(timestamp);
+  const time = formatLastSeenAt(timestamp, locale);
+  if (locale === 'ru' && !isToday(date)) {
+    return t('time.lastSeen', { time });
+  }
+  return t('time.lastSeenAt', { time });
+}
+
 export function ChatPane() {
   const { state, dispatch } = useChat();
   const { activeConversationId, conversations, wsStatus } = state;
@@ -75,7 +84,7 @@ export function ChatPane() {
     if (presence?.online) return t('time.online');
     if (!presence?.last_seen_at) return t('time.lastSeenUnknown');
 
-    return t('time.lastSeenAt', { time: formatLastSeenAt(presence.last_seen_at, locale) });
+    return formatLastSeenStatus(presence.last_seen_at, locale, t);
   }, [conversation, locale, presence?.last_seen_at, presence?.online, t]);
 
   if (!activeConversationId) {

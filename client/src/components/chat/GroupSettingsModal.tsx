@@ -153,15 +153,16 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       abortController.signal,
     ).then(async (result) => {
       const avatarUrl = `/api/files/${result.id}`;
-      // PATCH the conversation — endpoint already exists from Phase 4
       const patchRes = await apiFetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
         body: JSON.stringify({ avatar_url: avatarUrl }),
       });
       if (!patchRes.ok) throw new Error('Failed to update avatar');
 
+      const updatedConversation = await patchRes.json() as Conversation;
       // Optimistic update of local display
       setLocalAvatarUrl(avatarUrl);
+      dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
       setAvatarUploadState({ status: 'idle' });
       // WS conversation:updated broadcast will update ChatContext state
     }).catch((err: Error) => {
@@ -187,6 +188,8 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         body: JSON.stringify({ name: trimmed }),
       });
       if (res.ok) {
+        const updatedConversation = await res.json() as Conversation;
+        dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
         setIsRenaming(false);
         // CONVERSATION_UPDATED WS event will refresh the modal automatically
       } else {
@@ -216,6 +219,8 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         body: JSON.stringify({ user_ids: [memberUser.id] }),
       });
       if (res.ok) {
+        const updatedConversation = await res.json() as Conversation;
+        dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
         setAddQuery('');
         setAddResults([]);
         // CONVERSATION_UPDATED WS event will refresh state
@@ -272,7 +277,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         method: 'DELETE',
       });
       if (res.ok || res.status === 204) {
-        dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
+        dispatch({ type: 'CONVERSATION_REMOVED', conversationId: conversation.id });
         onClose();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -413,7 +418,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
           <ul className={styles.memberList} role="list">
             {conversation.participants.map(participant => (
               <li key={participant.user_id} className={styles.memberRow}>
-                <Avatar name={participant.username} size="sm" />
+                <Avatar name={participant.username} avatarUrl={participant.avatar_url} size="sm" />
                 <span className={styles.memberUsername}>{participant.username}</span>
                 {participant.is_admin && (
                   <span className={styles.adminBadge}>{t('group.admin')}</span>
@@ -503,8 +508,8 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
           </section>
         )}
 
-        {/* Leave group (non-admin only) */}
-        {!isAdmin && (
+        {/* Leave group */}
+        {currentUserParticipant && (
           <section className={styles.section}>
             {!showLeaveConfirm ? (
               <button

@@ -55,7 +55,11 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
         return { ...state, conversations: sortConversations([action.conversation, ...state.conversations]) };
       }
       const updated = [...state.conversations];
-      updated[idx] = action.conversation;
+      updated[idx] = {
+        ...action.conversation,
+        unread_count: updated[idx].unread_count,
+        last_message: action.conversation.last_message ?? updated[idx].last_message,
+      };
       return { ...state, conversations: sortConversations(updated) };
     }
 
@@ -441,6 +445,18 @@ function chatReducer(state: ChatReducerState, action: ChatAction): ChatReducerSt
       const updated = [...state.conversations];
       updated[idx] = action.conversation;
       return { ...state, conversations: sortConversations(updated) };
+    }
+
+    case 'CONVERSATION_REMOVED': {
+      const { [action.conversationId]: _removedMessages, ...messages } = state.messages;
+      const { [action.conversationId]: _removedPagination, ...messagePagination } = state.messagePagination;
+      return {
+        ...state,
+        activeConversationId: state.activeConversationId === action.conversationId ? null : state.activeConversationId,
+        conversations: state.conversations.filter(c => c.id !== action.conversationId),
+        messages,
+        messagePagination,
+      };
     }
 
     case 'INVITATION_ACCEPTED': {
