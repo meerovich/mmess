@@ -147,7 +147,14 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
-  const [activeReceiptHint, setActiveReceiptHint] = useState<{ userId: string; type: 'delivered' | 'read' } | null>(null);
+  const [activeReceiptHint, setActiveReceiptHint] = useState<{
+    userId: string;
+    type: 'delivered' | 'read';
+    x: number;
+    y: number;
+    arrowX: number;
+    placement: 'above' | 'below';
+  } | null>(null);
   const [receiptViewport, setReceiptViewport] = useState(() => ({
     offsetTop: 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
@@ -247,6 +254,34 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const activeReceiptTimestamp = activeReceiptParticipant && activeReceiptHint?.type === 'read'
     ? activeReceiptParticipant.read_at
     : activeReceiptParticipant?.delivered_at;
+  const placeReceiptHint = useCallback((
+    element: HTMLElement,
+    hint: { userId: string; type: 'delivered' | 'read' }
+  ) => {
+    const rect = element.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    const viewportLeft = viewport?.offsetLeft ?? 0;
+    const viewportTop = viewport?.offsetTop ?? 0;
+    const viewportWidth = viewport?.width ?? window.innerWidth;
+    const tooltipWidth = 156;
+    const edgeGap = 12;
+    const rawCenter = rect.left + rect.width / 2;
+    const minCenter = viewportLeft + edgeGap + tooltipWidth / 2;
+    const maxCenter = viewportLeft + viewportWidth - edgeGap - tooltipWidth / 2;
+    const x = Math.min(Math.max(rawCenter, minCenter), maxCenter);
+    const hasRoomAbove = rect.top - viewportTop > 64;
+    const placement = hasRoomAbove ? 'above' : 'below';
+    const y = placement === 'above' ? rect.top : rect.bottom;
+    const arrowX = Math.min(Math.max(rawCenter - (x - tooltipWidth / 2), 18), tooltipWidth - 18);
+
+    setActiveReceiptHint({
+      ...hint,
+      x,
+      y,
+      arrowX,
+      placement,
+    });
+  }, []);
   const receiptDetailRows = useMemo(() => {
     if (!isOwn) return [];
 
@@ -834,7 +869,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                                   className={`${styles.receiptAvatarButton} ${isActive ? styles.receiptAvatarButtonActive : ''}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setActiveReceiptHint(isActive ? null : { userId: participant.user_id, type: row.type });
+                                    if (isActive) {
+                                      setActiveReceiptHint(null);
+                                      return;
+                                    }
+                                    placeReceiptHint(e.currentTarget, { userId: participant.user_id, type: row.type });
                                   }}
                                   aria-label={`${participant.username}: ${timestamp ? formatReceiptTimestamp(timestamp, locale) : t('time.pendingReceipt')}`}
                                 >
@@ -848,14 +887,6 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                         </div>
                       </div>
                     ))}
-                    <div className={styles.receiptHintHost} aria-live="polite">
-                      {activeReceiptParticipant && activeReceiptTimestamp && (
-                        <div className={styles.receiptHint} role="tooltip">
-                          <span className={styles.receiptHintName}>{activeReceiptParticipant.username}</span>
-                          <span className={styles.receiptHintTime}>{formatReceiptTimestamp(activeReceiptTimestamp, locale)}</span>
-                        </div>
-                      )}
-                    </div>
                   </>
                 ) : (
                   receiptDetailRows.map((row, idx) => (
@@ -867,6 +898,20 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 )}
               </div>
             </div>
+            {activeReceiptParticipant && activeReceiptTimestamp && activeReceiptHint && (
+              <div
+                className={`${styles.receiptHint} ${styles.receiptHintFloating} ${activeReceiptHint.placement === 'below' ? styles.receiptHintBelow : ''}`}
+                style={{
+                  left: activeReceiptHint.x,
+                  top: activeReceiptHint.y,
+                  '--receipt-hint-arrow-x': `${activeReceiptHint.arrowX}px`,
+                } as React.CSSProperties}
+                role="tooltip"
+              >
+                <span className={styles.receiptHintName}>{activeReceiptParticipant.username}</span>
+                <span className={styles.receiptHintTime}>{formatReceiptTimestamp(activeReceiptTimestamp, locale)}</span>
+              </div>
+            )}
           </>,
           document.body
         )

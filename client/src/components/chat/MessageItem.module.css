@@ -503,20 +503,10 @@
   border-radius: inherit;
 }
 
-.receiptHintHost {
-  min-height: 56px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
-}
-
 .receiptHint {
-  position: relative;
   display: grid;
   gap: 2px;
-  min-width: 124px;
-  max-width: 180px;
-  margin-top: 8px;
+  width: 156px;
   padding: 8px 10px;
   border-radius: 14px;
   background: color-mix(in srgb, var(--color-text-primary) 92%, black 8%);
@@ -528,16 +518,32 @@
   animation: receiptHintIn 140ms ease-out;
 }
 
+.receiptHintFloating {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 10px));
+  z-index: 100012;
+  pointer-events: none;
+}
+
+.receiptHintBelow {
+  transform: translate(-50%, 10px);
+}
+
 .receiptHint::after {
   content: '';
   position: absolute;
-  right: 18px;
-  top: -5px;
+  left: var(--receipt-hint-arrow-x, 50%);
+  bottom: -5px;
   width: 10px;
   height: 10px;
   background: inherit;
-  transform: rotate(45deg);
+  transform: translateX(-50%) rotate(45deg);
   border-radius: 2px;
+}
+
+.receiptHintBelow::after {
+  top: -5px;
+  bottom: auto;
 }
 
 .receiptHintName {
@@ -562,12 +568,10 @@
 @keyframes receiptHintIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
