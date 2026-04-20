@@ -19,7 +19,8 @@ export async function registerPushSubscription(): Promise<void> {
 
   try {
     // 1. Register Service Worker
-    const registration = await navigator.serviceWorker.register('/sw.js');
+    const registration = await navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' });
+    void registration.update().catch(() => undefined);
     await navigator.serviceWorker.ready;
 
     // 2. Check if already subscribed

@@ -6,6 +6,14 @@ const NOTIFICATION_MESSAGE_PARAM = 'mmessPushMessage';
 const NOTIFICATION_TARGET_CACHE = 'mmess-notification-target-v1';
 const NOTIFICATION_TARGET_ENDPOINT = '/__mmess_notification_target';
 
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 async function rememberNotificationTarget(target) {
   const cache = await caches.open(NOTIFICATION_TARGET_CACHE);
   await cache.put(
@@ -22,6 +30,14 @@ async function rememberNotificationTarget(target) {
 async function clearNotificationTarget() {
   const cache = await caches.open(NOTIFICATION_TARGET_CACHE);
   await cache.delete(NOTIFICATION_TARGET_ENDPOINT);
+}
+
+function postNotificationTarget(client, payload) {
+  try {
+    client?.postMessage(payload);
+  } catch {
+    // Some iOS WebKit builds can reject postMessage for a just-opened client.
+  }
 }
 
 self.addEventListener('fetch', (event) => {
@@ -132,6 +148,7 @@ self.addEventListener('notificationclick', (event) => {
         if (typeof preferredClient.navigate === 'function') {
           try {
             const navigatedClient = await preferredClient.navigate(targetUrl.href);
+            postNotificationTarget(navigatedClient ?? preferredClient, messagePayload);
             try {
               await (navigatedClient ?? preferredClient).focus();
             } catch {
@@ -145,16 +162,20 @@ self.addEventListener('notificationclick', (event) => {
 
         // Fallback for mobile WebKit builds where client.navigate() is absent
         // or rejected: tell the running app to persist the target and route.
-        preferredClient.postMessage(messagePayload);
+        postNotificationTarget(preferredClient, messagePayload);
         try {
           await preferredClient.focus();
           return;
         } catch {
-          return self.clients.openWindow(targetUrl.href);
+          const openedClient = await self.clients.openWindow(targetUrl.href);
+          postNotificationTarget(openedClient, messagePayload);
+          return openedClient;
         }
       }
       // No existing window — open a new one pointing directly to the chat
-      return self.clients.openWindow(targetUrl.href);
+      const openedClient = await self.clients.openWindow(targetUrl.href);
+      postNotificationTarget(openedClient, messagePayload);
+      return openedClient;
     })
   );
 });
