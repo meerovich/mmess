@@ -77,6 +77,21 @@
 .avatarButton {
   position: relative;
   flex-shrink: 0;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.avatarButton:hover,
+.avatarButton:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
+  outline: none;
 }
 
 .identity {

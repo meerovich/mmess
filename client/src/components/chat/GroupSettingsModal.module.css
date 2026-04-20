@@ -388,33 +388,101 @@
   height: 64px;
   place-items: center;
   align-self: flex-start;
+  padding: 0;
+  border: none;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
   line-height: 0;
+  background: transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.avatarOverlay {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
+.avatarWrapper:hover,
+.avatarWrapper:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.18);
+  outline: none;
+}
+
+.avatarChangeButton {
+  align-self: flex-start;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 9px 14px;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--text-label);
+  font-weight: 700;
+}
+
+.avatarChangeButton:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.cropCard {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-on-dark-bg);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.1;
-  text-align: center;
-  opacity: 0;
-  transition: opacity 0.15s;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(148, 163, 184, 0.08);
 }
 
-.avatarWrapper:hover .avatarOverlay {
-  opacity: 1;
+.cropHeader {
+  color: var(--color-text-primary);
 }
 
-.avatarOverlayVisible {
-  opacity: 1;
+.cropViewport {
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #0f172a;
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+}
+
+.cropViewport:active {
+  cursor: grabbing;
+}
+
+.cropViewport::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.45);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.cropImage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: auto;
+  height: auto;
+  min-width: 100%;
+  min-height: 100%;
+  transform-origin: center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.zoomField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--color-text-secondary);
+}
+
+.cropActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }

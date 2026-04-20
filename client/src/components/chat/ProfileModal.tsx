@@ -1,75 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { uploadFile } from '../../lib/api';
+import {
+  AVATAR_CROP_FRAME_SIZE,
+  clampCropOffset,
+  createAvatarCropSource,
+  renderCroppedAvatar,
+  type AvatarCropSource,
+} from '../../lib/avatarCrop';
 import { useTranslation } from '../../lib/i18n';
 import { Avatar } from '../common/Avatar';
+import { AvatarFullscreenPreview } from './AvatarFullscreenPreview';
 import { UploadStrip } from './UploadStrip';
 import styles from './ProfileModal.module.css';
 import type { UploadState } from '../../types/chat';
 
 interface ProfileModalProps {
   onClose: () => void;
-}
-
-const CROP_FRAME_SIZE = 220;
-
-function clampCropOffset(
-  imageWidth: number,
-  imageHeight: number,
-  zoom: number,
-  offset: { x: number; y: number },
-) {
-  const baseScale = Math.max(CROP_FRAME_SIZE / imageWidth, CROP_FRAME_SIZE / imageHeight);
-  const scaledWidth = imageWidth * baseScale * zoom;
-  const scaledHeight = imageHeight * baseScale * zoom;
-  const maxX = Math.max(0, (scaledWidth - CROP_FRAME_SIZE) / 2);
-  const maxY = Math.max(0, (scaledHeight - CROP_FRAME_SIZE) / 2);
-
-  return {
-    x: Math.min(maxX, Math.max(-maxX, offset.x)),
-    y: Math.min(maxY, Math.max(-maxY, offset.y)),
-  };
-}
-
-async function loadImage(file: File): Promise<HTMLImageElement> {
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const image = new Image();
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error('Failed to load image'));
-      image.src = objectUrl;
-    });
-    return image;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-async function renderCroppedAvatar(
-  file: File,
-  zoom: number,
-  offset: { x: number; y: number },
-): Promise<File> {
-  const image = await loadImage(file);
-  const canvas = document.createElement('canvas');
-  const outputSize = 512;
-  canvas.width = outputSize;
-  canvas.height = outputSize;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Canvas is not available');
-
-  const clampedOffset = clampCropOffset(image.width, image.height, zoom, offset);
-  const baseScale = Math.max(CROP_FRAME_SIZE / image.width, CROP_FRAME_SIZE / image.height);
-  const ratio = outputSize / CROP_FRAME_SIZE;
-
-  ctx.translate(outputSize / 2 + clampedOffset.x * ratio, outputSize / 2 + clampedOffset.y * ratio);
-  ctx.scale(baseScale * zoom * ratio, baseScale * zoom * ratio);
-  ctx.drawImage(image, -image.width / 2, -image.height / 2);
-
-  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-  if (!blob) throw new Error('Avatar crop failed');
-  return new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' });
 }
 
 export function ProfileModal({ onClose }: ProfileModalProps) {
@@ -80,10 +27,11 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatar_url ?? null);
   const [uploadState, setUploadState] = useState<UploadState>({ status: 'idle' });
   const [saving, setSaving] = useState(false);
-  const [cropSource, setCropSource] = useState<{ file: File; url: string; width: number; height: number } | null>(null);
+  const [cropSource, setCropSource] = useState<AvatarCropSource | null>(null);
   const [cropZoom, setCropZoom] = useState(1);
   const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
   const [isCropping, setIsCropping] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const dragStateRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   useEffect(() => {
@@ -109,7 +57,7 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
   if (!user) return null;
 
   const cropPreviewScale = cropSource
-    ? Math.max(CROP_FRAME_SIZE / cropSource.width, CROP_FRAME_SIZE / cropSource.height) * cropZoom
+    ? Math.max(AVATAR_CROP_FRAME_SIZE / cropSource.width, AVATAR_CROP_FRAME_SIZE / cropSource.height) * cropZoom
     : 1;
 
   const handleAvatarFileSelect = async (file: File) => {
@@ -117,11 +65,14 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
       setUploadState({ status: 'error', file, message: t('file.tooLarge') });
       return;
     }
-    const image = await loadImage(file);
-    const previewUrl = URL.createObjectURL(file);
-    setCropZoom(1);
-    setCropOffset({ x: 0, y: 0 });
-    setCropSource({ file, url: previewUrl, width: image.width, height: image.height });
+    try {
+      const nextCropSource = await createAvatarCropSource(file);
+      setCropZoom(1);
+      setCropOffset({ x: 0, y: 0 });
+      setCropSource(nextCropSource);
+    } catch {
+      setUploadState({ status: 'error', file, message: t('file.avatarUploadFailed') });
+    }
   };
 
   const uploadAvatarFile = async (file: File) => {
@@ -226,9 +177,14 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
         </div>
 
         <div className={styles.hero}>
-          <div className={styles.avatarButton}>
+          <button
+            type="button"
+            className={styles.avatarButton}
+            onClick={() => setShowAvatarPreview(true)}
+            aria-label={t('chat.openAvatar')}
+          >
             <Avatar name={user.username} avatarUrl={avatarUrl} size="lg" />
-          </div>
+          </button>
           <div className={styles.identity}>
             <strong className={styles.username}>{user.username}</strong>
             <span className={styles.email}>{user.email}</span>
@@ -368,6 +324,14 @@ export function ProfileModal({ onClose }: ProfileModalProps) {
           </div>
         </div>
       </div>
+      {showAvatarPreview && (
+        <AvatarFullscreenPreview
+          name={user.username}
+          avatarUrl={avatarUrl}
+          subtitle={user.email}
+          onClose={() => setShowAvatarPreview(false)}
+        />
+      )}
     </div>
   );
 }

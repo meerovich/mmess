@@ -1,9 +1,17 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
 import { apiFetch, uploadFile } from '../../lib/api';
+import {
+  AVATAR_CROP_FRAME_SIZE,
+  clampCropOffset,
+  createAvatarCropSource,
+  renderCroppedAvatar,
+  type AvatarCropSource,
+} from '../../lib/avatarCrop';
 import { Avatar } from '../common/Avatar';
+import { AvatarFullscreenPreview } from './AvatarFullscreenPreview';
 import { UploadStrip } from './UploadStrip';
 import type { Conversation, UploadState } from '../../types/chat';
 import styles from './GroupSettingsModal.module.css';
@@ -58,7 +66,13 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
   // Avatar upload state
   const [avatarUploadState, setAvatarUploadState] = useState<UploadState>({ status: 'idle' });
   const [localAvatarUrl, setLocalAvatarUrl] = useState<string | null>(conversation.avatar_url ?? null);
+  const [cropSource, setCropSource] = useState<AvatarCropSource | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropOffset, setCropOffset] = useState({ x: 0, y: 0 });
+  const [isCropping, setIsCropping] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
   const avatarFileInputRef = useRef<HTMLInputElement>(null);
+  const dragStateRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
 
   // Focus rename input when editing starts
   useEffect(() => {
@@ -95,6 +109,12 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
   useEffect(() => {
     setLocalAvatarUrl(conversation.avatar_url ?? null);
   }, [conversation.avatar_url]);
+
+  useEffect(() => {
+    return () => {
+      if (cropSource?.url) URL.revokeObjectURL(cropSource.url);
+    };
+  }, [cropSource?.url]);
 
   // Debounced user search for add members
   useEffect(() => {
@@ -136,22 +156,34 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
     }
   }
 
-  const handleAvatarFileSelect = (file: File) => {
+  const handleAvatarFileSelect = async (file: File) => {
     if (file.size > 25 * 1024 * 1024) {
       setAvatarUploadState({ status: 'error', file, message: t('file.tooLarge') });
       return;
     }
 
+    try {
+      const nextCropSource = await createAvatarCropSource(file);
+      setCropZoom(1);
+      setCropOffset({ x: 0, y: 0 });
+      setCropSource(nextCropSource);
+    } catch {
+      setAvatarUploadState({ status: 'error', file, message: t('file.avatarUploadFailed') });
+    }
+  };
+
+  const uploadGroupAvatarFile = async (file: File) => {
     const abortController = new AbortController();
     setAvatarUploadState({ status: 'uploading', file, progress: 0, abortController });
 
-    uploadFile(
-      file,
-      (progress) => setAvatarUploadState(prev =>
-        prev.status === 'uploading' ? { ...prev, progress } : prev
-      ),
-      abortController.signal,
-    ).then(async (result) => {
+    try {
+      const result = await uploadFile(
+        file,
+        (progress) => setAvatarUploadState(prev =>
+          prev.status === 'uploading' ? { ...prev, progress } : prev
+        ),
+        abortController.signal,
+      );
       const avatarUrl = `/api/files/${result.id}`;
       const patchRes = await apiFetch(`/api/conversations/${conversation.id}`, {
         method: 'PATCH',
@@ -165,14 +197,55 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
       dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
       setAvatarUploadState({ status: 'idle' });
       // WS conversation:updated broadcast will update ChatContext state
-    }).catch((err: Error) => {
-      if (err.name === 'AbortError') {
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
         setAvatarUploadState({ status: 'idle' });
         return;
       }
       setAvatarUploadState({ status: 'error', file, message: t('file.avatarUploadFailed') });
-    });
+    }
   };
+
+  const handleCropPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!cropSource) return;
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: cropOffset.x,
+      originY: cropOffset.y,
+    };
+
+    const imageWidth = cropSource.width;
+    const imageHeight = cropSource.height;
+    const zoom = cropZoom;
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const drag = dragStateRef.current;
+      if (!drag) return;
+      setCropOffset(clampCropOffset(
+        imageWidth,
+        imageHeight,
+        zoom,
+        {
+          x: drag.originX + moveEvent.clientX - drag.startX,
+          y: drag.originY + moveEvent.clientY - drag.startY,
+        },
+      ));
+    };
+
+    const stopDragging = () => {
+      dragStateRef.current = null;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopDragging);
+      window.removeEventListener('pointercancel', stopDragging);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopDragging, { once: true });
+    window.addEventListener('pointercancel', stopDragging, { once: true });
+  }, [cropOffset.x, cropOffset.y, cropSource, cropZoom]);
 
   async function handleRenameSubmit() {
     const trimmed = renameValue.trim();
@@ -291,6 +364,9 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
   }
 
   const groupDisplayName = conversation.name ?? t('chat.groupChat');
+  const cropPreviewScale = cropSource
+    ? Math.max(AVATAR_CROP_FRAME_SIZE / cropSource.width, AVATAR_CROP_FRAME_SIZE / cropSource.height) * cropZoom
+    : 1;
   const sortedParticipants = useMemo(
     () => [...conversation.participants].sort((a, b) => {
       if (a.is_admin !== b.is_admin) return a.is_admin ? -1 : 1;
@@ -324,9 +400,11 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
           <h3 className={styles.sectionTitle}>{t('group.about')}</h3>
 
           {/* Avatar upload area */}
-          <div
+          <button
+            type="button"
             className={styles.avatarWrapper}
-            onClick={isAdmin ? () => avatarFileInputRef.current?.click() : undefined}
+            onClick={() => setShowAvatarPreview(true)}
+            aria-label={t('chat.openAvatar')}
           >
             <Avatar
               name={groupDisplayName}
@@ -334,30 +412,33 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
               avatarUrl={localAvatarUrl}
               kind="group"
             />
+          </button>
 
-            {/* Hidden file input — images only */}
-            {isAdmin && (
-              <input
-                ref={avatarFileInputRef}
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                aria-label={t('group.changeAvatar')}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleAvatarFileSelect(file);
-                  e.target.value = '';
-                }}
-              />
-            )}
+          {/* Hidden file input — images only */}
+          {isAdmin && (
+            <input
+              ref={avatarFileInputRef}
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              aria-label={t('group.changeAvatar')}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleAvatarFileSelect(file);
+                e.target.value = '';
+              }}
+            />
+          )}
 
-            {/* Hover overlay for admin */}
-            {isAdmin && (
-              <div className={`${styles.avatarOverlay} ${!localAvatarUrl ? styles.avatarOverlayVisible : ''}`}>
-                {t('group.change')}
-              </div>
-            )}
-          </div>
+          {isAdmin && (
+            <button
+              type="button"
+              className={styles.avatarChangeButton}
+              onClick={() => avatarFileInputRef.current?.click()}
+            >
+              {t('group.changeAvatar')}
+            </button>
+          )}
 
           {/* Avatar upload progress strip */}
           {avatarUploadState.status !== 'idle' && (
@@ -368,9 +449,78 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
                 setAvatarUploadState({ status: 'idle' });
               }}
               onRetry={() => {
-                if (avatarUploadState.status === 'error') handleAvatarFileSelect(avatarUploadState.file);
+                if (avatarUploadState.status === 'error') void handleAvatarFileSelect(avatarUploadState.file);
               }}
             />
+          )}
+
+          {cropSource && (
+            <div className={styles.cropCard}>
+              <div className={styles.cropHeader}>
+                <strong>{t('profile.cropAvatar')}</strong>
+              </div>
+              <div
+                className={styles.cropViewport}
+                onPointerDown={handleCropPointerDown}
+              >
+                <img
+                  src={cropSource.url}
+                  alt={t('profile.cropAvatar')}
+                  className={styles.cropImage}
+                  style={{
+                    width: cropSource.width,
+                    height: cropSource.height,
+                    transform: `translate(-50%, -50%) translate(${cropOffset.x}px, ${cropOffset.y}px) scale(${cropPreviewScale})`,
+                  }}
+                  draggable={false}
+                />
+              </div>
+              <label className={styles.zoomField}>
+                <span>{t('profile.zoom')}</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="3"
+                  step="0.01"
+                  value={cropZoom}
+                  onChange={(event) => {
+                    const nextZoom = Number(event.target.value);
+                    setCropZoom(nextZoom);
+                    setCropOffset(current => clampCropOffset(cropSource.width, cropSource.height, nextZoom, current));
+                  }}
+                />
+              </label>
+              <div className={styles.cropActions}>
+                <button
+                  type="button"
+                  className={styles.cancelRenameButton}
+                  onClick={() => {
+                    URL.revokeObjectURL(cropSource.url);
+                    setCropSource(null);
+                  }}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  className={styles.saveButton}
+                  disabled={isCropping}
+                  onClick={async () => {
+                    setIsCropping(true);
+                    try {
+                      const croppedFile = await renderCroppedAvatar(cropSource.file, cropZoom, cropOffset);
+                      URL.revokeObjectURL(cropSource.url);
+                      setCropSource(null);
+                      await uploadGroupAvatarFile(croppedFile);
+                    } finally {
+                      setIsCropping(false);
+                    }
+                  }}
+                >
+                  {isCropping ? t('profile.saving') : t('profile.applyCrop')}
+                </button>
+              </div>
+            </div>
           )}
 
           <div className={styles.aboutRow}>
@@ -553,6 +703,15 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
           </section>
         )}
       </div>
+      {showAvatarPreview && (
+        <AvatarFullscreenPreview
+          name={groupDisplayName}
+          avatarUrl={localAvatarUrl}
+          kind="group"
+          subtitle={t('chat.groupChat')}
+          onClose={() => setShowAvatarPreview(false)}
+        />
+      )}
     </div>
   );
 }
