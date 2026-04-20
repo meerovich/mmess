@@ -240,6 +240,13 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   }, [message.created_at, message.deliveries, message.reads, otherParticipants]);
   const deliveredParticipants = receiptParticipants.filter(participant => participant.delivered_at);
   const readParticipants = receiptParticipants.filter(participant => participant.read_at);
+  const activeReceiptParticipant = activeReceiptHint
+    ? (activeReceiptHint.type === 'read' ? readParticipants : deliveredParticipants)
+      .find(participant => participant.user_id === activeReceiptHint.userId)
+    : null;
+  const activeReceiptTimestamp = activeReceiptParticipant && activeReceiptHint?.type === 'read'
+    ? activeReceiptParticipant.read_at
+    : activeReceiptParticipant?.delivered_at;
   const receiptDetailRows = useMemo(() => {
     if (!isOwn) return [];
 
@@ -432,6 +439,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
+  }, [showReceiptDetails]);
+
+  useEffect(() => {
+    if (!showReceiptDetails) setActiveReceiptHint(null);
   }, [showReceiptDetails]);
 
   useEffect(() => {
@@ -808,57 +819,43 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                             {row.participants.length}/{receiptParticipants.length}
                           </span>
                         </span>
-                        {(() => {
-                          const activeParticipant = row.participants.find(
-                            participant =>
-                              activeReceiptHint?.userId === participant.user_id &&
-                              activeReceiptHint.type === row.type
-                          );
-                          const activeTimestamp =
-                            activeParticipant && row.type === 'read'
-                              ? activeParticipant.read_at
-                              : activeParticipant?.delivered_at;
+                        <div className={styles.receiptAvatarList} aria-label={row.label}>
+                          {row.participants.length > 0 ? (
+                            row.participants.map(participant => {
+                              const timestamp = row.type === 'read' ? participant.read_at : participant.delivered_at;
+                              const isActive =
+                                activeReceiptHint?.userId === participant.user_id &&
+                                activeReceiptHint.type === row.type;
 
-                          return (
-                            <>
-                              <div className={styles.receiptAvatarList} aria-label={row.label}>
-                                {row.participants.length > 0 ? (
-                                  row.participants.map(participant => {
-                                    const timestamp = row.type === 'read' ? participant.read_at : participant.delivered_at;
-                                    const isActive =
-                                      activeReceiptHint?.userId === participant.user_id &&
-                                      activeReceiptHint.type === row.type;
-
-                                    return (
-                                      <button
-                                        key={`${row.type}-${participant.user_id}`}
-                                        type="button"
-                                        className={`${styles.receiptAvatarButton} ${isActive ? styles.receiptAvatarButtonActive : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActiveReceiptHint(isActive ? null : { userId: participant.user_id, type: row.type });
-                                        }}
-                                        aria-label={`${participant.username}: ${timestamp ? formatReceiptTimestamp(timestamp, locale) : t('time.pendingReceipt')}`}
-                                      >
-                                        <Avatar name={participant.username} avatarUrl={participant.avatar_url} size="sm" />
-                                      </button>
-                                    );
-                                  })
-                                ) : (
-                                  <span className={styles.receiptEmpty}>{t('time.pendingReceipt')}</span>
-                                )}
-                              </div>
-                              {activeParticipant && activeTimestamp && (
-                                <div className={styles.receiptHint} role="tooltip">
-                                  <span className={styles.receiptHintName}>{activeParticipant.username}</span>
-                                  <span className={styles.receiptHintTime}>{formatReceiptTimestamp(activeTimestamp, locale)}</span>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
+                              return (
+                                <button
+                                  key={`${row.type}-${participant.user_id}`}
+                                  type="button"
+                                  className={`${styles.receiptAvatarButton} ${isActive ? styles.receiptAvatarButtonActive : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveReceiptHint(isActive ? null : { userId: participant.user_id, type: row.type });
+                                  }}
+                                  aria-label={`${participant.username}: ${timestamp ? formatReceiptTimestamp(timestamp, locale) : t('time.pendingReceipt')}`}
+                                >
+                                  <Avatar name={participant.username} avatarUrl={participant.avatar_url} size="sm" />
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <span className={styles.receiptEmpty}>{t('time.pendingReceipt')}</span>
+                          )}
+                        </div>
                       </div>
                     ))}
+                    <div className={styles.receiptHintHost} aria-live="polite">
+                      {activeReceiptParticipant && activeReceiptTimestamp && (
+                        <div className={styles.receiptHint} role="tooltip">
+                          <span className={styles.receiptHintName}>{activeReceiptParticipant.username}</span>
+                          <span className={styles.receiptHintTime}>{formatReceiptTimestamp(activeReceiptTimestamp, locale)}</span>
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : (
                   receiptDetailRows.map((row, idx) => (
