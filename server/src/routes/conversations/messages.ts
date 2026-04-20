@@ -12,6 +12,10 @@ import {
 } from '../../db/schema.js';
 import { eq, and, or, lt, desc, sql } from 'drizzle-orm';
 
+function toIsoTimestamp(value: Date | string): string {
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
 export default async function conversationsMessagesRoutes(fastify: FastifyInstance) {
   fastify.get<{
     Params: { id: string };
@@ -138,7 +142,7 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
       ON CONFLICT DO NOTHING
       RETURNING message_id, delivered_at
     `);
-    const newlyDelivered = Array.from(deliveredResult as unknown as Array<{ message_id: string; delivered_at: Date }>);
+    const newlyDelivered = Array.from(deliveredResult as unknown as Array<{ message_id: string; delivered_at: Date | string }>);
     if (newlyDelivered.length > 0) {
       const participantRows = await db
         .select({ user_id: conversation_participants.user_id })
@@ -152,7 +156,7 @@ export default async function conversationsMessagesRoutes(fastify: FastifyInstan
           user_id: userId,
           deliveries: newlyDelivered.map(row => ({
             message_id: row.message_id,
-            delivered_at: row.delivered_at.toISOString(),
+            delivered_at: toIsoTimestamp(row.delivered_at),
           })),
         },
       });
