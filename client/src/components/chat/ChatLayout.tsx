@@ -276,12 +276,16 @@ export function ChatLayout() {
       path,
       conversationId: candidate.id,
       messageId: candidate.last_message.id,
-      replace: true,
+      replace: false,
     });
     staleChatPopGuardRef.current = false;
     navigate(path, {
-      replace: true,
-      state: { mmessFromNotification: true, mmessRecoveredNotification: true },
+      replace: false,
+      state: {
+        mmessBackToList: true,
+        mmessFromNotification: true,
+        mmessRecoveredNotification: true,
+      },
     });
   }, [location.pathname, navigate, state.conversations, user?.id]);
 
