@@ -6,8 +6,10 @@ import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { uploadFile } from '../../lib/api';
+import { encryptFileForConversation, encryptMessagePayload } from '../../lib/e2ee';
 import { UploadStrip } from './UploadStrip';
 import styles from './MessageInput.module.css';
+import type { E2eeFileMeta } from '../../lib/e2ee';
 import type { Message, UploadState } from '../../types/chat';
 
 // nanoid is hoisted from server workspace to root node_modules
@@ -23,7 +25,7 @@ interface MessageInputProps {
 
 type AttachmentUploadState =
   | { clientId: string; status: 'uploading'; file: File; progress: number; abortController: AbortController }
-  | { clientId: string; status: 'ready'; file: File; fileId: string; thumbnailUrl?: string }
+  | { clientId: string; status: 'ready'; file: File; fileId: string; thumbnailUrl?: string; e2eeFile?: E2eeFileMeta }
   | { clientId: string; status: 'error'; file: File; message: string };
 
 export function MessageInput({
@@ -49,6 +51,8 @@ export function MessageInput({
   const [isDragging, setIsDragging] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionStart, setMentionStart] = useState(0);
+  const conversation = state.conversations.find(c => c.id === conversationId);
+  const participants = conversation?.participants.filter(p => p.user_id !== user?.id) ?? [];
 
   // Save draft to localStorage on every change (debounced implicitly by React batching)
   useEffect(() => {
@@ -98,15 +102,19 @@ export function MessageInput({
       const abortController = new AbortController();
       setUploadStates(prev => [...prev, { clientId, status: 'uploading', file, progress: 0, abortController }]);
 
-      uploadFile(
-        file,
+      const uploadPromise = conversation && user
+        ? encryptFileForConversation(conversation, user.id, file)
+        : Promise.resolve({ encryptedFile: file, meta: undefined });
+
+      uploadPromise.then(({ encryptedFile, meta }) => uploadFile(
+        encryptedFile,
         (progress) => setUploadStates(prev => prev.map(item =>
           item.clientId === clientId && item.status === 'uploading'
             ? { ...item, progress }
             : item
         )),
         abortController.signal,
-      ).then((result) => {
+      ).then((result) => ({ result, meta }))).then(({ result, meta }) => {
         setUploadStates(prev => prev.map(item =>
           item.clientId === clientId
             ? {
@@ -115,6 +123,7 @@ export function MessageInput({
                 file,
                 fileId: result.id,
                 thumbnailUrl: result.thumbnail_url ?? undefined,
+                e2eeFile: meta,
               }
             : item
         ));
@@ -130,7 +139,7 @@ export function MessageInput({
         ));
       });
     });
-  }, [t]);
+  }, [conversation, t, user]);
 
   const handleCancelUpload = useCallback((clientId: string) => {
     setUploadStates(prev => {
@@ -196,10 +205,6 @@ export function MessageInput({
     ta.style.height = `${Math.min(ta.scrollHeight, 150)}px`;
   }, [value]);
 
-  // Get conversation participants for mention autocomplete
-  const conversation = state.conversations.find(c => c.id === conversationId);
-  const participants = conversation?.participants.filter(p => p.user_id !== user?.id) ?? [];
-
   const mentionCandidates = mentionQuery !== null
     ? participants.filter(p => p.username.toLowerCase().startsWith(mentionQuery.toLowerCase())).slice(0, 5)
     : [];
@@ -252,20 +257,23 @@ export function MessageInput({
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = value.trim();
     const readyUploads = uploadStates.filter((item): item is Extract<AttachmentUploadState, { status: 'ready' }> => item.status === 'ready');
     // Allow send when at least one file is ready even with empty text (caption is optional)
     if (!trimmed && readyUploads.length === 0) return;
-    if (!user) return;
+    if (!user || !conversation) return;
 
     if (editMessage) {
+      const encryptedContent = trimmed
+        ? await encryptMessagePayload(conversation, user.id, { text: trimmed })
+        : '';
       // Edit flow — files not applicable to edits
       sendWs({
         type: 'message:edit',
         payload: {
           message_id: editMessage.id,
-          content: trimmed,
+          content: encryptedContent,
           conversation_id: conversationId,
         },
       });
@@ -274,18 +282,22 @@ export function MessageInput({
     } else {
       const uploadsToSend = readyUploads.length > 0 ? readyUploads : [null];
 
-      uploadsToSend.forEach((readyUpload, index) => {
+      await Promise.all(uploadsToSend.map(async (readyUpload, index) => {
         const tempId = nanoid();
         const fileId = readyUpload?.fileId;
         const thumbnailUrl = readyUpload?.thumbnailUrl;
         const uploadFile_ = readyUpload?.file ?? null;
         const isPrimaryMessage = index === 0;
+        const encryptedContent = await encryptMessagePayload(conversation, user.id, {
+          text: isPrimaryMessage ? (trimmed || null) : null,
+          file: readyUpload?.e2eeFile,
+        });
 
         const optimisticMessage: Message = {
           id: tempId,
           conversation_id: conversationId,
           sender_id: user.id,
-          content: isPrimaryMessage ? (trimmed || null) : null,
+          content: encryptedContent,
           reply_to_id: isPrimaryMessage ? (replyTo?.id ?? null) : null,
           reply_to: isPrimaryMessage && replyTo
             ? {
@@ -321,12 +333,12 @@ export function MessageInput({
           id: tempId,
           payload: {
             conversation_id: conversationId,
-            content: isPrimaryMessage ? (trimmed || undefined) : undefined,
+            content: encryptedContent,
             reply_to_id: isPrimaryMessage ? (replyTo?.id ?? null) : null,
             file_id: fileId,
           },
         });
-      });
+      }));
 
       // Clear upload state and reply
       setUploadStates([]);

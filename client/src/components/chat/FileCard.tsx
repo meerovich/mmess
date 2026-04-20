@@ -7,6 +7,7 @@ interface FileCardProps {
   fileName: string;
   fileSize: number;    // bytes
   mimeType: string;
+  onDownload?: () => void;
 }
 
 function formatSize(bytes: number): string {
@@ -15,10 +16,14 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FileCard({ fileId, fileName, fileSize, mimeType }: FileCardProps) {
+export function FileCard({ fileId, fileName, fileSize, mimeType, onDownload }: FileCardProps) {
   const { t } = useTranslation();
 
   const handleDownload = () => {
+    if (onDownload) {
+      onDownload();
+      return;
+    }
     window.location.href = `/api/files/${fileId}`;
   };
 

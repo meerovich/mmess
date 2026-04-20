@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useNavigationType, useParams } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { ConversationList } from './ConversationList';
 import { ChatPane } from './ChatPane';
 import { NotificationBanner } from './NotificationBanner';
+import { ensureE2eeIdentity } from '../../lib/e2ee';
 import { registerPushSubscription } from '../../lib/pushSubscription';
 import { useTranslation } from '../../lib/i18n';
 import {
@@ -32,6 +34,7 @@ export function ChatLayout() {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const { dispatch } = useChat();
+  const { user } = useAuth();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
   const previousPathRef = useRef(location.pathname);
@@ -90,6 +93,13 @@ export function ChatLayout() {
   useEffect(() => {
     registerPushSubscription();
   }, []);
+
+  // Publish the user's E2EE public key early so other participants can share
+  // conversation keys before the first encrypted message reaches this device.
+  useEffect(() => {
+    if (!user?.id) return;
+    void ensureE2eeIdentity();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;

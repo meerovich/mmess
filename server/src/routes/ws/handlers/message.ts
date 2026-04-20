@@ -21,6 +21,16 @@ async function getParticipantIds(db: DB, conversationId: string): Promise<string
   return rows.map(r => r.user_id);
 }
 
+function isEncryptedPayload(content: string | null | undefined): boolean {
+  if (!content?.startsWith('{')) return false;
+  try {
+    const parsed = JSON.parse(content) as { type?: unknown };
+    return parsed.type === 'mmess-e2ee';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Build the wire-format message that the frontend expects.
  *
@@ -329,8 +339,11 @@ export async function handleMessageSend(
     const sender = enrichedMessage.sender as { username?: string } | null;
     const senderName = sender?.username ?? 'Someone';
     const content = enrichedMessage.content as string | null;
+    const encrypted = isEncryptedPayload(content);
     // Strip markdown syntax so push notifications show clean plain text
-    const body = content
+    const body = encrypted
+      ? 'Encrypted message'
+      : content
       ? content.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120)
       : 'Sent a file';
 
@@ -353,7 +366,7 @@ export async function handleMessageSend(
 
     // @mention push: check if any conversation participant is @mentioned in content.
     // Handles usernames with spaces by checking each participant name against the text.
-    if (content && content.includes('@')) {
+    if (!encrypted && content && content.includes('@')) {
       const convParticipants = await db.select({ id: users.id, username: users.username })
         .from(users)
         .innerJoin(conversation_participants, eq(conversation_participants.user_id, users.id))

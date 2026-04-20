@@ -9,6 +9,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { useSendMessage } from '../../providers/WebSocketProvider';
+import {
+  decryptFileBlob,
+  decryptMessagePayload,
+  isEncryptedPayload,
+} from '../../lib/e2ee';
 import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar, AddReactionButton, LONG_PRESS_REACTION_EMOJIS } from './ReactionBar';
 import { FileCard } from './FileCard';
@@ -16,7 +21,8 @@ import { Lightbox } from './Lightbox';
 import { ForwardModal } from './ForwardModal';
 import { Avatar } from '../common/Avatar';
 import styles from './MessageItem.module.css';
-import type { Message, Participant } from '../../types/chat';
+import type { E2eeFileMeta, E2eePlainPayload } from '../../lib/e2ee';
+import type { Conversation, Message, Participant } from '../../types/chat';
 
 // Configure marked for chat messages: no paragraph wrapping for single lines,
 // breaks on newlines (GFM), sanitize by not allowing raw HTML.
@@ -136,6 +142,87 @@ function ReadReceipt({
   );
 }
 
+function downloadBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function EncryptedAttachment({
+  conversation,
+  userId,
+  fileId,
+  meta,
+}: {
+  conversation: Conversation;
+  userId: string;
+  fileId: string;
+  meta: E2eeFileMeta;
+}) {
+  const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const isImage = meta.mime.startsWith('image/');
+
+  useEffect(() => {
+    if (!isImage) return;
+    let cancelled = false;
+    let nextUrl: string | null = null;
+
+    decryptFileBlob(conversation, userId, fileId, meta)
+      .then((blob) => {
+        if (cancelled) return;
+        nextUrl = URL.createObjectURL(blob);
+        setObjectUrl(nextUrl);
+      })
+      .catch(() => setFailed(true));
+
+    return () => {
+      cancelled = true;
+      if (nextUrl) URL.revokeObjectURL(nextUrl);
+    };
+  }, [conversation, fileId, isImage, meta, userId]);
+
+  const handleDownload = () => {
+    decryptFileBlob(conversation, userId, fileId, meta)
+      .then(blob => downloadBlob(blob, meta.name))
+      .catch(() => setFailed(true));
+  };
+
+  if (isImage) {
+    return (
+      <div
+        className={styles.imageContainer}
+        onClick={handleDownload}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter') handleDownload(); }}
+        aria-label={`Download ${meta.name}`}
+      >
+        {objectUrl && !failed ? (
+          <img src={objectUrl} alt={meta.name} className={styles.inlineImage} />
+        ) : (
+          <FileCard fileId={fileId} fileName={meta.name} fileSize={meta.size} mimeType={meta.mime} onDownload={handleDownload} />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <FileCard
+      fileId={fileId}
+      fileName={meta.name}
+      fileSize={meta.size}
+      mimeType={meta.mime}
+      onDownload={handleDownload}
+    />
+  );
+}
+
 export function MessageItem({ message, isGrouped = false, onReply, onEdit }: MessageItemProps) {
   const { user } = useAuth();
   const { state } = useChat();
@@ -168,6 +255,38 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const isOwn = message.sender_id === currentUserId;
   const conversation = state.conversations.find(c => c.id === message.conversation_id);
   const receiptVisualState = getReceiptVisualState(message, currentUserId, conversation?.participants ?? []);
+  const encrypted = isEncryptedPayload(message.content);
+  const [decryptedPayload, setDecryptedPayload] = useState<E2eePlainPayload | null>(null);
+  const [decryptFailed, setDecryptFailed] = useState(false);
+
+  useEffect(() => {
+    if (!conversation || !user?.id || !message.content) {
+      setDecryptedPayload(null);
+      setDecryptFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    decryptMessagePayload(conversation, user.id, message.content)
+      .then((payload) => {
+        if (cancelled) return;
+        setDecryptedPayload(payload);
+        setDecryptFailed(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDecryptedPayload(null);
+        setDecryptFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation, message.content, user?.id]);
+  const displayContent = encrypted
+    ? decryptedPayload?.text ?? (decryptFailed ? t('chat.decryptFailed') : t('chat.decrypting'))
+    : message.content;
+  const displayFile = decryptedPayload?.file;
 
   // WhatsApp-style swipe gestures
   const SWIPE_THRESHOLD = 48;
@@ -341,7 +460,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   // Edit flow: activates message:edit mode in MessageInput via onEdit callback
   const handleEdit = () => {
     setShowMenu(false);
-    onEdit?.(message);
+    onEdit?.({ ...message, content: displayContent });
   };
 
   const handleDeleteConfirm = () => {
@@ -406,7 +525,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const safeTop = viewportTop + getSafeAreaInsetTop() + 8;
       const inputArea = document.querySelector('[data-chat-input-area="true"]') as HTMLElement | null;
       const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
-      const actionCount = 2 + Number(Boolean(message.content)) + (canEditDelete ? 2 : 0);
+      const actionCount = 2 + Number(Boolean(displayContent)) + (canEditDelete ? 2 : 0);
       const menuH = actionCount * 52;
       const horizontalMargin = 8;
       const desiredMenuWidth = Math.max(160, Math.min(280, viewportWidth - horizontalMargin * 2));
@@ -461,7 +580,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       setShowLongPressMenu(true);
       if (navigator.vibrate) navigator.vibrate(30);
     }, 500);
-  }, [canEditDelete, message.content]);
+  }, [canEditDelete, displayContent]);
 
   useEffect(() => {
     if (!showReceiptDetails) return;
@@ -589,7 +708,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       )}
 
       {message.reply_to && (
-        <ReplyPreview replyTo={message.reply_to} />
+        <ReplyPreview replyTo={message.reply_to} conversation={conversation} userId={user?.id} />
       )}
 
       {message.forwarded_from && (
@@ -608,7 +727,16 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         <div className={`${styles.content} ${styles.deleted}`}>{t('chat.deleted')}</div>
       ) : (
         <>
-          {message.file_id && message.is_image && (
+          {message.file_id && displayFile && conversation && user?.id && (
+            <EncryptedAttachment
+              conversation={conversation}
+              userId={user.id}
+              fileId={message.file_id}
+              meta={displayFile}
+            />
+          )}
+
+          {message.file_id && !displayFile && message.is_image && (
             <div
               className={styles.imageContainer}
               onClick={() => setLightboxOpen(true)}
@@ -628,7 +756,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             </div>
           )}
 
-          {message.file_id && !message.is_image && message.file_name && (
+          {message.file_id && !displayFile && !message.is_image && message.file_name && (
             <FileCard
               fileId={message.file_id}
               fileName={message.file_name}
@@ -637,10 +765,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             />
           )}
 
-          {message.content && (
+          {displayContent && (
             <div
               className={styles.content}
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content, conversation?.participants.map(p => p.username)) }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(displayContent, conversation?.participants.map(p => p.username)) }}
             />
           )}
         </>
@@ -766,8 +894,8 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
                 {t('chat.forward')}
               </button>
-              {message.content && (
-                <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(message.content!); closeLongPressMenu(); }}>
+              {displayContent && (
+                <button className={styles.longPressItem} onClick={() => { navigator.clipboard.writeText(displayContent); closeLongPressMenu(); }}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                   {t('chat.copy')}
                 </button>
@@ -1012,10 +1140,10 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 14l5-5-5-5"/><path d="M4 20v-7a4 4 0 014-4h12"/></svg>
           </button>
-          {message.content && (
+          {displayContent && (
             <button
               className={styles.menuBtn}
-              onClick={() => navigator.clipboard.writeText(message.content!)}
+              onClick={() => navigator.clipboard.writeText(displayContent)}
               aria-label={t('chat.copy')}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>

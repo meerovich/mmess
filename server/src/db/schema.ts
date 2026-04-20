@@ -195,6 +195,34 @@ export const push_subscriptions = pgTable('push_subscriptions', {
   unq_push_endpoint: unique('unq_push_endpoint').on(t.endpoint),
 }));
 
+export const user_key_bundles = pgTable('user_key_bundles', {
+  user_id: uuid('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  public_key_jwk: text('public_key_jwk').notNull(),
+  ...timestamps(),
+});
+
+export const conversation_key_shares = pgTable(
+  'conversation_key_shares',
+  {
+    conversation_id: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    user_id: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    wrapped_key: text('wrapped_key').notNull(),
+    algorithm: varchar('algorithm', { length: 32 }).notNull().default('RSA-OAEP-256+A256GCM'),
+    key_version: integer('key_version').notNull().default(1),
+    created_by: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+    ...timestamps(),
+  },
+  (t) => ({
+    pk: unique().on(t.conversation_id, t.user_id, t.key_version),
+    idx_conversation: index('idx_cks_conversation').on(t.conversation_id),
+    idx_user: index('idx_cks_user').on(t.user_id),
+  })
+);
+
 export const invites = pgTable('invites', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   token_hash: text('token_hash').notNull().unique(),

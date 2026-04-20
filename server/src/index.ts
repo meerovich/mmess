@@ -16,6 +16,7 @@ import filesRoutes from './routes/files/index.js';
 import pushRoutes from './routes/push/index.js';
 import botRoutes from './routes/bot/index.js';
 import avatarRoutes from './routes/avatar/index.js';
+import e2eeRoutes from './routes/e2ee/index.js';
 
 const app = Fastify({
   logger: {
@@ -43,6 +44,7 @@ app.register(filesRoutes, { prefix: '/files' });
 app.register(pushRoutes);
 app.register(botRoutes);
 app.register(avatarRoutes);
+app.register(e2eeRoutes);
 
 // APP_VERSION is injected at container startup via docker-compose.yml
 // environment (set by scripts/deploy.sh on the VPS). Falls back to 'dev'

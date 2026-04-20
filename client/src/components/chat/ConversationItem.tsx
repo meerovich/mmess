@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
 import { getPlainMessagePreview } from '../../lib/chatText';
+import { decryptMessagePayload, isEncryptedPayload } from '../../lib/e2ee';
 import { useChatLayout } from './ChatLayout';
 import { useSendMessage } from '../../providers/WebSocketProvider';
 import { Avatar } from '../common/Avatar';
@@ -60,9 +61,34 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       : conversation.avatar_url;
 
   // Strip markdown syntax for sidebar preview and mirror message emoticons.
-  const lastPreview = conversation.last_message?.content
+  const encryptedLastMessage = isEncryptedPayload(conversation.last_message?.content);
+  const lastPreview = conversation.last_message?.content && !encryptedLastMessage
     ? getPlainMessagePreview(conversation.last_message.content, 50)
     : null;
+  const [decryptedPreview, setDecryptedPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    const content = conversation.last_message?.content;
+    if (!content || !user?.id || !isEncryptedPayload(content)) {
+      setDecryptedPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    decryptMessagePayload(conversation, user.id, content)
+      .then((payload) => {
+        if (cancelled) return;
+        const text = payload?.text || (payload?.file ? payload.file.name : null);
+        setDecryptedPreview(text ? getPlainMessagePreview(text, 50) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setDecryptedPreview(t('chat.encryptedMessage'));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation, conversation.last_message?.content, t, user?.id]);
 
   const timeStr = conversation.updated_at ? formatTime(conversation.updated_at, locale, t) : '';
 
@@ -213,7 +239,11 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
                     {outgoingStatus === 'read' ? '\u2713\u2713 ' : '\u2713 '}
                   </span>
                 )}
-                {lastPreview ?? <em className={styles.noPreview}>{t('sidebar.noMessages')}</em>}
+                {decryptedPreview
+                  ?? lastPreview
+                  ?? (encryptedLastMessage
+                    ? t('chat.encryptedMessage')
+                    : <em className={styles.noPreview}>{t('sidebar.noMessages')}</em>)}
               </>
             )}
           </span>
