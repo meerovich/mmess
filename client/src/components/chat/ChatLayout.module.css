@@ -74,6 +74,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
+    padding-bottom: 0;
   }
 
   .sidebar {

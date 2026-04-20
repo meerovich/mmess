@@ -55,12 +55,41 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
     }
   }
 
+  let pinnedMessage = null;
+  if (conv.pinned_message_id) {
+    const [msg] = await db.select({
+      id: messages.id,
+      content: messages.content,
+      sender_id: messages.sender_id,
+      created_at: messages.created_at,
+      sender_username: users.username,
+    })
+      .from(messages)
+      .innerJoin(users, eq(messages.sender_id, users.id))
+      .where(eq(messages.id, conv.pinned_message_id))
+      .limit(1);
+
+    if (msg) {
+      pinnedMessage = {
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        created_at: msg.created_at.toISOString(),
+        sender: {
+          id: msg.sender_id,
+          username: msg.sender_username,
+        },
+      };
+    }
+  }
+
   return {
     id: conv.id,
     type: conv.type,
     name: displayName,
     avatar_url: conv.avatar_url,
     last_message: lastMessage,
+    pinned_message: pinnedMessage,
     unread_count: 0,
     participants: participants.map(p => ({
       user_id: p.user_id,
@@ -93,6 +122,147 @@ async function getParticipant(conversationId: string, userId: string) {
 }
 
 export default async function conversationsAdminRoutes(fastify: FastifyInstance) {
+
+  fastify.delete<{ Params: { id: string } }>(
+    '/conversations/:id',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.user.sub;
+      const { id: conversationId } = request.params;
+
+      const participant = await getParticipant(conversationId, userId);
+      if (!participant) return reply.code(403).send({ error: 'Not a participant' });
+
+      const [conversationRow] = await db.select().from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+      if (!conversationRow) return reply.code(404).send({ error: 'Conversation not found' });
+
+      if (conversationRow.type === 'group' && !participant.is_admin) {
+        return reply.code(403).send({ error: 'Admin only' });
+      }
+
+      const allParticipants = await db.select({ user_id: conversation_participants.user_id })
+        .from(conversation_participants)
+        .where(eq(conversation_participants.conversation_id, conversationId));
+
+      await db.delete(conversations).where(eq(conversations.id, conversationId));
+
+      broadcast(allParticipants.map(row => row.user_id), {
+        type: 'conversation:removed',
+        payload: { conversation_id: conversationId },
+      });
+
+      return reply.code(204).send();
+    }
+  );
+
+  fastify.post<{ Params: { id: string }; Body: { message_id: string } }>(
+    '/conversations/:id/pin',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+        body: {
+          type: 'object',
+          required: ['message_id'],
+          properties: {
+            message_id: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.user.sub;
+      const { id: conversationId } = request.params;
+      const { message_id } = request.body;
+
+      const participant = await getParticipant(conversationId, userId);
+      if (!participant) return reply.code(403).send({ error: 'Not a participant' });
+
+      const [conversationRow] = await db.select().from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+      if (!conversationRow) return reply.code(404).send({ error: 'Conversation not found' });
+      if (conversationRow.type === 'group' && !participant.is_admin) {
+        return reply.code(403).send({ error: 'Admin only' });
+      }
+
+      const [messageRow] = await db.select({ id: messages.id })
+        .from(messages)
+        .where(and(eq(messages.id, message_id), eq(messages.conversation_id, conversationId)))
+        .limit(1);
+      if (!messageRow) return reply.code(404).send({ error: 'Message not found' });
+
+      await db.update(conversations)
+        .set({
+          pinned_message_id: message_id,
+          pinned_by_user_id: userId,
+          pinned_at: new Date(),
+          updated_at: new Date(),
+        })
+        .where(eq(conversations.id, conversationId));
+
+      const conversation = await fetchConversation(conversationId, userId);
+      if (!conversation) return reply.code(404).send({ error: 'Not found' });
+
+      broadcast(conversation.participants.map(p => p.user_id), {
+        type: 'conversation:updated',
+        payload: { conversation },
+      });
+
+      return reply.send(conversation);
+    }
+  );
+
+  fastify.delete<{ Params: { id: string } }>(
+    '/conversations/:id/pin',
+    {
+      preHandler: [fastify.authenticate],
+      schema: {
+        params: { type: 'object', required: ['id'], properties: { id: { type: 'string', format: 'uuid' } } },
+      },
+    },
+    async (request, reply) => {
+      const userId = request.user.sub;
+      const { id: conversationId } = request.params;
+
+      const participant = await getParticipant(conversationId, userId);
+      if (!participant) return reply.code(403).send({ error: 'Not a participant' });
+
+      const [conversationRow] = await db.select().from(conversations)
+        .where(eq(conversations.id, conversationId))
+        .limit(1);
+      if (!conversationRow) return reply.code(404).send({ error: 'Conversation not found' });
+      if (conversationRow.type === 'group' && !participant.is_admin) {
+        return reply.code(403).send({ error: 'Admin only' });
+      }
+
+      await db.update(conversations)
+        .set({
+          pinned_message_id: null,
+          pinned_by_user_id: null,
+          pinned_at: null,
+          updated_at: new Date(),
+        })
+        .where(eq(conversations.id, conversationId));
+
+      const conversation = await fetchConversation(conversationId, userId);
+      if (!conversation) return reply.code(404).send({ error: 'Not found' });
+
+      broadcast(conversation.participants.map(p => p.user_id), {
+        type: 'conversation:updated',
+        payload: { conversation },
+      });
+
+      return reply.send(conversation);
+    }
+  );
 
   // PATCH /conversations/:id — update group name/avatar (admin-only) (D-09)
   // Note: Caddy strips /api prefix before proxying — backend paths are unprefixed

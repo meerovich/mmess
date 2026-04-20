@@ -43,6 +43,9 @@ export const conversations = pgTable('conversations', {
   name: varchar('name', { length: 100 }),
   avatar_url: text('avatar_url'),
   last_message_id: uuid('last_message_id'), // denormalized for list view (ARCHITECTURE.md Pattern 4)
+  pinned_message_id: uuid('pinned_message_id'),
+  pinned_by_user_id: uuid('pinned_by_user_id'),
+  pinned_at: timestamp('pinned_at', { withTimezone: true }),
   ...timestamps(),
 });
 

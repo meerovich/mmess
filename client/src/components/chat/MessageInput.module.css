@@ -1,7 +1,7 @@
 .inputArea {
   background: var(--color-surface-secondary);
   border-top: 1px solid var(--color-border);
-  padding: 4px var(--space-sm);
+  padding: 4px var(--space-sm) calc(4px + env(safe-area-inset-bottom));
   flex-shrink: 0;
   /* Prevent the input bar from being dragged/scrolled on mobile */
   touch-action: manipulation;

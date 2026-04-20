@@ -95,6 +95,13 @@ export interface Conversation {
   name: string | null;
   avatar_url: string | null;
   last_message: { id: string; content: string | null; sender_id: string; created_at: string } | null;
+  pinned_message?: {
+    id: string;
+    content: string | null;
+    sender_id: string;
+    created_at: string;
+    sender?: { id: string; username: string } | null;
+  } | null;
   unread_count: number;
   participants: Participant[];
   updated_at: string;

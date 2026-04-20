@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
 import { apiFetch } from '../../lib/api';
 import { Avatar } from '../common/Avatar';
+import { useChatLayout } from './ChatLayout';
 import styles from './NewChatModal.module.css';
 
 interface UserResult {
@@ -18,7 +20,9 @@ interface NewChatModalProps {
 
 export function NewChatModal({ onClose }: NewChatModalProps) {
   const { dispatch } = useChat();
+  const { setShowChat } = useChatLayout();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<UserResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -68,6 +72,10 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
         const conversation = await res.json();
         dispatch({ type: 'UPSERT_CONVERSATION', conversation });
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
+        setShowChat(true);
+        navigate(`/chat/${conversation.id}`, {
+          state: { mmessBackToList: true },
+        });
         onClose();
       }
     } finally {

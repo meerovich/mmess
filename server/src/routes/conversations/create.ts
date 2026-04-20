@@ -256,12 +256,42 @@ async function fetchConversation(conversationId: string, requestingUserId: strin
     }
   }
 
+  let pinnedMessage = null;
+  if (conv.pinned_message_id) {
+    const [msg] = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        sender_id: messages.sender_id,
+        created_at: messages.created_at,
+        sender_username: users.username,
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.sender_id, users.id))
+      .where(eq(messages.id, conv.pinned_message_id))
+      .limit(1);
+
+    if (msg) {
+      pinnedMessage = {
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        created_at: msg.created_at.toISOString(),
+        sender: {
+          id: msg.sender_id,
+          username: msg.sender_username,
+        },
+      };
+    }
+  }
+
   return {
     id: conv.id,
     type: conv.type,
     name: displayName,
     avatar_url: conv.avatar_url,
     last_message: lastMessage,
+    pinned_message: pinnedMessage,
     unread_count: 0,
     participants: participants.map((p) => ({
       user_id: p.user_id,

@@ -96,6 +96,36 @@ export function ChatPane() {
 
     return formatLastSeenStatus(presence.last_seen_at, locale, t);
   }, [conversation, locale, presence?.last_seen_at, presence?.online, t]);
+  const currentParticipant = useMemo(
+    () => conversation?.participants.find(p => p.user_id === user?.id) ?? null,
+    [conversation, user?.id]
+  );
+  const canDeleteConversation = Boolean(conversation) && (
+    conversation?.type === 'direct' || currentParticipant?.is_admin
+  );
+  const canManagePins = Boolean(conversation) && (
+    conversation?.type === 'direct' || currentParticipant?.is_admin
+  );
+
+  const handleDeleteConversation = async () => {
+    if (!conversation || !canDeleteConversation) return;
+    if (!window.confirm(t('chat.deleteConversationConfirm'))) return;
+
+    const res = await apiFetch(`/api/conversations/${conversation.id}`, { method: 'DELETE' });
+    if (!res.ok) return;
+
+    dispatch({ type: 'CONVERSATION_REMOVED', conversationId: conversation.id });
+    setShowAvatarPreview(false);
+    handleBack();
+  };
+
+  const handleUnpinConversation = async () => {
+    if (!conversation || !canManagePins || !conversation.pinned_message) return;
+    const res = await apiFetch(`/api/conversations/${conversation.id}/pin`, { method: 'DELETE' });
+    if (!res.ok) return;
+    const updatedConversation = await res.json();
+    dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
+  };
 
   if (!activeConversationId) {
     return (
@@ -145,6 +175,25 @@ export function ChatPane() {
           />
         </button>
       </header>
+      {conversation?.pinned_message && (
+        <div className={styles.pinnedBar}>
+          <div className={styles.pinnedLabel}>{t('chat.pinnedMessage')}</div>
+          <div className={styles.pinnedContent}>
+            <strong>{conversation.pinned_message.sender?.username ?? t('chat.unknown')}</strong>
+            <span>{conversation.pinned_message.content ?? t('chat.noPinnedContent')}</span>
+          </div>
+          {canManagePins && (
+            <button
+              type="button"
+              className={styles.pinnedAction}
+              onClick={handleUnpinConversation}
+              aria-label={t('chat.unpinMessage')}
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
 
       <MessageList
         conversationId={activeConversationId}
@@ -192,6 +241,15 @@ export function ChatPane() {
             />
             <div className={styles.avatarPreviewName}>{conversationName}</div>
             {headerSubtitle && <div className={styles.avatarPreviewSubtitle}>{headerSubtitle}</div>}
+            {canDeleteConversation && (
+              <button
+                type="button"
+                className={styles.avatarPreviewDanger}
+                onClick={handleDeleteConversation}
+              >
+                {t('chat.deleteConversation')}
+              </button>
+            )}
           </div>
         </div>
       )}

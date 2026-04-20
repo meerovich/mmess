@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { marked } from 'marked';
 import { getAvatarPalette } from '../../lib/avatarColor';
 import { replaceTextEmoticons } from '../../lib/chatText';
+import { apiFetch } from '../../lib/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../../contexts/ChatContext';
 import { useTranslation } from '../../lib/i18n';
@@ -226,7 +227,7 @@ function EncryptedAttachment({
 
 export function MessageItem({ message, isGrouped = false, onReply, onEdit }: MessageItemProps) {
   const { user } = useAuth();
-  const { state } = useChat();
+  const { state, dispatch } = useChat();
   const { t, locale } = useTranslation();
   const sendWs = useSendMessage();
   const [showMenu, setShowMenu] = useState(false);
@@ -458,6 +459,9 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
     conversation?.type === 'group' &&
     isOwn &&
     (currentParticipant?.can_edit_messages ?? false);
+  const canManagePins =
+    conversation?.type === 'direct' || Boolean(currentParticipant?.is_admin);
+  const isPinnedMessage = conversation?.pinned_message?.id === message.id;
 
   // Edit flow: activates message:edit mode in MessageInput via onEdit callback
   const handleEdit = () => {
@@ -476,6 +480,28 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const handleReply = () => {
     setShowMenu(false);
     onReply?.(message);
+  };
+
+  const handlePinToggle = async () => {
+    if (!conversation || !canManagePins) return;
+
+    if (isPinnedMessage) {
+      const res = await apiFetch(`/api/conversations/${conversation.id}/pin`, { method: 'DELETE' });
+      if (!res.ok) return;
+      const updatedConversation = await res.json();
+      dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
+      closeLongPressMenu();
+      return;
+    }
+
+    const res = await apiFetch(`/api/conversations/${conversation.id}/pin`, {
+      method: 'POST',
+      body: JSON.stringify({ message_id: message.id }),
+    });
+    if (!res.ok) return;
+    const updatedConversation = await res.json();
+    dispatch({ type: 'CONVERSATION_UPDATED', conversation: updatedConversation });
+    closeLongPressMenu();
   };
 
   const handleLongPressReaction = (emoji: string) => {
@@ -527,7 +553,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       const safeTop = viewportTop + getSafeAreaInsetTop() + 8;
       const inputArea = document.querySelector('[data-chat-input-area="true"]') as HTMLElement | null;
       const inputTop = inputArea?.getBoundingClientRect().top ?? viewportBottom;
-      const actionCount = 2 + Number(Boolean(displayContent)) + (canEditDelete ? 2 : 0);
+      const actionCount = 2 + Number(Boolean(displayContent)) + Number(Boolean(canManagePins)) + (canEditDelete ? 2 : 0);
       const menuH = actionCount * 52;
       const horizontalMargin = 8;
       const desiredMenuWidth = Math.max(160, Math.min(280, viewportWidth - horizontalMargin * 2));
@@ -902,6 +928,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
                   {t('chat.copy')}
                 </button>
               )}
+              {canManagePins && (
+                <button className={styles.longPressItem} onClick={() => { void handlePinToggle(); }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 17v5"/><path d="M5 4h14l-4 6v5l-6 3v-8z"/></svg>
+                  {isPinnedMessage ? t('chat.unpinMessage') : t('chat.pinMessage')}
+                </button>
+              )}
               {canEditDelete && (
                 <>
                   <button className={styles.longPressItem} onClick={() => { handleEdit(); closeLongPressMenu(); }}>
@@ -1152,7 +1184,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
             </button>
           )}
 
-          {canEditDelete && (
+          {(canEditDelete || canManagePins) && (
             <div className={styles.overflowMenu}>
               <button
                 className={styles.menuBtn}
@@ -1163,6 +1195,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               </button>
               {showMenu && (
                 <div className={styles.dropdown}>
+                  {canManagePins && (
+                    <button className={styles.dropdownItem} onClick={() => { setShowMenu(false); void handlePinToggle(); }}>
+                      {isPinnedMessage ? t('chat.unpinMessage') : t('chat.pinMessage')}
+                    </button>
+                  )}
                   <button className={styles.dropdownItem} onClick={handleEdit}>
                     {t('chat.edit')}
                   </button>

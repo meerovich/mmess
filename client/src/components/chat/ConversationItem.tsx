@@ -4,6 +4,7 @@ import { ru, enUS } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { apiFetch } from '../../lib/api';
 import { useTranslation } from '../../lib/i18n';
 import { getPlainMessagePreview } from '../../lib/chatText';
 import { decryptMessagePayload, isEncryptedPayload } from '../../lib/e2ee';
@@ -37,7 +38,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const { t, locale } = useTranslation();
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [didSwipeMarkRead, setDidSwipeMarkRead] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const touchRef = useRef<{ startX: number; startY: number; swiping: boolean } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isActive = conversation.id === state.activeConversationId;
 
@@ -100,6 +103,9 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
   const unreadCount = conversation.unread_count;
   const unreadLabel = unreadCount > 99 ? '99+' : String(unreadCount);
   const canMarkRead = unreadCount > 0 && Boolean(conversation.last_message?.id);
+  const canDeleteConversation =
+    conversation.type === 'direct' ||
+    conversation.participants.find(p => p.user_id === user?.id)?.is_admin === true;
   const SWIPE_THRESHOLD = 88;
 
   // Read receipt status for the last outgoing message in conversation list.
@@ -135,6 +141,26 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
       messageId: conversation.last_message.id,
     });
   }, [conversation.id, conversation.last_message?.id, dispatch, sendWs, unreadCount, user?.id]);
+
+  useEffect(() => {
+    const handleClickAway = (event: MouseEvent) => {
+      if (!(event.target instanceof Node)) return;
+      if (!menuRef.current?.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickAway);
+    return () => document.removeEventListener('mousedown', handleClickAway);
+  }, []);
+
+  const handleDeleteConversation = useCallback(async () => {
+    if (!canDeleteConversation) return;
+    setShowMenu(false);
+    if (!window.confirm(t('chat.deleteConversationConfirm'))) return;
+    const res = await apiFetch(`/api/conversations/${conversation.id}`, { method: 'DELETE' });
+    if (!res.ok) return;
+    dispatch({ type: 'CONVERSATION_REMOVED', conversationId: conversation.id });
+  }, [canDeleteConversation, conversation.id, dispatch, t]);
 
   function handleClick() {
     if (didSwipeMarkRead) {
@@ -205,12 +231,22 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
         aria-label={unreadCount > 0 ? t('unread.messages', { count: String(unreadCount) }) + ' — ' + displayName : displayName}
       >
       <div className={styles.avatarWrapper}>
-        <Avatar
-          name={displayName}
-          avatarUrl={displayAvatarUrl}
-          size="sm"
-          kind={conversation.type === 'group' ? 'group' : 'user'}
-        />
+        <button
+          type="button"
+          className={styles.avatarButton}
+          onClick={(event) => {
+            event.stopPropagation();
+            setShowMenu(prev => !prev);
+          }}
+          aria-label={displayName}
+        >
+          <Avatar
+            name={displayName}
+            avatarUrl={displayAvatarUrl}
+            size="sm"
+            kind={conversation.type === 'group' ? 'group' : 'user'}
+          />
+        </button>
         {presenceTargetId && (
           <span
             className={`${styles.onlineDot} ${isOnline ? styles.onlineDotOnline : styles.onlineDotOffline}`}
@@ -223,6 +259,21 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
             }
             aria-label={isOnline ? t('time.online') : t('time.offline')}
           />
+        )}
+        {showMenu && canDeleteConversation && (
+          <div
+            ref={menuRef}
+            className={styles.avatarMenu}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.avatarMenuItemDanger}
+              onClick={() => void handleDeleteConversation()}
+            >
+              {t('chat.deleteConversation')}
+            </button>
+          </div>
         )}
       </div>
 

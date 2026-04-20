@@ -118,6 +118,13 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       .map((r) => r.conversation.last_message_id as string);
 
     let lastMessageMap = new Map<string, { id: string; content: string | null; sender_id: string; created_at: Date }>();
+    let pinnedMessageMap = new Map<string, {
+      id: string;
+      content: string | null;
+      sender_id: string;
+      created_at: Date;
+      sender_username: string;
+    }>();
 
     if (convWithLastMsg.length > 0) {
       const lastMessages = await db
@@ -139,6 +146,34 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       // Map by conversation_id (last_message_id uniquely identifies one message per conversation)
       for (const msg of lastMessages) {
         lastMessageMap.set(msg.conversation_id, msg);
+      }
+    }
+
+    const convWithPinnedMsg = userConversations
+      .filter((r) => r.conversation.pinned_message_id !== null)
+      .map((r) => ({ conversation_id: r.conversation.id, message_id: r.conversation.pinned_message_id as string }));
+
+    if (convWithPinnedMsg.length > 0) {
+      const pinnedMessages = await db
+        .select({
+          id: messages.id,
+          conversation_id: messages.conversation_id,
+          content: messages.content,
+          sender_id: messages.sender_id,
+          created_at: messages.created_at,
+          sender_username: users.username,
+        })
+        .from(messages)
+        .innerJoin(users, eq(messages.sender_id, users.id))
+        .where(
+          sql`${messages.id} = ANY(ARRAY[${sql.join(
+            convWithPinnedMsg.map((entry) => sql`${entry.message_id}::uuid`),
+            sql`, `
+          )}])`
+        );
+
+      for (const msg of pinnedMessages) {
+        pinnedMessageMap.set(msg.conversation_id, msg);
       }
     }
 
@@ -178,6 +213,7 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
       const convParticipants = participantsByConv.get(conv.id) ?? [];
       const otherParticipants = convParticipants.filter((p) => p.user_id !== userId);
       const lastMessage = lastMessageMap.get(conv.id) ?? null;
+      const pinnedMessage = pinnedMessageMap.get(conv.id) ?? null;
       const unreadCount = unreadCounts.get(conv.id) ?? 0;
 
       // For DMs: derive name from the other participant's username
@@ -197,6 +233,18 @@ export default async function conversationsListRoutes(fastify: FastifyInstance) 
               content: lastMessage.content,
               sender_id: lastMessage.sender_id,
               created_at: lastMessage.created_at.toISOString(),
+            }
+          : null,
+        pinned_message: pinnedMessage
+          ? {
+              id: pinnedMessage.id,
+              content: pinnedMessage.content,
+              sender_id: pinnedMessage.sender_id,
+              created_at: pinnedMessage.created_at.toISOString(),
+              sender: {
+                id: pinnedMessage.sender_id,
+                username: pinnedMessage.sender_username,
+              },
             }
           : null,
         unread_count: unreadCount,

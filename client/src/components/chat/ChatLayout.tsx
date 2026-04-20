@@ -306,6 +306,8 @@ export function ChatLayout() {
     const initialHeight = vv.height;
 
     let rafId: number | null = null;
+    let lastAppliedOffsetTop = vv.offsetTop;
+    let lastResizeAt = Date.now();
 
     const isEditableFocus = () => {
       const active = document.activeElement;
@@ -329,8 +331,24 @@ export function ChatLayout() {
     const setVH = (reason: 'resize' | 'scroll') => {
       rafId = null;
       document.documentElement.style.setProperty('--vh', `${vv.height * 0.01}px`);
+      if (reason === 'resize') {
+        lastResizeAt = Date.now();
+      }
       const keyboardOpen = vv.height < initialHeight * 0.85;
       const isEditableViewportScroll = reason === 'scroll' && keyboardOpen && isEditableFocus();
+      const offsetDelta = Math.abs(vv.offsetTop - lastAppliedOffsetTop);
+      const keyboardSettled = Date.now() - lastResizeAt > 250;
+
+      if (isEditableViewportScroll && window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+
+      // iOS emits tiny visualViewport scroll shifts while the user drags the
+      // caret/selection handles inside the input. Once the keyboard is already
+      // settled, ignore those micro-movements so the whole chat doesn't jitter.
+      if (isEditableViewportScroll && keyboardSettled && offsetDelta < 24) {
+        return;
+      }
 
       if (layoutRef.current) {
         layoutRef.current.style.height = `${vv.height}px`;
@@ -343,6 +361,7 @@ export function ChatLayout() {
 
         layoutRef.current.style.paddingBottom = keyboardOpen ? '0' : '';
       }
+      lastAppliedOffsetTop = vv.offsetTop;
 
       // Only correct window scroll while the keyboard is actively pushing the
       // visual viewport. Running this on every viewport event causes visible

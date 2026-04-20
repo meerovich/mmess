@@ -5,6 +5,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
   z-index: 100;
 }
 
@@ -14,10 +19,12 @@
   padding: var(--space-md);
   width: 100%;
   max-width: 480px;
+  max-height: calc(100dvh - max(32px, env(safe-area-inset-top)) - max(32px, env(safe-area-inset-bottom)));
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  overflow: hidden;
 }
 
 .title {

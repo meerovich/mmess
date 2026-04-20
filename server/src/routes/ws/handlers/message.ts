@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { WebSocket } from 'ws';
@@ -252,34 +253,78 @@ export async function handleMessageSend(
   }
 
   // DB-first: insert message + update conversation.last_message_id in one transaction (D-04)
-  const [newMessage] = await db.transaction(async (tx) => {
-    const [msg] = await tx
-      .insert(messages)
-      .values({
-        conversation_id: payload.conversation_id,
-        sender_id: userId,                            // always from JWT (D-07)
-        content: payload.content?.trim() || null,     // null if no caption
-        reply_to_id: payload.reply_to_id ?? null,
-        forwarded_from_id: payload.forwarded_from_id ?? null,
-        file_id: payload.file_id ?? null,             // attach file to message
-      })
-      .returning();
+  let newMessage: typeof messages.$inferSelect;
+  try {
+    [newMessage] = await db.transaction(async (tx) => {
+      const conversationLockKey = BigInt(
+        `0x${createHash('md5')
+          .update(payload.conversation_id)
+          .digest('hex')
+          .slice(0, 15)}`
+      );
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(${conversationLockKey})`);
 
-    await tx
-      .update(conversations)
-      .set({ last_message_id: msg.id, updated_at: new Date() })
-      .where(eq(conversations.id, payload.conversation_id));
+      const lockedParticipants = await tx
+        .select({
+          user_id: conversation_participants.user_id,
+          status: conversation_participants.status,
+        })
+        .from(conversation_participants)
+        .where(eq(conversation_participants.conversation_id, payload.conversation_id));
 
-    // Set files.conversation_id to lock file to this conversation (D-20 anti-reuse)
-    if (payload.file_id) {
+      const me = lockedParticipants.find(item => item.user_id === userId);
+      if (!me) {
+        throw new Error('Not a participant');
+      }
+      if (me.status === 'pending') {
+        throw new Error('Accept the invitation first');
+      }
+
+      const hasOtherPending = lockedParticipants.some(item => item.user_id !== userId && item.status === 'pending');
+      if (hasOtherPending) {
+        const existingMsgs = await tx.select({ id: messages.id })
+          .from(messages)
+          .where(eq(messages.conversation_id, payload.conversation_id))
+          .limit(1);
+        if (existingMsgs.length > 0) {
+          throw new Error('Waiting for invitation acceptance');
+        }
+      }
+
+      const [msg] = await tx
+        .insert(messages)
+        .values({
+          conversation_id: payload.conversation_id,
+          sender_id: userId,
+          content: payload.content?.trim() || null,
+          reply_to_id: payload.reply_to_id ?? null,
+          forwarded_from_id: payload.forwarded_from_id ?? null,
+          file_id: payload.file_id ?? null,
+        })
+        .returning();
+
       await tx
-        .update(files)
-        .set({ conversation_id: payload.conversation_id })
-        .where(eq(files.id, payload.file_id));
-    }
+        .update(conversations)
+        .set({ last_message_id: msg.id, updated_at: new Date() })
+        .where(eq(conversations.id, payload.conversation_id));
 
-    return [msg];
-  });
+      if (payload.file_id) {
+        await tx
+          .update(files)
+          .set({ conversation_id: payload.conversation_id })
+          .where(eq(files.id, payload.file_id));
+      }
+
+      return [msg];
+    });
+  } catch (error) {
+    socket.send(JSON.stringify({
+      type: 'error',
+      payload: { message: error instanceof Error ? error.message : 'Failed to send message' },
+      id: clientId,
+    }));
+    return;
+  }
 
   const participantIds = await getParticipantIds(db, payload.conversation_id);
   const { isOnline } = await import('../registry.js');

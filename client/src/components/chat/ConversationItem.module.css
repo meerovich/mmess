@@ -56,6 +56,34 @@
   flex-shrink: 0;
 }
 
+.avatarButton {
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.avatarMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  min-width: 148px;
+  padding: 6px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-surface) 92%, white 8%);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+}
+
+.avatarMenuItemDanger {
+  width: 100%;
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  color: var(--color-destructive);
+  font-weight: 700;
+}
+
 .onlineDot {
   position: absolute;
   bottom: 0;
