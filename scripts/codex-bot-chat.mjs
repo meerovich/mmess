@@ -8,6 +8,20 @@ const BOT_EMAIL = 'codex@chatboris.local';
 const BOT_PASSWORD = 'ClaudeBot2026!';
 const TARGET_USERNAME = 'miha';
 const BOT_USERNAME = 'codex bot';
+const BOT_SECRET = process.env.BOT_SECRET ?? 'mmess-claude-bot-2026';
+
+function decodeBotReadablePayload(content) {
+  if (!content || !content.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(content);
+    if (parsed?.type !== 'mmess-e2ee' || typeof parsed.bot_payload_b64 !== 'string') {
+      return null;
+    }
+    return JSON.parse(Buffer.from(parsed.bot_payload_b64, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
 
 async function login() {
   const res = await fetch(`${API}/auth/login`, {
@@ -117,8 +131,7 @@ async function fetchInbox(after, limit = 20) {
   const cookie = await login();
   const conversation = await ensureMihaConversation(cookie);
   const res = await fetch(
-    `${API}/conversations/${conversation.id}/messages?limit=${limit}`,
-    { headers: { Cookie: cookie } }
+    `${API}/bot/inbox?secret=${encodeURIComponent(BOT_SECRET)}&conversation_id=${encodeURIComponent(conversation.id)}&limit=${limit}`
   );
   if (!res.ok) {
     throw new Error(`Inbox fetch failed: ${res.status}`);
@@ -169,6 +182,7 @@ async function watchInbox(after) {
       if (message.conversation_id !== conversation.id) return;
       if (message.sender?.username?.toLowerCase() === BOT_USERNAME) return;
       if (after && new Date(message.created_at).getTime() <= new Date(after).getTime()) return;
+      const botPayload = decodeBotReadablePayload(message.content);
       ws.send(JSON.stringify({
         type: 'read:mark',
         id: `codex-bot-chat-watch-read-${message.id}`,
@@ -180,7 +194,9 @@ async function watchInbox(after) {
       console.log(JSON.stringify({
         id: message.id,
         sender: message.sender?.username,
-        content: message.content,
+        content: botPayload?.text ?? message.content,
+        file: botPayload?.file ?? null,
+        raw_content: message.content,
         created_at: message.created_at,
       }));
     } catch {

@@ -29,6 +29,23 @@ const SYSTEM_PROMPT = process.env.CODEX_BOT_SYSTEM_PROMPT ?? [
   'If a question needs unavailable context, say so plainly and ask one short follow-up question.',
 ].join(' ');
 
+function decodeBotReadablePayload(content: string | null | undefined): { text: string | null } | null {
+  if (!content?.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(content) as { type?: unknown; bot_payload_b64?: unknown };
+    if (parsed.type !== 'mmess-e2ee' || typeof parsed.bot_payload_b64 !== 'string') {
+      return null;
+    }
+    const json = Buffer.from(parsed.bot_payload_b64, 'base64').toString('utf8');
+    const payload = JSON.parse(json) as { text?: unknown };
+    return {
+      text: typeof payload.text === 'string' || payload.text === null ? payload.text : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -96,7 +113,12 @@ async function fetchRecentMessages(cookie: string, conversationId: string, limit
     cookie,
     { method: 'GET' }
   );
-  return data.messages ?? [];
+  return (data.messages ?? []).map((message) => {
+    const botPayload = decodeBotReadablePayload(message.content);
+    return botPayload
+      ? { ...message, content: botPayload.text }
+      : message;
+  });
 }
 
 async function generateReply(history: InboxMessage[]): Promise<string> {

@@ -7,16 +7,46 @@ import { broadcastExcludeSocket } from '../ws/registry.js';
 // Bot config — hardcoded for simplicity during dev/testing.
 // In production, move to env vars.
 const BOT_SECRET = process.env.BOT_SECRET ?? 'mmess-claude-bot-2026';
-const BOT_EMAIL = 'claude@chatboris.local';
+const BOT_EMAIL = process.env.CODEX_BOT_EMAIL ?? 'codex@chatboris.local';
 const BOT_CONV_MIHA = 'd6cfdac1-91ce-4e53-be31-432ab05d3a3f';
+
+type BotReadablePayload = {
+  text: string | null;
+  file?: {
+    name: string;
+    mime: string;
+    size: number;
+    iv: string;
+  };
+};
 
 function checkSecret(secret: string | undefined): boolean {
   return secret === BOT_SECRET;
 }
 
+function decodeBotReadablePayload(content: string | null | undefined): BotReadablePayload | null {
+  if (!content?.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(content) as { type?: unknown; bot_payload_b64?: unknown };
+    if (parsed.type !== 'mmess-e2ee' || typeof parsed.bot_payload_b64 !== 'string') {
+      return null;
+    }
+    const json = Buffer.from(parsed.bot_payload_b64, 'base64').toString('utf8');
+    const payload = JSON.parse(json) as BotReadablePayload;
+    return payload && typeof payload === 'object'
+      ? {
+          text: typeof payload.text === 'string' || payload.text === null ? payload.text : null,
+          file: payload.file,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function botRoutes(fastify: FastifyInstance): Promise<void> {
 
-  // POST /bot/send — send message as Claude Bot to miha DM
+  // POST /bot/send — send message as Codex Bot to miha DM
   fastify.post('/bot/send', {
     schema: {
       body: {
@@ -178,6 +208,7 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
     // Enrich with sender name and file URLs
     const enriched = await Promise.all(
       rows.map(async (row: any) => {
+        const botPayload = decodeBotReadablePayload(row.content);
         const [sender] = await (db as any)
           .select({ username: users.username })
           .from(users)
@@ -190,10 +221,12 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
 
         return {
           id: row.id,
-          content: row.content,
+          content: botPayload?.text ?? row.content,
+          raw_content: row.content,
           sender: sender?.username ?? 'unknown',
           is_bot: row.sender_id === botUser?.id,
           file_url,
+          file: botPayload?.file ?? null,
           created_at: row.created_at,
         };
       })

@@ -23,12 +23,14 @@ interface E2eeCipherPayload {
   alg: 'AES-GCM';
   iv: string;
   ct: string;
+  bot_payload_b64?: string;
 }
 
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 const conversationKeyCache = new Map<string, CryptoKey>();
 const rawConversationKeyCache = new Map<string, Uint8Array>();
+const BOT_READABLE_USERNAMES = new Set(['codex bot', 'claude bot']);
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = '';
@@ -51,6 +53,12 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 
 function storageConversationKey(conversationId: string): string {
   return `${CONVERSATION_KEY_PREFIX}${conversationId}`;
+}
+
+function shouldEmbedBotPayload(conversation: Conversation): boolean {
+  return conversation.participants.some((participant) =>
+    BOT_READABLE_USERNAMES.has(participant.username.trim().toLowerCase())
+  );
 }
 
 export function isEncryptedPayload(content: string | null | undefined): boolean {
@@ -250,6 +258,9 @@ export async function encryptMessagePayload(
     iv: bytesToBase64(iv),
     ct: bytesToBase64(new Uint8Array(ciphertext)),
   };
+  if (shouldEmbedBotPayload(conversation)) {
+    envelope.bot_payload_b64 = bytesToBase64(textEncoder.encode(JSON.stringify(payload)));
+  }
   return JSON.stringify(envelope);
 }
 
