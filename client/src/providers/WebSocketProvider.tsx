@@ -53,14 +53,11 @@ function handleIncoming(msg: ServerMessage, dispatch: React.Dispatch<ChatAction>
           });
         }
 
-        // Browser notification: fire on every incoming message from another
-        // user, regardless of tab visibility. Previously we gated on
-        // `document.visibilityState !== 'visible'` (D-30), but users reported
-        // missing notifications when the chat tab was in the background of a
-        // multi-window session — the visibility API reports 'visible' there
-        // even though the user is not actually looking. Simpler rule: if it
-        // is from someone else, surface it.
+        // Browser Notification fallback for environments without service
+        // worker push. Normal notifications are now server-side Web Push so
+        // phone delivery is not suppressed by another online WS session.
         if (
+          !navigator.serviceWorker?.controller &&
           'Notification' in window &&
           Notification.permission === 'granted' &&
           newMsg.sender_id !== _currentUserId

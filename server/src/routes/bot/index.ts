@@ -96,12 +96,12 @@ export default async function botRoutes(fastify: FastifyInstance): Promise<void>
 
     broadcast(participantIds, { type: 'message:new', payload: { message: enriched } });
 
-    // Also send push notification to offline participants
+    // Also send push notification to every participant subscription. A user can
+    // be online in one browser while their phone still needs a Web Push.
     const { sendPushToUser, isPushConfigured } = await import('../../lib/push.js');
-    const { isOnline } = await import('../ws/registry.js');
     if (isPushConfigured()) {
       for (const pid of participantIds) {
-        if (pid !== botUser.id && !isOnline(pid)) {
+        if (pid !== botUser.id) {
           sendPushToUser(db as any, pid, {
             title: botUser.username,
             body: text.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120),

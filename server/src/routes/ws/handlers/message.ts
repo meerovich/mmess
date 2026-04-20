@@ -331,9 +331,10 @@ export async function handleMessageSend(
     }));
   }
 
-  // Web Push fallback: for any recipient who is NOT online (WS disconnected —
-  // screen locked, tab closed, etc.), send a push notification so they see it
-  // on their lock screen. This is the guaranteed-delivery mechanism.
+  // Web Push is per-device, while WS "online" is per-user. A desktop/browser
+  // socket can keep the user online and otherwise suppress the phone push.
+  // Send to every recipient subscription; foreground clients close their own
+  // conversation notifications when the user is already reading the chat.
   const { sendPushToUser, isPushConfigured } = await import('../../../lib/push.js');
   if (isPushConfigured()) {
     const sender = enrichedMessage.sender as { username?: string } | null;
@@ -347,21 +348,18 @@ export async function handleMessageSend(
       ? content.replace(/[*_~`#>\[\]()!]/g, '').replace(/\n+/g, ' ').trim().slice(0, 120)
       : 'Sent a file';
 
-    // Track who already got a push (offline recipients)
     const pushedUserIds = new Set<string>();
     for (const recipientId of recipientIds) {
-      if (!isOnline(recipientId)) {
-        pushedUserIds.add(recipientId);
-        sendPushToUser(db, recipientId, {
-          title: senderName,
-          body,
-          tag: payload.conversation_id,
-          url: `/chat/${payload.conversation_id}`,
-          icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
-          conversation_id: payload.conversation_id,
-          message_id: newMessage.id,
-        }).catch(() => { /* push failures are non-fatal */ });
-      }
+      pushedUserIds.add(recipientId);
+      sendPushToUser(db, recipientId, {
+        title: senderName,
+        body,
+        tag: payload.conversation_id,
+        url: `/chat/${payload.conversation_id}`,
+        icon: `/api/avatar/${encodeURIComponent(senderName)}.png`,
+        conversation_id: payload.conversation_id,
+        message_id: newMessage.id,
+      }).catch(() => { /* push failures are non-fatal */ });
     }
 
     // @mention push: check if any conversation participant is @mentioned in content.
