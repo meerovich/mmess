@@ -84,3 +84,22 @@ export async function readServiceWorkerNotificationTarget(): Promise<Notificatio
     return null;
   }
 }
+
+export async function readServerNotificationTarget(): Promise<NotificationTarget | null> {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const res = await fetch('/api/push/open-target', {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!res.ok || res.status === 204) return null;
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) return null;
+    const target = normalizeNotificationTarget(await res.json() as NotificationTarget);
+    writeNotificationTarget(target);
+    return target;
+  } catch {
+    return null;
+  }
+}

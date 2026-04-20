@@ -4,6 +4,15 @@ import { db } from '../../db/index.js';
 import { push_subscriptions } from '../../db/schema.js';
 import { getVapidPublicKey, isPushConfigured } from '../../lib/push.js';
 
+const PUSH_OPEN_TARGET_TTL_MS = 2 * 60_000;
+const pendingOpenTargets = new Map<string, {
+  path: string;
+  conversationId?: string;
+  messageId?: string;
+  replace?: boolean;
+  expiresAt: number;
+}>();
+
 export default async function pushRoutes(fastify: FastifyInstance): Promise<void> {
   // GET /push/vapid-key — returns public VAPID key for client subscription
   fastify.get('/push/vapid-key', async (_request, reply) => {
@@ -88,5 +97,67 @@ export default async function pushRoutes(fastify: FastifyInstance): Promise<void
       ));
 
     return { ok: true };
+  });
+
+  fastify.post('/push/open-target', {
+    schema: {
+      body: {
+        type: 'object',
+        required: ['path'],
+        properties: {
+          path: { type: 'string' },
+          conversationId: { type: 'string' },
+          messageId: { type: 'string' },
+          replace: { type: 'boolean' },
+        },
+      },
+    },
+    preValidation: [async (request, reply) => {
+      await fastify.authenticate(request, reply);
+    }],
+  }, async (request, reply) => {
+    const userId = request.user.sub;
+    const body = request.body as {
+      path: string;
+      conversationId?: string;
+      messageId?: string;
+      replace?: boolean;
+    };
+
+    pendingOpenTargets.set(userId, {
+      path: body.path,
+      conversationId: body.conversationId,
+      messageId: body.messageId,
+      replace: body.replace ?? true,
+      expiresAt: Date.now() + PUSH_OPEN_TARGET_TTL_MS,
+    });
+
+    return { ok: true };
+  });
+
+  fastify.get('/push/open-target', {
+    preValidation: [async (request, reply) => {
+      await fastify.authenticate(request, reply);
+    }],
+  }, async (request, reply) => {
+    const userId = request.user.sub;
+    const pending = pendingOpenTargets.get(userId);
+
+    if (!pending) {
+      return reply.code(204).send();
+    }
+
+    if (pending.expiresAt <= Date.now()) {
+      pendingOpenTargets.delete(userId);
+      return reply.code(204).send();
+    }
+
+    pendingOpenTargets.delete(userId);
+    return {
+      path: pending.path,
+      conversationId: pending.conversationId,
+      messageId: pending.messageId,
+      replace: pending.replace ?? true,
+    };
   });
 }

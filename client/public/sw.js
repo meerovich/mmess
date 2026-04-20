@@ -32,6 +32,22 @@ async function clearNotificationTarget() {
   await cache.delete(NOTIFICATION_TARGET_ENDPOINT);
 }
 
+async function rememberNotificationTargetOnServer(target) {
+  try {
+    await fetch('/api/push/open-target', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(target),
+    });
+  } catch {
+    // Best effort: the Cache API fallback still exists for browsers where the
+    // SW click can persist data locally but background auth fetch fails.
+  }
+}
+
 function postNotificationTarget(client, payload) {
   try {
     client?.postMessage(payload);
@@ -133,7 +149,10 @@ self.addEventListener('notificationclick', (event) => {
   };
 
   event.waitUntil(
-    rememberNotificationTarget(rememberedTarget).then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true })).then(async (clients) => {
+    Promise.all([
+      rememberNotificationTarget(rememberedTarget),
+      rememberNotificationTargetOnServer(rememberedTarget),
+    ]).then(() => self.clients.matchAll({ type: 'window', includeUncontrolled: true })).then(async (clients) => {
       const sameOriginClients = clients.filter(
         client => new URL(client.url).origin === self.location.origin
       );

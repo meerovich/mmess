@@ -12,6 +12,7 @@ import {
   clearNotificationTarget,
   parseNotificationTargetUrl,
   readNotificationTarget,
+  readServerNotificationTarget,
   readServiceWorkerNotificationTarget,
   writeNotificationTarget,
   type NotificationTarget,
@@ -192,7 +193,10 @@ export function ChatLayout() {
     };
 
     const syncPendingNotificationTarget = async (retryUntil = 0) => {
-      const target = readNotificationTarget() ?? await readServiceWorkerNotificationTarget();
+      const target =
+        readNotificationTarget() ??
+        await readServiceWorkerNotificationTarget() ??
+        await readServerNotificationTarget();
       if (cancelled) return;
       if (target?.path) {
         routeTarget(target);
