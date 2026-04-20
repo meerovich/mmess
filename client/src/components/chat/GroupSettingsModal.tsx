@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
@@ -291,6 +291,16 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
   }
 
   const groupDisplayName = conversation.name ?? t('chat.groupChat');
+  const sortedParticipants = useMemo(
+    () => [...conversation.participants].sort((a, b) => {
+      if (a.is_admin !== b.is_admin) return a.is_admin ? -1 : 1;
+      if (a.user_id === currentUserId && b.user_id !== currentUserId) return -1;
+      if (b.user_id === currentUserId && a.user_id !== currentUserId) return 1;
+      const byName = a.username.localeCompare(b.username, undefined, { sensitivity: 'base' });
+      return byName || a.user_id.localeCompare(b.user_id);
+    }),
+    [conversation.participants, currentUserId]
+  );
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
@@ -416,7 +426,7 @@ export function GroupSettingsModal({ conversation, onClose }: GroupSettingsModal
         <section className={styles.section}>
           <h3 className={styles.sectionTitle}>{t('group.members')}</h3>
           <ul className={styles.memberList} role="list">
-            {conversation.participants.map(participant => (
+            {sortedParticipants.map(participant => (
               <li key={participant.user_id} className={styles.memberRow}>
                 <Avatar name={participant.username} avatarUrl={participant.avatar_url} size="sm" />
                 <span className={styles.memberUsername}>{participant.username}</span>
