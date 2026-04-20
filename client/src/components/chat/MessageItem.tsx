@@ -13,6 +13,7 @@ import {
   decryptFileBlob,
   decryptMessagePayload,
   isEncryptedPayload,
+  queueBotReadablePayloadBackfill,
 } from '../../lib/e2ee';
 import { ReplyPreview } from './ReplyPreview';
 import { ReactionBar, AddReactionButton, LONG_PRESS_REACTION_EMOJIS } from './ReactionBar';
@@ -272,6 +273,7 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
         if (cancelled) return;
         setDecryptedPayload(payload);
         setDecryptFailed(false);
+        queueBotReadablePayloadBackfill(conversation, message.id, message.content, payload);
       })
       .catch(() => {
         if (cancelled) return;

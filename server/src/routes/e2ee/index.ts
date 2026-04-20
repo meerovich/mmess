@@ -2,8 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '../../db/index.js';
 import {
+  messages,
   conversation_key_shares,
   conversation_participants,
+  users,
   user_key_bundles,
 } from '../../db/schema.js';
 
@@ -12,6 +14,18 @@ type KeyShareInput = {
   wrapped_key: string;
   key_version?: number;
 };
+
+type BotReadablePayload = {
+  text: string | null;
+  file?: {
+    name: string;
+    mime: string;
+    size: number;
+    iv: string;
+  };
+};
+
+const BOT_READABLE_USERNAMES = new Set(['codex bot', 'claude bot']);
 
 async function requireParticipant(conversationId: string, userId: string) {
   const [participant] = await db
@@ -24,6 +38,59 @@ async function requireParticipant(conversationId: string, userId: string) {
     .limit(1);
 
   return participant;
+}
+
+function parseEncryptedEnvelope(content: string | null | undefined): Record<string, unknown> | null {
+  if (!content?.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(content) as Record<string, unknown>;
+    return parsed.type === 'mmess-e2ee' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeBotReadablePayload(value: unknown): BotReadablePayload | null {
+  if (!value || typeof value !== 'object') return null;
+  const payload = value as Record<string, unknown>;
+  const text = payload.text;
+  if (text !== null && typeof text !== 'string') return null;
+
+  const fileValue = payload.file;
+  let file: BotReadablePayload['file'];
+  if (fileValue !== undefined) {
+    if (!fileValue || typeof fileValue !== 'object') return null;
+    const record = fileValue as Record<string, unknown>;
+    if (
+      typeof record.name !== 'string' ||
+      typeof record.mime !== 'string' ||
+      typeof record.size !== 'number' ||
+      typeof record.iv !== 'string'
+    ) {
+      return null;
+    }
+    file = {
+      name: record.name,
+      mime: record.mime,
+      size: record.size,
+      iv: record.iv,
+    };
+  }
+
+  return {
+    text: text ?? null,
+    file,
+  };
+}
+
+async function conversationHasBotParticipant(conversationId: string): Promise<boolean> {
+  const rows = await db
+    .select({ username: users.username })
+    .from(conversation_participants)
+    .innerJoin(users, eq(conversation_participants.user_id, users.id))
+    .where(eq(conversation_participants.conversation_id, conversationId));
+
+  return rows.some((row) => BOT_READABLE_USERNAMES.has(row.username.trim().toLowerCase()));
 }
 
 export default async function e2eeRoutes(fastify: FastifyInstance): Promise<void> {
@@ -212,5 +279,70 @@ export default async function e2eeRoutes(fastify: FastifyInstance): Promise<void
       });
 
     return { ok: true, stored: values.length };
+  });
+
+  fastify.post<{
+    Params: { messageId: string };
+    Body: { payload: BotReadablePayload };
+  }>('/e2ee/messages/:messageId/bot-payload', {
+    preHandler: [fastify.authenticate],
+    schema: {
+      params: {
+        type: 'object',
+        required: ['messageId'],
+        properties: {
+          messageId: { type: 'string', format: 'uuid' },
+        },
+      },
+      body: {
+        type: 'object',
+        required: ['payload'],
+        properties: {
+          payload: { type: 'object' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const userId = request.user.sub;
+    const payload = normalizeBotReadablePayload(request.body.payload);
+    if (!payload) return reply.code(400).send({ error: 'Invalid payload' });
+
+    const [message] = await db
+      .select({
+        id: messages.id,
+        sender_id: messages.sender_id,
+        conversation_id: messages.conversation_id,
+        content: messages.content,
+      })
+      .from(messages)
+      .where(eq(messages.id, request.params.messageId))
+      .limit(1);
+
+    if (!message) return reply.code(404).send({ error: 'Message not found' });
+    if (message.sender_id !== userId) return reply.code(403).send({ error: 'Only sender can backfill payload' });
+
+    const participant = await requireParticipant(message.conversation_id, userId);
+    if (!participant) return reply.code(403).send({ error: 'Not a participant' });
+    if (!(await conversationHasBotParticipant(message.conversation_id))) {
+      return reply.code(400).send({ error: 'Backfill is allowed only in bot conversations' });
+    }
+
+    const envelope = parseEncryptedEnvelope(message.content);
+    if (!envelope) return reply.code(400).send({ error: 'Message is not encrypted' });
+    if (typeof envelope.bot_payload_b64 === 'string' && envelope.bot_payload_b64.length > 0) {
+      return { ok: true, updated: false };
+    }
+
+    envelope.bot_payload_b64 = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64');
+
+    await db
+      .update(messages)
+      .set({
+        content: JSON.stringify(envelope),
+        updated_at: new Date(),
+      })
+      .where(eq(messages.id, message.id));
+
+    return { ok: true, updated: true };
   });
 }

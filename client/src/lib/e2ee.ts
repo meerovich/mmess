@@ -30,6 +30,7 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 const conversationKeyCache = new Map<string, CryptoKey>();
 const rawConversationKeyCache = new Map<string, Uint8Array>();
+const botPayloadBackfillAttempts = new Set<string>();
 const BOT_READABLE_USERNAMES = new Set(['codex bot', 'claude bot']);
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -61,13 +62,45 @@ function shouldEmbedBotPayload(conversation: Conversation): boolean {
   );
 }
 
-export function isEncryptedPayload(content: string | null | undefined): boolean {
-  if (!content?.startsWith('{')) return false;
+function parseEncryptedEnvelope(content: string | null | undefined): E2eeCipherPayload | null {
+  if (!content?.startsWith('{')) return null;
   try {
-    return (JSON.parse(content) as { type?: unknown }).type === 'mmess-e2ee';
+    const parsed = JSON.parse(content) as E2eeCipherPayload;
+    return parsed.type === 'mmess-e2ee' ? parsed : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export function isEncryptedPayload(content: string | null | undefined): boolean {
+  return parseEncryptedEnvelope(content) !== null;
+}
+
+export function queueBotReadablePayloadBackfill(
+  conversation: Conversation | null | undefined,
+  messageId: string | null | undefined,
+  content: string | null | undefined,
+  payload: E2eePlainPayload | null | undefined,
+): void {
+  if (!conversation || !messageId || !payload || !shouldEmbedBotPayload(conversation)) return;
+
+  const envelope = parseEncryptedEnvelope(content);
+  if (!envelope || typeof envelope.bot_payload_b64 === 'string') return;
+  if (botPayloadBackfillAttempts.has(messageId)) return;
+
+  botPayloadBackfillAttempts.add(messageId);
+  void apiFetch(`/api/e2ee/messages/${messageId}/bot-payload`, {
+    method: 'POST',
+    body: JSON.stringify({ payload }),
+  })
+    .then((response) => {
+      if (!response.ok && response.status >= 500) {
+        botPayloadBackfillAttempts.delete(messageId);
+      }
+    })
+    .catch(() => {
+      botPayloadBackfillAttempts.delete(messageId);
+    });
 }
 
 async function importAesKey(raw: Uint8Array): Promise<CryptoKey> {
@@ -272,7 +305,8 @@ export async function decryptMessagePayload(
   if (!content) return null;
   if (!isEncryptedPayload(content)) return { text: content };
 
-  const envelope = JSON.parse(content) as E2eeCipherPayload;
+  const envelope = parseEncryptedEnvelope(content);
+  if (!envelope) return { text: content };
   const key = await ensureConversationKey(conversation, userId, { createIfMissing: false });
   const plaintext = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: toArrayBuffer(base64ToBytes(envelope.iv)) },
