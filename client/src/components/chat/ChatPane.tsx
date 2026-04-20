@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useChat } from '../../contexts/ChatContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../lib/i18n';
@@ -50,6 +50,7 @@ export function ChatPane() {
   const { user } = useAuth();
   const { setShowChat } = useChatLayout();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, locale } = useTranslation();
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editMessage, setEditMessage] = useState<Message | null>(null);
@@ -61,6 +62,15 @@ export function ChatPane() {
   const handleBack = () => {
     dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
     setShowChat(false);
+    const canReturnToListEntry =
+      (location.state as { mmessBackToList?: boolean } | null)?.mmessBackToList === true &&
+      (window.history.state?.idx ?? 0) > 0;
+
+    if (canReturnToListEntry) {
+      navigate(-1);
+      return;
+    }
+
     navigate('/', { replace: true });
   };
 

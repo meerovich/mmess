@@ -147,7 +147,10 @@ export function ConversationItem({ conversation }: ConversationItemProps) {
     // List -> chat should create one back-stack entry to return to the list.
     // Chat -> chat should replace, otherwise iOS swipe-back can walk through
     // previously viewed chats instead of stopping at the list.
-    navigate(`/chat/${conversation.id}`, { replace: isReplacingExistingChat });
+    navigate(`/chat/${conversation.id}`, {
+      replace: isReplacingExistingChat,
+      state: { mmessBackToList: true },
+    });
   }
 
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
