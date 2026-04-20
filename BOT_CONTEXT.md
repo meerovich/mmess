@@ -37,6 +37,7 @@
 - Последняя крупная версия в работе/выкладке: `1.7.0` — практическое E2EE для сообщений и файлов.
 - UI follow-up `1.7.1`: аватар группы обрезается тем же crop flow, что и профиль; тап по аватару в profile/group modal открывает fullscreen preview, закрытие поддерживает свайп вниз.
 - Navigation note: mobile chat back arrow must use real history back when chat was opened from the list (`location.state.mmessBackToList`), not `replace('/')`; replacing creates duplicate `/` entries and makes iOS swipe-back from the list loop into the same list.
+- Push navigation note `1.7.3`: notification targets must normalize any `conversationId` to `/chat/:id`; iOS/PWA may open `/` with query params or even drop query, so the service worker also stores the clicked target in Cache API at `/__mmess_notification_target` and `ChatLayout` replays it on mount/focus/ws-state changes.
 - E2EE v1: WebCrypto RSA-OAEP identity key на пользователя + AES-GCM ключ на беседу; сервер хранит только публичные ключи и wrapped conversation key shares, тело сообщения хранится как JSON envelope `mmess-e2ee`.
 - Ограничение E2EE v1: приватный ключ хранится на клиенте в `localStorage`; это защищает от чтения БД/обычного серверного просмотра, но не от вредоносного JS, отданного с сервера, и не является hardened multi-device key management.
 - При чтении зашифрованного сообщения клиент не должен создавать новый ключ беседы, если share недоступен; иначе можно сохранить неправильный ключ и сломать дальнейшую расшифровку.

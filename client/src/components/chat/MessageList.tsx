@@ -215,7 +215,7 @@ export function MessageList({ conversationId, onReply, onEdit }: MessageListProp
 
     let cancelled = false;
     let attempts = 0;
-    const maxAttempts = 6;
+    const maxAttempts = 30;
 
     const pollForTarget = async () => {
       if (cancelled || attempts >= maxAttempts) return;

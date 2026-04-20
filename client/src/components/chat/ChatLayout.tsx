@@ -12,7 +12,9 @@ import {
   clearNotificationTarget,
   parseNotificationTargetUrl,
   readNotificationTarget,
+  readServiceWorkerNotificationTarget,
   writeNotificationTarget,
+  type NotificationTarget,
 } from '../../lib/notificationTarget';
 import styles from './ChatLayout.module.css';
 
@@ -33,7 +35,7 @@ export function ChatLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const navigationType = useNavigationType();
-  const { dispatch } = useChat();
+  const { state, dispatch } = useChat();
   const { user } = useAuth();
   const [showChat, setShowChat] = useState(false);
   const layoutRef = useRef<HTMLDivElement>(null);
@@ -146,20 +148,56 @@ export function ChatLayout() {
       writeNotificationTarget(urlNotificationTarget);
       window.history.replaceState(window.history.state, '', urlNotificationTarget.path);
     }
+  }, []);
 
-    const pendingTarget = readNotificationTarget();
-    if (!pendingTarget?.path) return;
+  useEffect(() => {
+    let cancelled = false;
 
-    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (currentPath === pendingTarget.path) {
-      if (!pendingTarget.messageId) {
+    const routeTarget = (target: NotificationTarget | null) => {
+      if (!target?.path) return;
+
+      const currentPath = `${location.pathname}${location.search}${location.hash}`;
+      if (currentPath !== target.path) {
+        navigate(target.path, {
+          replace: target.replace ?? true,
+          state: { mmessFromNotification: true },
+        });
+        return;
+      }
+
+      if (!target.messageId) {
         clearNotificationTarget();
       }
-      return;
-    }
+    };
 
-    window.location.replace(pendingTarget.path);
-  }, []);
+    const syncPendingNotificationTarget = async () => {
+      const target = readNotificationTarget() ?? await readServiceWorkerNotificationTarget();
+      if (cancelled) return;
+      routeTarget(target);
+    };
+
+    void syncPendingNotificationTarget();
+
+    const handleFocus = () => void syncPendingNotificationTarget();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void syncPendingNotificationTarget();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [
+    location.hash,
+    location.pathname,
+    location.search,
+    navigate,
+    state.conversations.length,
+    state.wsStatus,
+  ]);
 
   useEffect(() => {
     const previousPath = previousPathRef.current;
