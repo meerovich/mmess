@@ -71,6 +71,13 @@
       "when": 1776686400000,
       "tag": "0009_e2ee_key_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1776712600000,
+      "tag": "0010_conversation_pins",
+      "breakpoints": true
     }
   ]
 }
