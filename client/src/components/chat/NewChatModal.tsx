@@ -70,13 +70,18 @@ export function NewChatModal({ onClose }: NewChatModalProps) {
       });
       if (res.ok) {
         const conversation = await res.json();
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         dispatch({ type: 'UPSERT_CONVERSATION', conversation });
         dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: conversation.id });
-        setShowChat(true);
-        navigate(`/chat/${conversation.id}`, {
-          state: { mmessBackToList: true },
-        });
         onClose();
+        requestAnimationFrame(() => {
+          setShowChat(true);
+          navigate(`/chat/${conversation.id}`, {
+            state: { mmessBackToList: true },
+          });
+        });
       }
     } finally {
       setIsCreating(false);

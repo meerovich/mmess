@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './Lightbox.module.css';
 
 interface LightboxProps {
-  fileId: string;
+  fileId?: string;
+  src?: string;
   fileName: string;
   onClose: () => void;
 }
 
-export function Lightbox({ fileId, onClose, fileName }: LightboxProps) {
+export function Lightbox({ fileId, src, onClose, fileName }: LightboxProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [dragY, setDragY] = useState(0);
@@ -86,7 +87,7 @@ export function Lightbox({ fileId, onClose, fileName }: LightboxProps) {
       >
         {!isLoaded && <div className={styles.spinner} aria-hidden="true" />}
         <img
-          src={`/api/files/${fileId}`}
+          src={src ?? (fileId ? `/api/files/${fileId}` : '')}
           alt={fileName}
           className={`${styles.image} ${isLoaded ? styles.imageLoaded : ''}`}
           onLoad={() => setIsLoaded(true)}

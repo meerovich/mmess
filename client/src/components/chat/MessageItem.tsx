@@ -160,11 +160,13 @@ function EncryptedAttachment({
   userId,
   fileId,
   meta,
+  onOpenImage,
 }: {
   conversation: Conversation;
   userId: string;
   fileId: string;
   meta: E2eeFileMeta;
+  onOpenImage?: (src: string, fileName: string) => void;
 }) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -199,11 +201,25 @@ function EncryptedAttachment({
     return (
       <div
         className={styles.imageContainer}
-        onClick={handleDownload}
+        onClick={() => {
+          if (objectUrl && !failed) {
+            onOpenImage?.(objectUrl, meta.name);
+            return;
+          }
+          handleDownload();
+        }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter') handleDownload(); }}
-        aria-label={`Download ${meta.name}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            if (objectUrl && !failed) {
+              onOpenImage?.(objectUrl, meta.name);
+              return;
+            }
+            handleDownload();
+          }
+        }}
+        aria-label={objectUrl && !failed ? `View ${meta.name}` : `Download ${meta.name}`}
       >
         {objectUrl && !failed ? (
           <img src={objectUrl} alt={meta.name} className={styles.inlineImage} />
@@ -233,7 +249,11 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxState, setLightboxState] = useState<{
+    fileId?: string;
+    src?: string;
+    fileName: string;
+  } | null>(null);
   const [forwardMessage, setForwardMessage] = useState<Message | null>(null);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
   const [activeReceiptHint, setActiveReceiptHint] = useState<{
@@ -761,16 +781,27 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
               userId={user.id}
               fileId={message.file_id}
               meta={displayFile}
+              onOpenImage={(src, fileName) => setLightboxState({ src, fileName })}
             />
           )}
 
           {message.file_id && !displayFile && message.is_image && (
             <div
               className={styles.imageContainer}
-              onClick={() => setLightboxOpen(true)}
+              onClick={() => setLightboxState({
+                fileId: message.file_id ?? undefined,
+                fileName: message.file_name || 'Image',
+              })}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === 'Enter') setLightboxOpen(true); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setLightboxState({
+                    fileId: message.file_id ?? undefined,
+                    fileName: message.file_name || 'Image',
+                  });
+                }
+              }}
               aria-label={`View ${message.file_name || 'image'}`}
             >
               <img
@@ -1134,11 +1165,12 @@ export function MessageItem({ message, isGrouped = false, onReply, onEdit }: Mes
       </div>
 
       {/* Lightbox — full-size image viewer (D-30, D-31) */}
-      {lightboxOpen && message.file_id && (
+      {lightboxState && (
         <Lightbox
-          fileId={message.file_id}
-          fileName={message.file_name || 'Image'}
-          onClose={() => setLightboxOpen(false)}
+          fileId={lightboxState.fileId}
+          src={lightboxState.src}
+          fileName={lightboxState.fileName}
+          onClose={() => setLightboxState(null)}
         />
       )}
 

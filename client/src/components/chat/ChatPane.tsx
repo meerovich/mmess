@@ -116,7 +116,9 @@ export function ChatPane() {
 
     dispatch({ type: 'CONVERSATION_REMOVED', conversationId: conversation.id });
     setShowAvatarPreview(false);
-    handleBack();
+    dispatch({ type: 'SET_ACTIVE_CONVERSATION', conversationId: null });
+    setShowChat(false);
+    navigate('/', { replace: true });
   };
 
   const handleUnpinConversation = async () => {
